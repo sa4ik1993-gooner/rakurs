@@ -472,3 +472,6 @@ input[type=checkbox][aria-invalid="true"]{outline:2px solid var(--play);outline-
   table.tm td:first-child,table.tm td:nth-child(4){flex:1 0 100%}
   table.tm td.n{flex:1 0 100%;display:flex;gap:8px;justify-content:flex-start;text-align:left}
 }
+/* числа в таблицах не переносятся: узкая таблица листается вбок */
+#fact td.n,#fact th.n,#ch-plan td.n,#ch-plan th.n{white-space:nowrap}
+#fact td:first-child{min-width:120px}
