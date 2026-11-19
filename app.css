@@ -306,3 +306,13 @@ td.n b{white-space:nowrap}
 .utm code{font:400 11.5px/1.5 var(--f-mono);background:var(--bg);border:1px solid var(--line);padding:6px 8px;overflow-x:auto;white-space:nowrap;user-select:all}
 label.drop{cursor:pointer}
 @media (max-width:900px){ .adder{grid-template-columns:1fr} .tree>div:nth-child(2){margin-left:12px} .tree>div:nth-child(3){margin-left:24px} }
+
+/* регистрация */
+.chk{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;cursor:pointer;font-size:14px}
+.chk input{width:18px;height:18px;margin:2px 0 0;accent-color:var(--track)}
+.code{font:600 24px/1 var(--f-mono)!important;letter-spacing:.4em;max-width:240px;text-align:center}
+.proto{border-left:3px solid var(--mark);padding-left:10px}
+.lnk{border:0;background:none;padding:0;color:var(--track);font:inherit;font-weight:600;text-decoration:underline;cursor:pointer}
+.me{display:flex;flex-direction:column;gap:2px;padding:4px;min-width:0}
+.me small{font:600 10px/1.2 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--rail-mute)}
+.me b{font-weight:600;font-size:13px;color:var(--rail-fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

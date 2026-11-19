@@ -1,6 +1,6 @@
 /* Своя компания: Компания → Проекты → Воронки. Пустой старт, всё введённое хранится в браузере.
    Подключается после setup.js. Заполненный пример «Школа 3D» остаётся отдельным режимом. */
-let W = {mode:"own", co:null, projs:[], cur:null, fun:null, tab:"about", ftab:"an", wipe:false};
+let W = {mode:"own", user:null, co:null, projs:[], cur:null, fun:null, tab:"about", ftab:"an", wipe:false};
 try { const s = JSON.parse(localStorage.getItem("rakurs_ws")); if (s && Array.isArray(s.projs)) W = Object.assign(W, s, {wipe:false}); } catch (e) {}
 if (location.hash === "#sample") { W.mode = "sample"; location.hash = "today"; }
 const save = () => { try { localStorage.setItem("rakurs_ws", JSON.stringify(W)); } catch (e) {} };
@@ -33,8 +33,36 @@ const pChain = p => [["about",L("Опис","Описание"),!!(p.name && p.pr
 const fChain = (f, p) => [["an",L("Анамнез","Анамнез"),!!(f.an.offer && f.tg.check)],["aud",L("ЦА воронки","ЦА воронки"),fSegs(f,p).length>0],["land",L("Лендинги","Лендинги"),f.lands.length>0],["cr",L("Креативи","Креативы"),f.crs.length>=3],["goals",L("Цілі й аналітика","Цели и аналитика"),f.tg.pay>0]];
 
 /* ---------- экраны ---------- */
+const auFresh = () => ({via:"email", step:0, id:"", login:false});
+let AU = auFresh();
+function vAuth(){
+  const up = !AU.login, proto = t => `<p class="sub proto">${L("Прототип: ","Прототип: ")}${t}</p>`;
+  const agree = `<label class="chk"><input type="checkbox" id="au-ok"><span>${L("Погоджуюся з умовами сервісу та політикою конфіденційності","Соглашаюсь с условиями сервиса и политикой конфиденциальности")}</span></label>`;
+  const body = AU.via === "email"
+    ? (AU.step === 0
+      ? `<div class="field"><label for="au-mail">${L("Електронна пошта","Электронная почта")}</label><input id="au-mail" type="email" inputmode="email" autocomplete="email" placeholder="name@company.com" value="${esc(AU.id)}"></div>
+         ${up?agree:""}<div class="row"><button class="btn btn--solid" data-act="wsAuthSend">${L("Отримати код","Получить код")}</button></div>
+         <p class="sub">${L("Пароль не потрібен: надішлемо шестизначний код підтвердження, він діє 10 хвилин.","Пароль не нужен: пришлём шестизначный код подтверждения, он действует 10 минут.")}</p>`
+      : `<p>${L("Код підтвердження надіслано на ","Код подтверждения отправлен на ")}<b>${esc(AU.id)}</b></p>
+         <div class="field"><label for="au-code">${L("Код із листа","Код из письма")}</label><input id="au-code" class="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••"></div>
+         <div class="row"><button class="btn btn--solid" data-act="wsAuthCode">${L("Підтвердити","Подтвердить")}</button><button class="btn" data-act="wsAuthBack">${L("Інша пошта","Другая почта")}</button></div>
+         ${proto(L("лист не надсилається, підійдуть будь-які шість цифр.","письмо не отправляется, подойдут любые шесть цифр."))}`)
+    : (AU.step === 0
+      ? `<p class="sub">${L("Вхід через Telegram одразу прив’язує бота: туди він пише розбори й там приймає голосові вказівки.","Вход через Telegram сразу привязывает бота: туда он пишет разборы и там принимает голосовые указания.")}</p>
+         <div class="field"><label for="au-tg">${L("Ваш нік у Telegram","Ваш ник в Telegram")}</label><input id="au-tg" placeholder="@username" autocomplete="username" value="${esc(AU.id)}"></div>
+         ${up?agree:""}<div class="row"><button class="btn btn--solid" data-act="wsAuthTg">${L("Продовжити через Telegram","Продолжить через Telegram")}</button></div>`
+      : `<p>${L("Підтвердьте вхід для ","Подтвердите вход для ")}<b>${esc(AU.id)}</b></p>
+         <ul class="steps"><li class="ok">${L("Відкрийте бота сервісу в Telegram","Откройте бота сервиса в Telegram")}</li><li class="on">${L("Натисніть «Start» — бот підтвердить, що це ви","Нажмите «Start» — бот подтвердит, что это вы")}</li><li>${L("Поверніться сюди: кабінет відкриється сам","Вернитесь сюда: кабинет откроется сам")}</li></ul>
+         <div class="row"><button class="btn btn--solid" data-act="wsAuthTgOk">${L("Я натиснув Start","Я нажал Start")}</button><button class="btn" data-act="wsAuthBack">${L("Назад","Назад")}</button></div>
+         ${proto(L("бота ще немає, вхід підтверджується цією кнопкою.","бота ещё нет, вход подтверждается этой кнопкой."))}`);
+  return `<div class="panel vf hero0"><span class="tag">${up?L("Крок 1","Шаг 1"):L("Вхід","Вход")}${AU.step?L(" · підтвердження"," · подтверждение"):""}</span><h1>${up?L("Реєстрація","Регистрация"):L("Вхід у кабінет","Вход в кабинет")}</h1>
+    <div class="seg" role="group">${[["email",L("Пошта","Почта")],["tg","Telegram"]].map(x=>`<button type="button" data-act="wsAuthVia" data-v="${x[0]}" aria-pressed="${AU.via===x[0]}">${x[1]}</button>`).join("")}</div>
+    ${body}
+    <p class="sub">${up?L("Уже є акаунт? ","Уже есть аккаунт? "):L("Ще немає акаунта? ","Ещё нет аккаунта? ")}<button type="button" class="lnk" data-act="wsAuthMode">${up?L("Увійти","Войти"):L("Зареєструватися","Зарегистрироваться")}</button></p></div>
+  <div class="row"><button class="btn btn--sm" data-act="wsSample">${L("Подивитися заповнений приклад без реєстрації","Посмотреть заполненный пример без регистрации")}</button></div>`;
+}
 function vWelcome(){
-  return `<div class="panel vf hero0"><span class="tag">${L("Крок 1","Шаг 1")}</span><h1>${L("Як називається компанія?","Как называется компания?")}</h1>
+  return `<div class="panel vf hero0"><span class="tag">${L("Крок 2","Шаг 2")}</span><h1>${L("Як називається компанія?","Как называется компания?")}</h1>
     <p class="sub">${L("Компанія — верхній рівень. У неї може бути кілька проєктів, а в кожному проєкті — свої воронки.","Компания — верхний уровень. У неё может быть несколько проектов, а в каждом проекте — свои воронки.")}</p>
     <div class="field"><label for="co-name">${L("Назва компанії","Название компании")}</label><input id="co-name" placeholder="${L("наприклад, Visual360","например, Visual360")}"></div>
     <div class="field"><label>${L("Хто ви","Кто вы")}</label><div class="opts" id="co-kind">${[["own",L("Своя компанія","Своя компания")],["agency",L("Агентство, ведемо клієнтів","Агентство, ведём клиентов")]].map((x,i)=>`<button type="button" class="opt" data-act="wsKind" data-v="${x[0]}" aria-pressed="${(W.kind||"own")===x[0]}">${x[1]}</button>`).join("")}</div></div>
@@ -196,29 +224,40 @@ function ownAudStep(o){ return `<p class="sub">${L("Хто купує. Можн�
 function ownShell(){
   const p = P(), f = F(), nb = (act, v, t, on) => `<a role="button" tabindex="0" data-act="${act}" data-v="${v}" ${on?'aria-current="page"':""}>${t}</a>`;
   $("rail").innerHTML = `<a class="logo" href="index.html"><i></i>RAKURS</a>
-    ${W.co?`<button type="button" class="ws" data-act="wsBackP"><small>${L("Компанія","Компания")}</small><b>${esc(W.co.name)}</b></button>
+    ${W.user&&W.co?`<button type="button" class="ws" data-act="wsBackP"><small>${L("Компанія","Компания")}</small><b>${esc(W.co.name)}</b></button>
     <nav class="navg"><span>${L("Компанія","Компания")}</span>${nb("wsBackP","",L("Проєкти","Проекты")+(W.projs.length?` <b class="cnt">${W.projs.length}</b>`:""),!p)}</nav>`:""}
-    ${p?`<nav class="navg"><span>${esc(p.name)}</span>${pChain(p).map(c=>nb("wsTab",c[0],c[1]+(c[2]?"":" <em>·</em>"),!f&&W.tab===c[0])).join("")}</nav>`:""}
-    ${f?`<nav class="navg"><span>${esc(f.name)}</span>${fChain(f,p).map(c=>nb("wsFtab",c[0],c[1]+(c[2]?"":" <em>·</em>"),W.ftab===c[0])).join("")}</nav>`:""}
-    <div class="rail__foot"><button type="button" data-act="wsSample">${L("Приклад «Школа 3D»","Пример «Школа 3D»")}</button><button type="button" data-act="theme">${L("Тема: світла / темна","Тема: светлая / тёмная")}</button>
-      ${W.co?`<button type="button" data-act="wsWipe">${W.wipe?L("Точно видалити все?","Точно удалить всё?"):L("Видалити все й почати заново","Удалить всё и начать заново")}</button>`:""}<a href="index.html">← ${L("На сайт","На сайт")}</a></div>`;
-  $("bar").innerHTML = `<span class="crumb">${[W.co&&W.co.name, p&&p.name, f&&f.name].filter(Boolean).map(esc).join(" › ") || L("Нова компанія","Новая компания")}</span><span class="badge">${L("прототип · дані у браузері","прототип · данные в браузере")}</span>
+    ${W.user&&p?`<nav class="navg"><span>${esc(p.name)}</span>${pChain(p).map(c=>nb("wsTab",c[0],c[1]+(c[2]?"":" <em>·</em>"),!f&&W.tab===c[0])).join("")}</nav>`:""}
+    ${W.user&&f?`<nav class="navg"><span>${esc(f.name)}</span>${fChain(f,p).map(c=>nb("wsFtab",c[0],c[1]+(c[2]?"":" <em>·</em>"),W.ftab===c[0])).join("")}</nav>`:""}
+    <div class="rail__foot">${W.user?`<div class="me"><small>${W.user.via==="tg"?"Telegram":L("Пошта","Почта")} · ${L("підтверджено","подтверждено")}</small><b>${esc(W.user.id)}</b></div><button type="button" data-act="wsLogout">${L("Вийти","Выйти")}</button>`:""}<button type="button" data-act="wsSample">${L("Приклад «Школа 3D»","Пример «Школа 3D»")}</button><button type="button" data-act="theme">${L("Тема: світла / темна","Тема: светлая / тёмная")}</button>
+      ${W.user?`<button type="button" data-act="wsWipe">${W.wipe?L("Точно видалити все?","Точно удалить всё?"):L("Видалити все й почати заново","Удалить всё и начать заново")}</button>`:""}<a href="index.html">← ${L("На сайт","На сайт")}</a></div>`;
+  $("bar").innerHTML = `<span class="crumb">${[W.co&&W.co.name, p&&p.name, f&&f.name].filter(Boolean).map(esc).join(" › ") || (W.user?L("Нова компанія","Новая компания"):L("Реєстрація","Регистрация"))}</span><span class="badge">${L("прототип · дані у браузері","прототип · данные в браузере")}</span>
     <div class="bar__r"><div class="seg tier" role="group" aria-label="version"><button type="button" data-act="tier" data-v="lite" aria-pressed="${S.tier==="lite"}">Lite</button><button type="button" data-act="tier" data-v="pro" aria-pressed="${S.tier==="pro"}">Pro</button></div><div class="lang" role="group" aria-label="language"><button type="button" data-lang="uk" aria-pressed="${lang==="uk"}">UA</button><button type="button" data-lang="ru" aria-pressed="${lang==="ru"}">RU</button></div></div>`;
   $("frozen").hidden = true; $("fab").hidden = true; document.documentElement.lang = lang;
 }
-function ownView(){ const p = P(), f = F(); return !W.co ? vWelcome() : !p ? vProjects() : f ? vFunnel(f, p) : vProject(p); }
+function ownView(){ const p = P(), f = F(); return !W.user ? vAuth() : !W.co ? vWelcome() : !p ? vProjects() : f ? vFunnel(f, p) : vProject(p); }
 let ownKey = "";
 const _rs = renderShell, _rv = renderView, _ra = renderAsst, _mf = modalFunnel;
 renderShell = function(){ if (own()) ownShell(); else { _rs(); const ft = document.querySelector(".rail__foot"); if (ft) ft.insertAdjacentHTML("afterbegin", `<button type="button" data-act="wsOwn">← ${L("Моя компанія","Моя компания")}</button>`); } };
-renderView = function(){ if (!own()) return _rv(); const v = $("view"), k = [W.cur, W.fun, W.tab, W.ftab, !!W.co].join("|"); v.innerHTML = ownView(); if (k !== ownKey) { enter(v); ownKey = k; window.scrollTo(0,0); } };
+renderView = function(){ if (!own()) return _rv(); const v = $("view"), k = [W.cur, W.fun, W.tab, W.ftab, !!W.co, !!W.user, AU.via, AU.step, AU.login].join("|"); v.innerHTML = ownView(); if (k !== ownKey) { enter(v); ownKey = k; window.scrollTo(0,0); } };
 renderAsst = function(){ if (own()) { $("asst").hidden = true; $("fab").hidden = true; return; } _ra(); };
 modalFunnel = function(){ return own() ? modalFunnelOwn() : _mf(); };
 
 /* ---------- действия ---------- */
+function authDone(via, id){ W.user = {via, id}; AU = auFresh(); save(); toast(W.co ? L("З поверненням","С возвращением") : L("Підтверджено. Тепер компанія","Подтверждено. Теперь компания")); }
 const val = id => { const e = $(id); return e ? e.value.trim() : ""; };
 const need = (v, t) => { if (!v) { toast(t); return false; } return true; };
 const _mod = ACT.modal, _cp = ACT.createProject, _cf = ACT.createFunnel, _oc = ACT.obConn, _on = ACT.obNav;
 Object.assign(ACT, {
+  wsAuthVia(d){ AU.via = d.v; AU.step = 0; AU.id = ""; },
+  wsAuthMode(){ AU.login = !AU.login; AU.step = 0; },
+  wsAuthBack(){ AU.step = 0; },
+  wsAuthSend(){ const m = val("au-mail").toLowerCase(); if (!need(/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(m), L("Перевірте адресу пошти","Проверьте адрес почты"))) return false;
+    if (!AU.login && !need($("au-ok").checked, L("Потрібна згода з умовами","Нужно согласие с условиями"))) return false; AU.id = m; AU.step = 1; },
+  wsAuthCode(){ if (!need(/^\d{6}$/.test(val("au-code")), L("Код — шість цифр","Код — шесть цифр"))) return false; authDone("email", AU.id); },
+  wsAuthTg(){ const u = val("au-tg").replace(/^@+/, ""); if (!need(/^[A-Za-z0-9_]{4,32}$/.test(u), L("Нік: латиниця, цифри й _, від 4 символів","Ник: латиница, цифры и _, от 4 символов"))) return false;
+    if (!AU.login && !need($("au-ok").checked, L("Потрібна згода з умовами","Нужно согласие с условиями"))) return false; AU.id = "@" + u; AU.step = 1; },
+  wsAuthTgOk(){ authDone("tg", AU.id); },
+  wsLogout(){ W.user = null; AU = auFresh(); AU.login = true; save(); toast(L("Ви вийшли. Дані збережено","Вы вышли. Данные сохранены")); },
   wsKind(d){ W.kind = d.v; const n = val("co-name"); renderView(); const e = $("co-name"); if (e) e.value = n; return false; },
   wsCo(){ const n = val("co-name"); if (!need(n, L("Введіть назву компанії","Введите название компании"))) return false; W.co = {name:n, kind:W.kind || "own"}; save(); },
   wsSample(){ W.mode = "sample"; save(); location.hash = "today"; lastRoute = null; },
@@ -246,14 +285,14 @@ Object.assign(ACT, {
   wsCopy(d){ const l = F().lands.find(x=>x.id===d.id), t = "https://" + l.url + (l.url.includes("?")?"&":"?") + UTM; (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(()=>toast(L("Посилання скопійовано","Ссылка скопирована")), ()=>toast(L("Виділіть посилання й скопіюйте вручну","Выделите ссылку и скопируйте вручную"))); return false; },
   wsAddCr(){ const n = val("cr-n"), h = val("cr-h"); if (!need(n || h, L("Дайте креативу назву або опишіть перший кадр","Дайте креативу название или опишите первый кадр"))) return false; const f = F(); f.crs.push({id:uid(), name:n, slug:slug(n) || "creative_" + (f.crs.length+1), type:$("cr-t").value, hook:h, seg:$("cr-s").value, text:val("cr-x")}); save(); },
   wsDelCr(d){ const f = F(); f.crs = f.crs.filter(c=>c.id!==d.id); save(); },
-  wsWipe(){ if (!W.wipe) { W.wipe = true; later(()=>{ if (W.wipe) { W.wipe = false; renderShell(); } }, 4000); return; } W = {mode:"own", co:null, projs:[], cur:null, fun:null, tab:"about", ftab:"an", wipe:false}; save(); toast(L("Усе видалено","Всё удалено")); },
+  wsWipe(){ if (!W.wipe) { W.wipe = true; later(()=>{ if (W.wipe) { W.wipe = false; renderShell(); } }, 4000); return; } W = {mode:"own", user:null, co:null, projs:[], cur:null, fun:null, tab:"about", ftab:"an", wipe:false}; AU = auFresh(); save(); toast(L("Усе видалено","Всё удалено")); },
   obSegAdd(){ const n = val("os-n"); if (!need(n, L("Опишіть сегмент","Опишите сегмент"))) return false; S.ob.segsOwn.push({id:uid(), name:n, pain:val("os-p"), say:val("os-s")}); },
   obSegDel(d){ S.ob.segsOwn = S.ob.segsOwn.filter(s=>s.id!==d.id); },
   obConn(d){ if (own()) { S.ob.conn[d.id] = 3; return; } return _oc(d); },
   obNav(d){ if (own() && S.ob.step === 0 && +d.v > 0 && !String(S.ob.d.name).trim()) { toast(L("Введіть назву проєкту","Введите название проекта")); return false; } return _on(d); },
   createProject(){ if (!own()) return _cp(); const o = S.ob, d = o.d;
     const p = {id:uid(), name:String(d.name).trim(), niche:d.niche, geo:d.geo, site:d.site, product:d.product, sale:d.sale, desc:"", worked:d.worked, ban:d.ban, tone:d.tone,
-      tg:{budget:d.budget, check:d.check, share:d.share, l2b:d.l2b, b2p:d.b2p}, segs:o.segsOwn, audText:"", audFiles:[], brand:{colors:"", fonts:"", voice:"", files:[]}, kb:[], conn:Object.assign({}, o.conn), funnels:[]};
+      tg:{budget:d.budget, check:d.check, share:d.share, l2b:d.l2b, b2p:d.b2p}, segs:o.segsOwn, audText:"", audFiles:[], brand:{colors:"", fonts:"", voice:"", files:[]}, kb:[], conn:Object.assign(W.user && W.user.via === "tg" ? {tg:3} : {}, o.conn), funnels:[]};
     W.projs.push(p); W.cur = p.id; W.fun = null; W.tab = p.segs.length ? "kb" : "aud"; S.modal = null; S.ob = null; save(); toast(L("Проєкт створено. Далі — база знань і воронки","Проект создан. Дальше — база знаний и воронки")); },
   createFunnel(){ if (!own()) return _cf(); const p = P(), n = val("nf-name"); if (!need(n, L("Дайте воронці назву","Дайте воронке название"))) return false;
     const check = nfv("nf-price") || p.tg.check, u = val("nf-url").replace(/^https?:\/\//,""), first = !p.funnels.length;
