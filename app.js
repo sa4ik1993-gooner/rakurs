@@ -14,12 +14,13 @@ const pill = (c, x) => `<span class="pill pill--${c}">${x}</span>`;
 const PHR = [4, 9, 16, 23, 30];
 
 function fresh(){ return {
+  tier:"pro", ob:null, an:"all", anF:"all", goalRev:64600, audm:{tab:"files",files:null,seg:false,text:"",segs:()=>[SEGX()]},
   frozen:false, share:22, funnel:null, cr:null, playhead:0, launch:null, modal:null, wiz:0,
   inbox:{a1:null,a3:null,a4:null}, upload:null, trim:null, copySel:"A", rewrite:null, objections:false,
   funnels:[
-    {id:"f1",goal:"site",cap:5,limit:260,mode:"btn",spend:7760,leads:1790,pay:44,landing:"school3d.example/urok"},
-    {id:"f2",goal:"site",cap:4.5,limit:90,mode:"adv",spend:2140,leads:510,pay:10,landing:"school3d.example/akcia"},
-    {id:"f3",goal:"form",cap:6,limit:40,mode:"auto",spend:640,leads:152,pay:2,landing:"lead form"}],
+    {id:"f1",goal:"site",cap:5,limit:260,mode:"btn",spend:7760,leads:1790,pay:44,landing:"school3d.example/urok",tg:{pay:68,check:680,l2b:6,b2p:56}},
+    {id:"f2",goal:"site",cap:4.5,limit:90,mode:"adv",spend:2140,leads:510,pay:10,landing:"school3d.example/akcia",tg:{pay:21,check:680,l2b:6.5,b2p:50}},
+    {id:"f3",goal:"form",cap:6,limit:40,mode:"auto",spend:640,leads:152,pay:2,landing:"lead form",tg:{pay:6,check:680,l2b:10,b2p:40}}],
   fam:[
     {id:"priglos",h:160,v:4,dur:30,drop:4,k:.72,spend:2140,leads:412,pay:22,st:"win",ctr:"1,9%",fq:"2,8",f:"f1"},
     {id:"viktor",h:24,v:2,dur:26,drop:7,k:.84,spend:1380,leads:250,pay:12,st:"win",ctr:"2,2%",fq:"1,7",f:"f1"},
@@ -137,7 +138,7 @@ today(){
     </div>
     <div class="stack" style="display:flex;flex-direction:column;gap:16px">
       <div class="panel"><span class="tag">${L("План місяця","План месяца")}</span>
-        ${[[L("Ліди","Лиды"),2452,4000],[L("Оплати","Оплаты"),56,95],[L("Виручка","Выручка"),38080,64600]].map(r=>`<div><div class="row sp"><span>${r[0]}</span><b class="mono">${r[0]===L("Виручка","Выручка")?money(r[1])+" / "+money(r[2]):num(r[1])+" / "+num(r[2])}</b></div><div class="prog"><i style="width:${Math.round(r[1]/r[2]*100)}%"></i></div></div>`).join("")}
+        ${[[L("Ліди","Лиды"),2452,2820],[L("Оплати","Оплаты"),56,95],[L("Виручка","Выручка"),38080,64600]].map(r=>`<div><div class="row sp"><span>${r[0]}</span><b class="mono">${r[0]===L("Виручка","Выручка")?money(r[1])+" / "+money(r[2]):num(r[1])+" / "+num(r[2])}</b></div><div class="prog"><i style="width:${Math.round(r[1]/r[2]*100)}%"></i></div></div>`).join("")}
       </div>
       <div class="panel"><span class="tag">${L("Сторож кабінетів","Сторож кабинетов")}</span>
         <div class="item"><div class="row">${pill("warn",L("баланс","баланс"))}<strong>TikTok Ads</strong></div><p class="sub">${L("Балансу вистачить на 2 дні. Поповнює власник кабінету.","Баланса хватит на 2 дня. Пополняет владелец кабинета.")}</p>${S.inbox.a4===null?`<div class="row"><button class="btn btn--sm" data-act="inbox" data-id="a4" data-v="1">${L("Нагадати власнику","Напомнить владельцу")}</button></div>`:pill("good",L("нагадування надіслано","напоминание отправлено"))}</div>
@@ -311,7 +312,8 @@ function overlay(){
   if (S.cr) return ["drawer", drawerCr(S.fam.find(f => f.id === S.cr))];
   if (S.launch) return ["drawer", drawerLaunch(S.launches.find(l => l.n === S.launch))];
   if (S.modal === "funnel") return ["modal", modalFunnel()];
-  if (S.modal === "project") return ["modal", modalProject()];
+  if (S.modal === "project" && S.ob) return ["modal", modalOnboard()];
+  if (S.modal === "aud") return ["modal", modalAud()];
   return null;
 }
 function drawerCr(f){
@@ -450,11 +452,11 @@ function asstOk(i){
 }
 
 /* ---------- каркас и рендер ---------- */
-const NAV = () => [
+const NAV = () => { const lt = S.tier === "lite"; return [
   [L("Агентство","Агентство"),[["projects",L("Усі проєкти","Все проекты")]]],
-  [L("Проєкт","Проект"),[["today",L("Сьогодні","Сегодня")],["passport",L("Анамнез","Анамнез")],["funnels",L("Воронки","Воронки")],["creatives",L("Креативи","Креативы")],["copy",L("Тексти","Тексты")],["hyp",L("Гіпотези","Гипотезы")]]],
-  [L("Реклама","Реклама"),[["launches",L("Запуски","Запуски")],["analytics",L("Аналітика","Аналитика")]]],
-  [L("Керування","Управление"),[["rules",L("Правила й ролі","Правила и роли")],["connections",L("Підключення","Подключения")],["journal",L("Журнал","Журнал")]]]];
+  [L("Проєкт","Проект"),[["today",L("Сьогодні","Сегодня")],["passport",L("Проєкт і цілі","Проект и цели")],["funnels",L("Воронки","Воронки")],["creatives",L("Креативи","Креативы")],["copy",L("Тексти","Тексты")]].concat(lt?[]:[["hyp",L("Гіпотези","Гипотезы")]])],
+  [L("Реклама","Реклама"),[["launches",L("Запуски","Запуски")],["analytics",lt?L("Результати","Результаты"):L("Аналітика","Аналитика")]]],
+  [L("Керування","Управление"),(lt?[]:[["rules",L("Правила й ролі","Правила и роли")]]).concat([["connections",L("Підключення","Подключения")]],lt?[]:[["journal",L("Журнал","Журнал")]])]]; };
 const route = () => { const h = location.hash.replace("#",""); return V[h] && h !== "funnel" ? h : "today"; };
 let lastRoute = null;
 function renderShell(){
@@ -464,7 +466,7 @@ function renderShell(){
     ${NAV().map(g=>`<nav class="navg"><span>${g[0]}</span>${g[1].map(n=>`<a href="#${n[0]}" ${n[0]===r?'aria-current="page"':""}>${n[1]}${n[0]==="today"&&pend?`<b>${pend}</b>`:""}</a>`).join("")}</nav>`).join("")}
     <div class="rail__foot"><button type="button" data-act="theme">${L("Тема: світла / темна","Тема: светлая / тёмная")}</button><button type="button" data-act="reset">${L("Скинути демо","Сбросить демо")}</button><a href="index.html">← ${L("На сайт","На сайт")}</a></div>`;
   $("bar").innerHTML = `<span class="crumb">${L("Школа 3D","Школа 3D")}</span><span class="badge">${L("демо-дані","демо-данные")}</span><span class="range">06.11 – 19.11</span>
-    <div class="bar__r"><div class="lang" role="group" aria-label="language"><button type="button" data-lang="uk" aria-pressed="${lang==="uk"}">UA</button><button type="button" data-lang="ru" aria-pressed="${lang==="ru"}">RU</button></div>
+    <div class="bar__r"><div class="seg tier" role="group" aria-label="version"><button type="button" data-act="tier" data-v="lite" aria-pressed="${S.tier==="lite"}">Lite</button><button type="button" data-act="tier" data-v="pro" aria-pressed="${S.tier==="pro"}">Pro</button></div><div class="lang" role="group" aria-label="language"><button type="button" data-lang="uk" aria-pressed="${lang==="uk"}">UA</button><button type="button" data-lang="ru" aria-pressed="${lang==="ru"}">RU</button></div>
     <button type="button" class="stop" data-act="stop" aria-pressed="${S.frozen}">${S.frozen?L("АВТОДІЇ ЗУПИНЕНО","АВТОДЕЙСТВИЯ ОСТАНОВЛЕНЫ"):L("СТОП","СТОП")}</button></div>`;
   const fz = $("frozen"); fz.hidden = !S.frozen; fz.textContent = L("Усі автодії по проєкту заморожено. Кампанії крутяться як є, бот нічого не змінює й не вмикає, доки ви не знімете стоп.","Все автодействия по проекту заморожены. Кампании крутятся как есть, бот ничего не меняет и не включает, пока вы не снимете стоп.");
   $("fab").innerHTML = `<i></i>${L("Сказати боту","Сказать боту")}`; $("fab").hidden = S.asst.open;
@@ -557,4 +559,4 @@ document.addEventListener("keydown", e => {
   if (e.key === "Enter" && e.target.matches("tr[data-act]")) { ACT[e.target.dataset.act](e.target.dataset); render(); }
 });
 window.addEventListener("hashchange", () => { if (route() !== "funnels") S.funnel = null; render(); });
-render();
+/* первый render() вызывается в конце setup.js */
