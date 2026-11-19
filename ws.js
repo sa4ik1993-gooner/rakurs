@@ -31,6 +31,10 @@ const fld = (path, label, o = {}) => { const id = "w-" + path.replace(/\./g,"-")
   return `<div class="field${o.w?" w":""}"><label for="${id}">${label}</label>${o.area ? `<textarea id="${id}" data-w="${path}" rows="${o.area}" placeholder="${esc(o.ph||"")}">${v}</textarea>` : sgWrap(/^(p|co)\./.test(path) ? path.split(".").pop() : "", `<input id="${id}" data-w="${path}" value="${v}" placeholder="${esc(o.ph||"")}"${o.num?' inputmode="decimal"':""}>`, "w:" + path, id, wget(path))}</div>`; };
 const optsW = (path, list) => `<div class="opts">${list.map(x=>`<button type="button" class="opt" data-act="wsSet" data-k="${path}" data-v="${x[0]}" aria-pressed="${wget(path)===x[0]}">${x[1]}</button>`).join("")}</div>`;
 const stepper = (steps, cur, act) => `<ol class="obst obst--nav" style="grid-template-columns:repeat(${steps.length},minmax(0,1fr))">${steps.map((s,i)=>`<li class="${s[2]?"ok":""}${s[0]===cur?" on":""}"><button type="button" data-act="${act}" data-v="${s[0]}"><i>${i+1}${s[2]?" ✓":""}</i><span>${s[1]}</span></button></li>`).join("")}</ol>`;
+/* кабинет ещё грузится: очертания шапки, вкладок и доски вместо пустого экрана; если долго — подсказка */
+const skelCab = () => `<div class="skel" role="status"><span class="skel__note">${L("Завантажуємо кабінет…","Загружаем кабинет…")} <span class="skel__late">${L("Довше, ніж зазвичай: перевірте мережу або оновіть сторінку.","Дольше обычного: проверьте сеть или обновите страницу.")}</span></span>
+  <div class="skel__head">${sk("110px", 11)}${sk("min(280px,70%)", 28)}</div><div class="row">${[64, 86, 170, 86].map(w => sk(w + "px", 34)).join("")}</div>${sk("min(520px,100%)", 14)}
+  <div class="skel__grid" aria-hidden="true">${[1, 2, 3, 4].map(n => `<div>${sk("60%", 11)}${Array(n).fill(sk("100%", 58)).join("")}</div>`).join("")}</div></div>`;
 /* пустое состояние: что это, зачем и одна главная кнопка (если действие есть) */
 const empty = (t, s, btn) => `<div class="empty"><b>${t}</b><span class="sub">${s}</span>${btn ? `<div class="row">${btn}</div>` : ""}</div>`;
 const del = (act, id) => `<button type="button" class="x x--sm" data-act="${act}" data-id="${id}" aria-label="delete">×</button>`;
@@ -347,11 +351,11 @@ function ownShell(){
     ${W.user&&f?`<nav class="navg"><span>${esc(f.name)}</span>${fChain(f,p).map(c=>nb("wsFtab",c[0],c[1]+(c[2]?"":" <em>·</em>"),W.ftab===c[0])).join("")}</nav>`:""}
     <div class="rail__foot">${W.user?`<div class="me"><small>${W.user.via==="tg"?"Telegram":L("Пошта","Почта")} · ${L("підтверджено","подтверждено")}</small><b>${esc(W.user.name || W.user.id)}</b>${TG()&&W.user.via!=="tg"&&CL.tg?`<small>Telegram · ${esc(CL.tg.username||CL.tg.name||L("прив’язано","привязан"))}</small>`:""}</div>${TG()&&W.user.via!=="tg"&&!CL.tg?`<button type="button" data-act="wsTgLink">${L("Прив’язати Telegram","Привязать Telegram")}</button>`:""}<button type="button" data-act="wsLogout">${L("Вийти","Выйти")}</button>`:""}<button type="button" data-act="wsSample">${L("Приклад «Школа 3D»","Пример «Школа 3D»")}</button><button type="button" data-act="theme">${L("Тема: світла / темна","Тема: светлая / тёмная")}</button>
       <a href="index.html">← ${L("На сайт","На сайт")}</a></div>`;
-  $("bar").innerHTML = `<span class="crumb">${[W.co&&W.co.name, p&&p.name, f&&f.name].filter(Boolean).map(esc).join(" › ") || (W.user?L("Нова компанія","Новая компания"):L("Реєстрація","Регистрация"))}</span><span class="badge">${CLOUD ? cloudLabel() : L("прототип · дані у браузері","прототип · данные в браузере")}</span>
+  $("bar").innerHTML = `<span class="crumb">${[W.co&&W.co.name, p&&p.name, f&&f.name].filter(Boolean).map(esc).join(" › ") || (W.user?L("Нова компанія","Новая компания"):L("Реєстрація","Регистрация"))}</span><span id="sync" role="status">${CLOUD ? cloudBadgeHTML() : `<span class="badge">${L("прототип · дані у браузері","прототип · данные в браузере")}</span>`}</span>
     <div class="bar__r"><div class="seg tier" role="group" aria-label="version"><button type="button" data-act="tier" data-v="lite" aria-pressed="${S.tier==="lite"}">Lite</button><button type="button" data-act="tier" data-v="pro" aria-pressed="${S.tier==="pro"}">Pro</button></div><div class="lang" role="group" aria-label="language"><button type="button" data-lang="uk" aria-pressed="${lang==="uk"}">UA</button><button type="button" data-lang="ru" aria-pressed="${lang==="ru"}">RU</button></div></div>`;
   $("frozen").hidden = true; $("fab").hidden = true; document.documentElement.lang = lang;
 }
-function ownView(){ const p = P(), f = F(); if (CLOUD && !CL.ready) return `<div class="panel hero0"><span class="tag">${L("Зачекайте","Подождите")}</span><h1>${L("Завантажуємо кабінет…","Загружаем кабинет…")}</h1></div>`; return !W.user ? vAuth() : !W.co ? vWelcome() : !p ? vCompany() : f ? vFunnel(f, p) : vProject(p); }
+function ownView(){ const p = P(), f = F(); if (CLOUD && (!CL.ready || CL.entering || CL.opening)) return skelCab(); return !W.user ? vAuth() : !W.co ? vWelcome() : !p ? vCompany() : f ? vFunnel(f, p) : vProject(p); }
 let ownKey = "";
 const _rs = renderShell, _rv = renderView, _ra = renderAsst, _mf = modalFunnel;
 renderShell = function(){ if (own()) ownShell(); else { _rs(); const ft = document.querySelector(".rail__foot"); if (ft) ft.insertAdjacentHTML("afterbegin", `<button type="button" data-act="wsOwn">← ${L("Моя компанія","Моя компания")}</button>`); } };
@@ -402,6 +406,7 @@ Object.assign(ACT, {
   wsAddMember(){ const m = val("tm-mail").toLowerCase().replace(/^https?:\/\/t\.me\//, "@"); if (!need(/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(m) || (TG() && /^@[a-z0-9_]{4,32}$/.test(m)), TG()?L("Вкажіть пошту або нік у Telegram, наприклад @username","Укажите почту или ник в Telegram, например @username"):L("Перевірте адресу пошти","Проверьте адрес почты"), "tm-mail")) return false; cloudAddMember(m, $("tm-role").value, $("tm-proj").value); return false; },
   wsDelMember(d){ cloudDelMember(d.id); return false; },
   wsSwitchCo(d){ cloudSwitch(d.id); return false; },
+  cloudRetry(){ CL.tries = 0; cloudQueue(); return false; },
   /* готовый текст приглашения: кто, куда, с какой ролью и как войти */
   wsInvite(d){ const m = CL.members.find(x => x.id === d.id); if (!m) return false; const R = ROLES(), tg = m.email.charAt(0) === "@", link = location.origin + location.pathname;
     const proj = m.project_ids ? m.project_ids.map(i => (W.projs.find(p => p.id === i) || {}).name).filter(Boolean).join(", ") : "";

@@ -3,16 +3,33 @@
 const RK = window.RK || {};
 const CLOUD = !!(RK.url && RK.key) && (/(^|\.)github\.io$|^localhost$|^127\.0\.0\.1$/.test(location.hostname) || (RK.hosts || []).includes(location.hostname));
 let sb = null;
-const CL = {lib:[], ready:false, state:"idle", cos:[], members:[], role:null, known:{}, snap:{co:"", p:{}}, timer:null, busy:false, again:false, at:0};
+const CL = {lib:[], ready:false, state:"idle", cos:[], members:[], role:null, known:{}, snap:{co:"", p:{}}, timer:null, busy:false, again:false, at:0, fail:"", tries:0, savedAt:0, opening:false, retry:null};
 const ROLES = () => ({owner:L("Власник","Собственник"), lead:L("Керівник лідгену","Руководитель лидгена"), targetolog:L("Таргетолог","Таргетолог")});
 const canAdmin = () => !CLOUD || CL.role === "owner" || CL.role === "lead";
 const isOwner = () => !CLOUD || CL.role === "owner";
 const TG = () => CLOUD && !!RK.tg;
 const TGMAIL = /@telegram\.local$/;
 const pid = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : uid();
-const cErr = (e, t) => { console.error(e); CL.state = "err"; cloudBadge(); toast(t + (e && e.message ? ": " + e.message : "")); };
-const cloudLabel = () => ({idle:L("сервер підключено","сервер подключён"), load:L("завантаження…","загрузка…"), dirty:L("зберігаємо…","сохраняем…"), saved:L("збережено","сохранено"), err:L("помилка збереження","ошибка сохранения")}[CL.state]);
-function cloudBadge(){ const b = document.querySelector("#bar .badge"); if (b && CLOUD) b.textContent = cloudLabel(); }
+/* kind: "load" — не открылись данные, "save" — не ушли изменения, "act" — не выполнилось одно действие (статус в шапке не трогаем) */
+const cErr = (e, t, kind, quiet) => { console.error(e); if (kind !== "act") { CL.state = "err"; CL.fail = kind || "load"; cloudBadge(); } if (!quiet) toast(t + (e && e.message ? ": " + e.message : "")); };
+const cloudOff = () => typeof navigator !== "undefined" && navigator.onLine === false;
+/* есть ли изменения, которых ещё нет на сервере */
+const cloudUnsaved = () => CLOUD && !!W.co && !!W.co.id && (CL.state === "dirty" || CL.busy || (CL.state === "err" && CL.fail === "save"));
+const hhmm = t => { const d = new Date(t); return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); };
+/* статус в шапке: короткая подпись, уточнение, пояснение при наведении */
+function cloudStatus(){
+  return ({idle:[L("сервер підключено","сервер подключён"), "", ""],
+    load:[L("завантаження…","загрузка…"), "", ""],
+    dirty: cloudOff() ? [L("немає мережі","нет сети"), L("збережемо, щойно з’явиться","сохраним, как появится"), L("Зміни лежать у цій вкладці. Не закривайте її, доки мережа не повернеться.","Изменения лежат в этой вкладке. Не закрывайте её, пока сеть не вернётся.")] : [L("зберігаємо…","сохраняем…"), "", ""],
+    saved:[L("збережено","сохранено"), CL.savedAt ? hhmm(CL.savedAt) : "", L("Усі зміни на сервері, їх бачить команда.","Все изменения на сервере, их видит команда.")],
+    err: CL.fail === "save" ? [L("не збережено","не сохранено"), CL.tries <= 3 ? L("пробуємо ще раз","пробуем ещё раз") : "", L("Останні зміни ще не на сервері. Не закривайте вкладку.","Последние изменения ещё не на сервере. Не закрывайте вкладку.")]
+      : [L("помилка завантаження","ошибка загрузки"), "", L("Оновіть сторінку.","Обновите страницу.")]})[CL.state] || ["", "", ""]; }
+const cloudLabel = () => cloudStatus()[0];
+function cloudBadgeHTML(){ const s = cloudStatus(), st = CL.state === "dirty" && cloudOff() ? "off" : CL.state;
+  return `<span class="badge" data-st="${st}"${s[2] ? ` title="${s[2]}"` : ""}>${s[0]}${s[1] ? `<span class="st-x"> · ${s[1]}</span>` : ""}</span>${CL.state === "err" && CL.fail === "save" ? `<button type="button" class="btn btn--sm" data-act="cloudRetry">${L("Повторити","Повторить")}</button>` : ""}`; }
+function cloudBadge(){ const b = document.getElementById("sync"); if (b && CLOUD) b.innerHTML = cloudBadgeHTML(); }
+/* заготовка-«скелетон»: серый блок на месте будущего содержимого */
+const sk = (w, h) => `<i class="sk" style="width:${w};height:${h}px"></i>`;
 const coJSON = () => { const c = Object.assign({}, W.co), name = c.name, kind = c.kind; delete c.id; delete c.name; delete c.kind; return JSON.stringify({name, kind, data:c}); };
 function cloudSnap(){ CL.snap = {co: W.co ? coJSON() : "", p:{}}; W.projs.forEach(p => { CL.snap.p[p.id] = JSON.stringify(p); }); }
 
@@ -28,12 +45,17 @@ async function cloudBoot(){
     if (sb.auth.onAuthStateChange) sb.auth.onAuthStateChange((ev, s) => { if (ev === "SIGNED_IN" && s && s.user) setTimeout(() => cloudSigned(s.user, true), 0); });
   } catch (e) { cErr(e, L("Не вдалося з’єднатися із сервером","Не удалось соединиться с сервером")); }
   CL.ready = true; render();
+  window.addEventListener("online", () => { if (cloudUnsaved()) cloudQueue(); else cloudBadge(); });
+  window.addEventListener("offline", cloudBadge);
+  /* вкладку закрывают или сворачивают: не ждём паузы после ввода, отправляем сразу; если не успели — браузер переспросит */
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden" && CL.state === "dirty" && !CL.busy && !cloudOff()) { clearTimeout(CL.timer); cloudSync(); } });
+  window.addEventListener("beforeunload", e => { if (cloudUnsaved()) { e.preventDefault(); e.returnValue = ""; } });
   window.addEventListener("focus", () => { if (W.co && W.co.id && CL.state === "saved" && !CL.busy && Date.now() - CL.at > 30000 && (!document.activeElement || document.activeElement === document.body)) cloudOpen(W.co.id).then(render, () => {}); });
 }
 /* единая точка входа: код, ссылка из письма, вход в соседней вкладке */
 async function cloudSigned(user, hello){
-  if (CL.entering || W.user) return; CL.entering = true;
-  try { CL.state = "load"; await cloudEnter(user); CL.state = "saved"; AU = auFresh(); if (hello) setTimeout(() => toast(W.co ? L("З поверненням","С возвращением") : L("Пошту підтверджено. Тепер компанія","Почта подтверждена. Теперь компания")), 50); }
+  if (CL.entering || W.user) return; CL.entering = true; CL.state = "load"; render();
+  try { await cloudEnter(user); CL.state = "saved"; AU = auFresh(); if (hello) setTimeout(() => toast(W.co ? L("З поверненням","С возвращением") : L("Пошту підтверджено. Тепер компанія","Почта подтверждена. Теперь компания")), 50); }
   catch (e) { cErr(e, L("Вхід виконано, але дані не завантажилися","Вход выполнен, но данные не загрузились")); }
   CL.entering = false; render();
 }
@@ -63,10 +85,11 @@ async function cloudOpen(id){
 async function cloudLibLoad(coId){ try { const l = await sb.from("library").select("id,title,body,company_id").eq("kind", "sale_path").eq("status", "approved");
     if (l.error) return; CL.lib = (l.data || []).filter(r => r.company_id !== coId).map(r => ({id:"l_" + r.id, name:r.title, steps:(r.body || {}).steps || ""})).filter(x => x.steps); } catch (e) {} }
 function cloudLibAdd(kind, x){ try { if (!sb || !W.co || !W.co.id) return; Promise.resolve(sb.from("library").insert({kind, title:x.name, body:{steps:x.steps}, company_id:W.co.id})).then(() => {}, () => {}); } catch (e) {} }
-function cloudQueue(){ if (!sb || !W.user || !W.co || !W.co.id) return; CL.state = "dirty"; cloudBadge(); clearTimeout(CL.timer); CL.timer = setTimeout(cloudSync, 900); }
+function cloudQueue(){ if (!sb || !W.user || !W.co || !W.co.id) return; CL.state = "dirty"; cloudBadge(); clearTimeout(CL.timer); clearTimeout(CL.retry); CL.timer = setTimeout(cloudSync, 900); }
 async function cloudSync(){
   if (!sb || !W.user || !W.co || !W.co.id) return;   /* вышли или сменили компанию, пока ждали */
   if (CL.busy) { CL.again = true; return; }
+  if (cloudOff()) { CL.state = "dirty"; cloudBadge(); return; }   /* сети нет: ждём события online */
   CL.busy = true; CL.again = false; let conflict = false, denied = false;
   try {
     const cj = coJSON();
@@ -82,8 +105,10 @@ async function cloudSync(){
     }
     for (const id of Object.keys(CL.snap.p)) if (!W.projs.some(p => p.id === id)) { const r = await sb.from("projects").delete().eq("id", id); if (r.error) throw r.error; delete CL.snap.p[id]; delete CL.known[id]; }
     if (conflict || denied) { await cloudOpen(W.co.id); render(); toast(denied ? L("Базу й налаштування компанії змінює власник або керівник","Базу и настройки компании меняет собственник или руководитель") : L("Дані змінив інший учасник — завантажено свіжу версію","Данные изменил другой участник — загружена свежая версия")); }
-    CL.state = "saved"; cloudBadge();
-  } catch (e) { cErr(e, L("Не вдалося зберегти","Не удалось сохранить")); }
+    CL.state = "saved"; CL.fail = ""; CL.tries = 0; CL.savedAt = Date.now(); cloudBadge();
+  } catch (e) { CL.tries++; cErr(e, L("Не вдалося зберегти","Не удалось сохранить"), "save", CL.tries > 1);
+    /* три повтора сами: через 5, 15 и 45 секунд; дальше — кнопка «Повторить» в шапке */
+    if (CL.tries <= 3) { clearTimeout(CL.retry); CL.retry = setTimeout(() => { if (CL.state === "err" && CL.fail === "save") cloudQueue(); }, [5000, 15000, 45000][CL.tries - 1]); } }
   CL.busy = false; if (CL.again) cloudQueue();
 }
 /* вход через Telegram: окно Telegram отдаёт подписанный токен, серверная функция проверяет его и выдаёт пропуск */
@@ -127,11 +152,13 @@ async function cloudVerify(code){
 }
 async function cloudLogout(){ try { await sb.auth.signOut(); } catch (e) {} W = blankW(); AU = auFresh(); AU.login = true; CL.cos = []; CL.members = []; CL.role = null; CL.tg = null; cloudSnap(); render(); toast(L("Ви вийшли","Вы вышли")); }
 async function cloudCreateCo(name, kind){
-  const r = await sb.from("companies").insert({name, kind}).select().single(); if (r.error) return cErr(r.error, L("Не вдалося створити компанію","Не удалось создать компанию"));
+  const r = await sb.from("companies").insert({name, kind}).select().single(); if (r.error) return cErr(r.error, L("Не вдалося створити компанію","Не удалось создать компанию"), "act");
   CL.cos.push(r.data); try { await cloudOpen(r.data.id); CL.state = "saved"; } catch (e) { return cErr(e, L("Компанію створено, але вона не відкрилася","Компания создана, но не открылась")); } render();
 }
-async function cloudSwitch(id){ try { CL.state = "load"; cloudBadge(); await cloudOpen(id); W.ctab = "map"; CL.state = "saved"; } catch (e) { cErr(e, L("Не вдалося відкрити компанію","Не удалось открыть компанию")); } render(); }
-async function cloudDeleteCo(){ const r = await sb.from("companies").delete().eq("id", W.co.id); if (r.error) return cErr(r.error, L("Не вдалося видалити","Не удалось удалить"));
+async function cloudSwitch(id){ CL.opening = true; CL.state = "load"; render();
+  try { await cloudOpen(id); W.ctab = "map"; CL.state = "saved"; } catch (e) { cErr(e, L("Не вдалося відкрити компанію","Не удалось открыть компанию")); }
+  CL.opening = false; render(); }
+async function cloudDeleteCo(){ const r = await sb.from("companies").delete().eq("id", W.co.id); if (r.error) return cErr(r.error, L("Не вдалося видалити","Не удалось удалить"), "act");
   CL.cos = CL.cos.filter(c => c.id !== W.co.id); W.co = null; W.projs = []; W.cur = W.fun = null; try { localStorage.removeItem("rakurs_co"); } catch (e) {}
   if (CL.cos[0]) await cloudOpen(CL.cos[0].id); else cloudSnap(); render(); toast(L("Компанію видалено","Компания удалена")); }
 /* файлы: хранилище на сервере, папка компании → проекта. В данных кабинета остаётся только путь к файлу. */
@@ -157,4 +184,4 @@ async function cloudAddMember(email, role, proj){
   const r = await sb.from("members").insert({company_id:W.co.id, email, role, project_ids: proj ? [proj] : null}); if (r.error) { toast(/duplicate|unique/i.test(r.error.message) ? L("Ця людина вже в команді","Этот человек уже в команде") : L("Не вдалося додати: ","Не удалось добавить: ") + r.error.message); return; }
   await cloudMembers(); render(); toast(L("Доступ надано. Натисніть «Скопіювати запрошення» біля людини й надішліть їй текст","Доступ выдан. Нажмите «Скопировать приглашение» рядом с человеком и отправьте ему текст"));
 }
-async function cloudDelMember(id){ const r = await sb.from("members").delete().eq("id", id); if (r.error) return cErr(r.error, L("Не вдалося прибрати","Не удалось убрать")); await cloudMembers(); render(); toast(L("Доступ закрито","Доступ закрыт")); }
+async function cloudDelMember(id){ const r = await sb.from("members").delete().eq("id", id); if (r.error) return cErr(r.error, L("Не вдалося прибрати","Не удалось убрать"), "act"); await cloudMembers(); render(); toast(L("Доступ закрито","Доступ закрыт")); }

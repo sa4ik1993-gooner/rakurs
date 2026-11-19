@@ -488,3 +488,24 @@ input[type=checkbox][aria-invalid="true"]{outline:2px solid var(--play);outline-
 .map__bar{align-items:center}
 @media (pointer:coarse){ .mt li>.fold{width:30px;height:30px;left:calc(var(--w) - 15px)} .nd--can{padding-right:26px} }
 @container map (max-width:640px){ .mt li>.fold{left:auto;right:8px;top:8px;transform:none} .nd--can{padding-right:44px} }
+/* статус синхронизации в шапке и заготовки на время загрузки */
+#sync{display:inline-flex;align-items:center;gap:8px;min-width:0}
+.badge[data-st]{display:inline-flex;align-items:center;gap:6px;border-style:solid;border-color:var(--line);white-space:nowrap}
+.badge[data-st]::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--muted);flex:none}
+.badge[data-st=saved]::before{background:var(--good)}
+.badge[data-st=dirty]::before,.badge[data-st=load]::before{background:var(--warn);animation:pulse .7s ease-in-out infinite alternate}
+.badge[data-st=off]{border-color:var(--warn);color:var(--ink);background:var(--warn-soft)}
+.badge[data-st=off]::before{background:var(--warn)}
+.badge[data-st=err]{border-color:var(--play);color:var(--ink);background:var(--crit-soft)}
+.badge[data-st=err]::before{background:var(--play)}
+.badge .st-x{font-weight:500;letter-spacing:.04em}
+.skel{display:flex;flex-direction:column;gap:14px;min-width:0}
+.sk{display:block;max-width:100%;border-radius:2px;background:var(--line);animation:pulse .9s ease-in-out infinite alternate}
+.skel__head{display:flex;flex-direction:column;gap:10px}
+.skel__grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:36px;margin-top:10px}
+.skel__grid>div{display:flex;flex-direction:column;gap:10px}
+.skel__note{font:500 12px/1.4 var(--f-mono);color:var(--muted)}
+.skel__late{opacity:0;animation:fade .3s ease 8s forwards}
+.skel .kpi .sk{animation-delay:.2s}
+@media (max-width:760px){ .badge .st-x{display:none} .skel__grid{grid-template-columns:1fr;gap:10px} .skel__grid>div:nth-child(n+3){display:none} }
+@media (prefers-reduced-motion:reduce){ .skel__late{opacity:1} }

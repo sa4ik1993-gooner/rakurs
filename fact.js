@@ -105,7 +105,7 @@ function factPanel(p, f){
       <span class="seg" role="group">${[7, 14, 30].map(n => `<button type="button" data-act="fxDays" data-id="${p.id}" data-v="${n}" aria-pressed="${x.days === n}">${n} ${L("дн.","дн.")}</button>`).join("")}<button type="button" data-act="fxDays" data-id="${p.id}" data-v="m" aria-pressed="${x.days === "m"}">${L("місяць","месяц")}</button></span>
       <button class="btn btn--sm" data-act="fxSyncNow" data-id="${p.id}"${x.syncing ? " disabled" : ""}>${L("Оновити дані","Обновить данные")}</button></span></div>`;
   if (x.err) return `<div class="panel" id="fact">${bar}<p class="mterr">${esc(x.err)}</p></div>`;
-  if (!x.rows) return `<div class="panel" id="fact">${bar}<p class="sub">${L("Завантажуємо…","Загружаем…")}</p></div>`;
+  if (!x.rows) return `<div class="panel" id="fact">${bar}<div class="skel" role="status" aria-label="${L("Завантажуємо факт реклами","Загружаем факт рекламы")}"><div class="kpis kpis--5">${Array(5).fill(`<div class="kpi">${sk("60%", 10)}${sk("45%", 20)}</div>`).join("")}</div>${Array(4).fill(sk("100%", 28)).join("")}</div></div>`;
   const sl = fxSales(p, x, x.rows), hs = sl.any;
   const rows = x.rows.map(r => Object.assign({fid:fxFunnel(p, r)}, r, sl.by[fxKey(r.name)] || {})), mine = f ? rows.filter(r => r.fid === f.id) : rows, tot = fxSum(mine), cap = f ? fT(f, p).cap : pT(p).cap;
   if (!rows.length) return `<div class="panel" id="fact">${bar}<p class="sub">${L("За цей період у кабінеті не було показів.","За этот период в кабинете не было показов.")}</p></div>`;
