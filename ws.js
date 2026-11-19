@@ -244,6 +244,7 @@ function vProject(p){
           <tr class="sum"><td><b>${L("Проєкт","Проект")}</b></td><td class="n mono"><b>${num(sum.pay)}</b></td><td></td><td class="n mono"><b>${money(sum.bud)}</b></td><td class="n mono"><b>${num(sum.leads)}</b></td><td></td><td class="n mono"><b>${money(sum.rev)}</b></td></tr></tbody></table></div>`
           : empty(L("Воронок ще немає","Воронок ещё нет"), L("Цілі воронок зведуться сюди й звіряться з ціллю проєкту.","Цели воронок сведутся сюда и сверятся с целью проекта."))}
         <p class="sub">${L("Факт з’явиться тут же після підключення рекламних кабінетів і таблиці продажів.","Факт появится здесь же после подключения рекламных кабинетов и таблицы продаж.")}</p></div>
+      ${factPanel(p)}
       ${chSumPanel(p)}`; },
     funnels: () => `<div class="row"><button class="btn btn--solid" data-act="modal" data-id="funnel">${L("Додати воронку","Добавить воронку")}</button></div>
       ${p.funnels.length?`<div class="cols">${p.funnels.map(f=>{ const c = fChain(f,p), done = c.filter(x=>x[2]).length, x = fT(f,p); return `<div class="panel"><div class="row sp"><h2>${esc(f.name)}</h2>${del("wsDelF", f.id)}</div><p class="sub">${esc(f.an.offer)}</p><div class="prog"><i style="width:${done/c.length*100}%"></i></div>
@@ -305,6 +306,7 @@ function vFunnel(f, p){
         <p class="sub">${L("Конверсії взято з проєкту — змініть, якщо у цієї воронки вони інші. Частка маркетингу спільна: ","Конверсии взяты из проекта — измените, если у этой воронки они другие. Доля маркетинга общая: ")}${p.tg.share}%.</p></div>
         <div class="panel vf"><span class="tag">${L("План воронки","План воронки")}</span><div id="w-calc">${calcF(f,p)}</div></div></div>
       ${chPlanPanel(f, p)}
+      ${factPanel(p, f)}
       <div class="panel"><span class="tag">${L("Аналітика","Аналитика")}</span>
         <div class="tw tw--in"><table><thead><tr><th>${L("Показник","Показатель")}</th><th class="n">${L("Ціль","Цель")}</th><th class="n">${L("Факт","Факт")}</th></tr></thead><tbody>
         ${(()=>{ const x = fT(f,p); return [[L("Витрати","Расход"),money(x.bud)],[L("Ліди","Лиды"),num(x.leads)],[L("Ціна ліда","Цена лида"),"≤ $"+dec(x.cap)],[L("Лід → бронь","Лид → бронь"),pc(f.tg.l2b)],[L("Бронь → оплата","Бронь → оплата"),pc(f.tg.b2p,0)],[L("Оплати","Оплаты"),num(x.pay)],[L("Виручка","Выручка"),money(x.rev)],["ROAS",dec(100/p.tg.share)]].map(a=>`<tr><td>${a[0]}</td><td class="n mono">${a[1]}</td><td class="n mono sub">—</td></tr>`).join(""); })()}</tbody></table></div>
