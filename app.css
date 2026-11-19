@@ -456,3 +456,4 @@ tr.fxset td:first-child{padding-left:28px}
 input[type=checkbox][aria-invalid="true"]{outline:2px solid var(--play);outline-offset:2px;box-shadow:none}
 .ferr{color:var(--play);font-size:12.5px;font-weight:600;line-height:1.3}
 .chk+.ferr{display:block;margin-top:-6px}
+.form .opts--sm .opt{padding:12px 16px;min-height:44px;font-size:inherit}

@@ -243,7 +243,7 @@ function vProject(p){
           ${p.funnels.map(f=>{ const x = fT(f,p); return `<tr data-act="wsOpenF" data-id="${f.id}" tabindex="0"><td><b>${esc(f.name)}</b></td><td class="n mono">${num(x.pay)}</td><td class="n mono">$${num(f.tg.check)}</td><td class="n mono">${money(x.bud)}</td><td class="n mono">${num(x.leads)}</td><td class="n mono">$${dec(x.cap)}</td><td class="n mono">${money(x.rev)}</td></tr>`; }).join("")}
           <tr class="sum"><td><b>${L("Проєкт","Проект")}</b></td><td class="n mono"><b>${num(sum.pay)}</b></td><td></td><td class="n mono"><b>${money(sum.bud)}</b></td><td class="n mono"><b>${num(sum.leads)}</b></td><td></td><td class="n mono"><b>${money(sum.rev)}</b></td></tr></tbody></table></div>`
           : empty(L("Воронок ще немає","Воронок ещё нет"), L("Цілі воронок зведуться сюди й звіряться з ціллю проєкту.","Цели воронок сведутся сюда и сверятся с целью проекта."))}
-        <p class="sub">${L("Факт з’явиться тут же після підключення рекламних кабінетів і таблиці продажів.","Факт появится здесь же после подключения рекламных кабинетов и таблицы продаж.")}</p></div>
+        <p class="sub">${L("Це план. Факт — нижче, у блоці «Факт реклами».","Это план. Факт — ниже, в блоке «Факт рекламы».")}</p></div>
       ${factPanel(p)}
       ${salesPanel(p)}
       ${chSumPanel(p)}`; },
