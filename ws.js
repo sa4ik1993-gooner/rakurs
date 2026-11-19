@@ -46,13 +46,16 @@ const fChain = (f, p) => [["an",L("Анамнез","Анамнез"),!!(f.an.off
 const auFresh = () => ({via:"email", step:0, id:"", login:false});
 let AU = auFresh();
 function vAuth(){
-  const up = !AU.login, proto = t => `<p class="sub proto">${L("Прототип: ","Прототип: ")}${t}</p>`;
+  const link = CLOUD && !RK.code, up = !AU.login, proto = t => `<p class="sub proto">${L("Прототип: ","Прототип: ")}${t}</p>`;
   const agree = `<label class="chk"><input type="checkbox" id="au-ok"><span>${L("Погоджуюся з умовами сервісу та політикою конфіденційності","Соглашаюсь с условиями сервиса и политикой конфиденциальности")}</span></label>`;
   const body = AU.via === "email"
     ? (AU.step === 0
       ? `<div class="field"><label for="au-mail">${L("Електронна пошта","Электронная почта")}</label><input id="au-mail" type="email" inputmode="email" autocomplete="email" placeholder="name@company.com" value="${esc(AU.id)}"></div>
-         ${up?agree:""}<div class="row"><button class="btn btn--solid" data-act="wsAuthSend">${L("Отримати код","Получить код")}</button></div>
-         <p class="sub">${L("Пароль не потрібен: надішлемо шестизначний код підтвердження, він діє 10 хвилин.","Пароль не нужен: пришлём шестизначный код подтверждения, он действует 10 минут.")}</p>`
+         ${up?agree:""}<div class="row"><button class="btn btn--solid" data-act="wsAuthSend">${link?L("Отримати лист","Получить письмо"):L("Отримати код","Получить код")}</button></div>
+         <p class="sub">${link?L("Пароль не потрібен: надішлемо лист із посиланням для входу.","Пароль не нужен: пришлём письмо со ссылкой для входа."):L("Пароль не потрібен: надішлемо шестизначний код підтвердження, він діє 10 хвилин.","Пароль не нужен: пришлём шестизначный код подтверждения, он действует 10 минут.")}</p>`
+      : link ? `<p>${L("Лист із посиланням для входу надіслано на ","Письмо со ссылкой для входа отправлено на ")}<b>${esc(AU.id)}</b></p>
+         <p class="sub">${L("Відкрийте лист у цьому ж браузері й натисніть на посилання — кабінет відкриється сам. Лист іде до хвилини, перевірте «Спам». Посилання одноразове й діє близько години.","Откройте письмо в этом же браузере и нажмите на ссылку — кабинет откроется сам. Письмо идёт до минуты, проверьте «Спам». Ссылка одноразовая и действует около часа.")}</p>
+         <div class="row"><button class="btn btn--solid" data-act="wsAuthResend">${L("Надіслати ще раз","Отправить ещё раз")}</button><button class="btn" data-act="wsAuthBack">${L("Інша пошта","Другая почта")}</button></div>`
       : `<p>${L("Код підтвердження надіслано на ","Код подтверждения отправлен на ")}<b>${esc(AU.id)}</b></p>
          <div class="field"><label for="au-code">${L("Код із листа","Код из письма")}</label><input id="au-code" class="code" inputmode="numeric" autocomplete="one-time-code" maxlength="${CLOUD?8:6}" placeholder="••••••"></div>
          <div class="row"><button class="btn btn--solid" data-act="wsAuthCode">${L("Підтвердити","Подтвердить")}</button><button class="btn" data-act="wsAuthBack">${L("Інша пошта","Другая почта")}</button></div>
@@ -330,6 +333,7 @@ Object.assign(ACT, {
   wsAuthVia(d){ AU.via = d.v; AU.step = 0; AU.id = ""; },
   wsAuthMode(){ AU.login = !AU.login; AU.step = 0; },
   wsAuthBack(){ AU.step = 0; },
+  wsAuthResend(){ if (CLOUD && AU.id) cloudSendCode(AU.id); return false; },
   wsAuthSend(){ const m = val("au-mail").toLowerCase(); if (!need(/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(m), L("Перевірте адресу пошти","Проверьте адрес почты"))) return false;
     if (CLOUD) { if (!AU.login && !need($("au-ok").checked, L("Потрібна згода з умовами","Нужно согласие с условиями"))) return false; cloudSendCode(m); return false; }
     if (!authGate(m)) return false; if (!AU.login && !need($("au-ok").checked, L("Потрібна згода з умовами","Нужно согласие с условиями"))) return false; AU.id = m; AU.step = 1; },

@@ -17,13 +17,23 @@ function cloudSnap(){ CL.snap = {co: W.co ? coJSON() : "", p:{}}; W.projs.forEac
 function loadLib(){ return window.supabase ? Promise.resolve() : new Promise((ok, no) => { const s = document.createElement("script"); s.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"; s.onload = ok; s.onerror = () => no(new Error("lib")); document.head.appendChild(s); }); }
 async function cloudBoot(){
   if (!CLOUD) return;
-  CL.state = "load";
+  CL.state = "load"; const h0 = location.hash;
   try { await loadLib(); sb = window.supabase.createClient(RK.url, RK.key);
-    const r = await sb.auth.getSession(); if (r.data && r.data.session) await cloudEnter(r.data.session.user);
-    CL.state = "saved";
+    const r = await sb.auth.getSession(); CL.state = "saved";
+    if (/access_token=|error=|error_code=/.test(location.hash)) try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
+    if (r.data && r.data.session) await cloudSigned(r.data.session.user, /access_token=/.test(h0));
+    else if (/error=|error_code=/.test(h0)) setTimeout(() => toast(L("Посилання з листа застаріло або вже використане. Запросіть новий лист","Ссылка из письма устарела или уже использована. Запросите новое письмо")), 300);
+    if (sb.auth.onAuthStateChange) sb.auth.onAuthStateChange((ev, s) => { if (ev === "SIGNED_IN" && s && s.user) setTimeout(() => cloudSigned(s.user, true), 0); });
   } catch (e) { cErr(e, L("Не вдалося з’єднатися із сервером","Не удалось соединиться с сервером")); }
   CL.ready = true; render();
   window.addEventListener("focus", () => { if (W.co && W.co.id && CL.state === "saved" && !CL.busy && Date.now() - CL.at > 30000 && (!document.activeElement || document.activeElement === document.body)) cloudOpen(W.co.id).then(render, () => {}); });
+}
+/* единая точка входа: код, ссылка из письма, вход в соседней вкладке */
+async function cloudSigned(user, hello){
+  if (CL.entering || W.user) return; CL.entering = true;
+  try { CL.state = "load"; await cloudEnter(user); CL.state = "saved"; AU = auFresh(); if (hello) setTimeout(() => toast(W.co ? L("З поверненням","С возвращением") : L("Пошту підтверджено. Тепер компанія","Почта подтверждена. Теперь компания")), 50); }
+  catch (e) { cErr(e, L("Вхід виконано, але дані не завантажилися","Вход выполнен, но данные не загрузились")); }
+  CL.entering = false; render();
 }
 async function cloudEnter(user){
   W.user = {via:"email", id:String(user.email).toLowerCase(), uid:user.id};
@@ -69,14 +79,13 @@ async function cloudSync(){
 /* вход */
 async function cloudSendCode(mail){
   const r = await sb.auth.signInWithOtp({email:mail, options:{shouldCreateUser:!AU.login, emailRedirectTo:location.origin + location.pathname}});
-  if (r.error) { toast(/signups not allowed|not found|not allowed for otp/i.test(r.error.message) ? L("Акаунта з такою поштою немає — зареєструйтесь","Аккаунта с такой почтой нет — зарегистрируйтесь") : /rate|seconds|limit/i.test(r.error.message) ? L("Забагато листів поспіль. Спробуйте за хвилину","Слишком много писем подряд. Попробуйте через минуту") : L("Не вдалося надіслати код: ","Не удалось отправить код: ") + r.error.message); return; }
-  AU.id = mail; AU.step = 1; render();
+  if (r.error) { toast(/signups not allowed|not found|not allowed for otp/i.test(r.error.message) ? L("Акаунта з такою поштою немає — зареєструйтесь","Аккаунта с такой почтой нет — зарегистрируйтесь") : /rate|seconds|limit/i.test(r.error.message) ? L("Забагато листів. Спробуйте пізніше: вбудована пошта надсилає лише кілька листів на годину","Слишком много писем. Попробуйте позже: встроенная почта отправляет всего несколько писем в час") : L("Не вдалося надіслати лист: ","Не удалось отправить письмо: ") + r.error.message); return; }
+  const again = AU.step === 1; AU.id = mail; AU.step = 1; render(); if (again) toast(L("Лист надіслано ще раз","Письмо отправлено ещё раз"));
 }
 async function cloudVerify(code){
   const r = await sb.auth.verifyOtp({email:AU.id, token:code, type:"email"});
   if (r.error || !r.data || !r.data.user) { toast(L("Код не підійшов або застарів","Код не подошёл или устарел")); return; }
-  try { CL.state = "load"; await cloudEnter(r.data.user); CL.state = "saved"; AU = auFresh(); render(); toast(W.co ? L("З поверненням","С возвращением") : L("Пошту підтверджено. Тепер компанія","Почта подтверждена. Теперь компания")); }
-  catch (e) { cErr(e, L("Вхід виконано, але дані не завантажилися","Вход выполнен, но данные не загрузились")); render(); }
+  await cloudSigned(r.data.user, true);
 }
 async function cloudLogout(){ try { await sb.auth.signOut(); } catch (e) {} W = blankW(); AU = auFresh(); AU.login = true; CL.cos = []; CL.members = []; CL.role = null; cloudSnap(); render(); toast(L("Ви вийшли","Вы вышли")); }
 async function cloudCreateCo(name, kind){
