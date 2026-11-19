@@ -9,7 +9,7 @@ const accKey = id => "rakurs_acc_" + id;
 const accGet = id => { try { const a = JSON.parse(localStorage.getItem(accKey(id))); return a && Array.isArray(a.projs) ? a : null; } catch (e) { return null; } };
 /* приводит сохранённые данные к текущей структуре */
 function norm(){ W.ctab = W.ctab || "map";
-  if (W.co) { W.co.kb = W.co.kb || []; W.co.brand = Object.assign(blankBrand(), W.co.brand); W.co.ban = W.co.ban || ""; W.co.tone = W.co.tone || ""; }
+  if (W.co) { W.co.kb = W.co.kb || []; W.co.paths = W.co.paths || []; W.co.brand = Object.assign(blankBrand(), W.co.brand); W.co.ban = W.co.ban || ""; W.co.tone = W.co.tone || ""; }
   W.projs.forEach(p => { p.kb = p.kb || []; p.kbOff = p.kbOff || []; const b = p.brand = Object.assign(blankBrand(), p.brand); if (b.own == null) b.own = !!(b.colors || b.fonts || b.voice); (p.funnels || []).forEach(f => { f.ch = f.ch || []; f.sale = f.sale || p.sale || "web"; }); }); }
 norm();
 if (location.hash === "#sample") { W.mode = "sample"; location.hash = "today"; }
@@ -43,6 +43,7 @@ const pChain = p => [["about",L("Опис","Описание"),!!(p.name && p.pr
 const fChain = (f, p) => [["an",L("Анамнез","Анамнез"),!!(f.an.offer && f.tg.check)],["aud",L("ЦА воронки","ЦА воронки"),fSegs(f,p).length>0],["land",L("Лендинги","Лендинги"),f.lands.length>0],["cr",L("Креативи","Креативы"),f.crs.length>=3],["goals",L("Цілі й аналітика","Цели и аналитика"),f.tg.pay>0]];
 
 /* ---------- экраны ---------- */
+let PNEW = false;   /* в анамнезе воронки открыта форма своего пути */
 const auFresh = () => ({via:"email", step:0, id:"", login:false});
 let AU = auFresh();
 function vAuth(){
@@ -243,7 +244,8 @@ function vFunnel(f, p){
         ${fld("f.an.offer",L("Офер: що саме пропонуємо","Оффер: что именно предлагаем"),{w:1,ph:L("безкоштовний урок → курс за $680","бесплатный урок → курс за $680")})}
         ${fld("f.an.promo",L("Акція","Акция"),{ph:L("бонус, знижка — або порожньо","бонус, скидка — или пусто")})}${fld("f.an.until",L("Діє до","Действует до"),{ph:"30.11"})}
         <div class="field w"><label>${L("Ціль реклами","Цель рекламы")}</label>${optsW("f.goal", [["site",L("Конверсія на сайті","Конверсия на сайте")],["form",L("Лід-форма","Лид-форма")]])}</div>
-        <div class="field w"><label>${L("Як відбувається продаж","Как происходит продажа")}</label><div class="opts opts--sm">${SALE().map(x=>`<button type="button" class="opt" data-act="wsSale" data-v="${x[0]}" aria-pressed="${f.sale===x[0]}">${x[1]}</button>`).join("")}</div></div>
+        <div class="field w"><label for="fp-sale">${L("Як відбувається продаж","Как происходит продажа")}</label>${saleSelect("fp-sale", PNEW ? "+" : f.sale, f)}</div>
+        ${PNEW ? saleNew("fp") + `<div class="row w"><button class="btn btn--sm btn--solid" data-act="wsPathAdd">${L("Зберегти шлях","Сохранить путь")}</button><button class="btn btn--sm" data-act="wsPathCancel">${L("Скасувати","Отмена")}</button></div>` : ""}
         ${fld("f.an.path",L("Шлях клієнта","Путь клиента"),{w:1})}${fld("f.an.event",L("Результат рахуємо до","Результат считаем до"),{ph:L("оплати","оплаты")})}${fld("f.an.diff",L("Чим відрізняється від інших воронок","Чем отличается от других воронок"))}
         ${fld("f.an.obj",L("Заперечення, які чують менеджери","Возражения, которые слышат менеджеры"),{w:1,area:3})}
         <div class="field w"><label>${L("Режим автономії","Режим автономии")}</label>${optsW("f.mode", [["adv",modeName("adv")],["btn",modeName("btn")],["auto",modeName("auto")]])}</div></div>
@@ -292,7 +294,8 @@ function modalFunnelOwn(){ const p = P();
       <div class="field w"><label for="nf-offer">${L("Офер: що пропонуємо","Оффер: что предлагаем")}</label><input id="nf-offer" placeholder="${L("безкоштовний урок → курс","бесплатный урок → курс")}"></div>
       <div class="field"><label for="nf-price">${L("Ціна, $","Цена, $")}</label><input id="nf-price" value="${p.tg.check}" inputmode="decimal"></div>
       <div class="field"><label for="nf-goal">${L("Ціль реклами","Цель рекламы")}</label><select id="nf-goal"><option value="site">${L("Конверсія на сайті","Конверсия на сайте")}</option><option value="form">${L("Лід-форма","Лид-форма")}</option></select></div>
-      <div class="field w"><label for="nf-sale">${L("Як відбувається продаж","Как происходит продажа")}</label><select id="nf-sale">${SALE().map(x=>`<option value="${x[0]}"${(p.sale||"web")===x[0]?" selected":""}>${x[1]}</option>`).join("")}</select></div>
+      <div class="field w"><label for="nf-sale">${L("Як відбувається продаж","Как происходит продажа")}</label>${saleSelect("nf-sale", p.sale || "web")}</div>
+      ${saleNew("nf", true)}
       <div class="field w"><label for="nf-url">${L("Сайт: лендинг цієї воронки","Сайт: лендинг этой воронки")}</label><input id="nf-url" inputmode="url" autocapitalize="none" placeholder="example.com/page"></div>
       <div class="w chkf"><span class="tag">${L("Канали трафіку","Каналы трафика")}</span><div class="chks">${CHAN().map(c=>`<label class="chk"><input type="checkbox" class="nf-ch" value="${c[0]}"${p.conn[c[0]]?" checked":""}><span>${c[1]}</span></label>`).join("")}</div></div></div>
     <p class="sub">${L("З проєкту успадкуються ЦА, правила й конверсії. Аудиторію можна правити всередині воронки: вимкнути сегменти проєкту й додати свої.","Из проекта унаследуются ЦА, правила и конверсии. Аудиторию можно править внутри воронки: выключить сегменты проекта и добавить свои.")}</p>
@@ -369,7 +372,10 @@ Object.assign(ACT, {
   wsTab(d){ W.fun = null; W.tab = d.v; save(); },
   wsDelP(d){ if (!canAdmin()) { toast(L("Проєкти видаляє власник або керівник","Проекты удаляет собственник или руководитель")); return false; } W.projs = W.projs.filter(p=>p.id!==d.id); save(); toast(L("Проєкт видалено","Проект удалён")); },
   wsSet(d){ wset(d.k, d.v); },
-  wsSale(d){ const f = F(), std = Object.values(PATHS()); if (!f.an.path || std.includes(f.an.path)) f.an.path = PATHS()[d.v] || f.an.path; f.sale = d.v; save(); },
+  wsSale(d, sp){ const f = F(); sp = sp || saleGet(d.v); if (!f || !sp) return; const known = saleAll().map(x => x.steps);
+    if (!f.an.path || known.includes(f.an.path) || d.force) f.an.path = sp.steps; f.sale = sp.id; f.saleName = sp.name; save(); },
+  wsPathAdd(){ const sp = pathRead("fp"); if (!sp) return false; PNEW = false; ACT.wsSale({force:1}, sp); toast(L("Шлях збережено","Путь сохранён")); },
+  wsPathCancel(){ PNEW = false; },
   wsAddSeg(){ const n = val("sg-n"); if (!need(n, L("Опишіть сегмент","Опишите сегмент"))) return false; P().segs.push({id:uid(), name:n, pain:val("sg-p"), say:val("sg-s")}); save(); },
   wsDelSeg(d){ const p = P(); p.segs = p.segs.filter(s=>s.id!==d.id); p.funnels.forEach(f=>{ f.aud.off = f.aud.off.filter(x=>x!==d.id); }); save(); },
   wsAddKb(d){ const t = val("kb-"+d.id+"-t"); if (!need(t, L("Дайте матеріалу назву","Дайте материалу название"))) return false; kbHolder(W.cur ? "p" : "co").kb.push({id:uid(), type:d.id, title:t, src:val("kb-"+d.id+"-s"), note:val("kb-"+d.id+"-n")}); save(); },
@@ -398,14 +404,17 @@ Object.assign(ACT, {
       tg:{budget:d.budget, check:d.check, share:d.share, l2b:d.l2b, b2p:d.b2p}, segs:o.segsOwn, audText:"", audFiles:[], brand:Object.assign(blankBrand(), {own:false}), kb:[], kbOff:[], conn:Object.assign(W.user && W.user.via === "tg" ? {tg:3} : {}, o.conn), funnels:[]};
     W.projs.push(p); W.cur = p.id; W.fun = null; W.tab = p.segs.length ? "kb" : "aud"; S.modal = null; S.ob = null; save(); toast(L("Проєкт створено. Далі — база знань і воронки","Проект создан. Дальше — база знаний и воронки")); },
   createFunnel(){ if (!own()) return _cf(); const p = P(), n = val("nf-name"); if (!need(n, L("Дайте воронці назву","Дайте воронке название"))) return false;
-    const check = nfv("nf-price") || p.tg.check, u = val("nf-url").replace(/^https?:\/\//,""), first = !p.funnels.length, sale = $("nf-sale").value || "web";
-    const f = {id:uid(), name:n, goal:$("nf-goal").value, sale, mode:"btn", an:{offer:val("nf-offer"), promo:"", until:"", path:PATHS()[sale] || PATHS().web, event:L("оплати","оплаты"), diff:"", obj:""},
+    const check = nfv("nf-price") || p.tg.check, u = val("nf-url").replace(/^https?:\/\//,""), first = !p.funnels.length;
+    const sp = $("nf-sale").value === "+" ? pathRead("nf") : (saleGet($("nf-sale").value) || saleGet("web")); if (!sp) return false;
+    const f = {id:uid(), name:n, goal:$("nf-goal").value, sale:sp.id, saleName:sp.name, mode:"btn", an:{offer:val("nf-offer"), promo:"", until:"", path:sp.steps, event:L("оплати","оплаты"), diff:"", obj:""},
       aud:{off:[], add:[], note:""}, lands:u?[{id:uid(), url:u, note:""}]:[], crs:[], ch:[...document.querySelectorAll(".nf-ch:checked")].map(e => e.value), tg:{pay: first ? Math.max(1, Math.round(pT(p).rev / check)) : 10, check, l2b:p.tg.l2b, b2p:p.tg.b2p}};
     p.funnels.push(f); W.fun = f.id; W.ftab = "an"; S.modal = null; save(); toast(L("Воронку створено","Воронка создана")); }
 });
 document.addEventListener("input", e => { const t = e.target; if (!t.dataset.w || !own()) return; const path = t.dataset.w, isN = /\.tg\./.test(path);
   if (isN) { const n = pnum(t.value); if (!(n > 0)) return; wset(path, n); const c = $("w-calc"); if (c) c.innerHTML = F() ? calcF(F(), P()) : calcP(P()); } else wset(path, t.value); });
 document.addEventListener("change", e => { const t = e.target; if (!own()) return;
+  if (t.id === "nf-sale") { const b = $("nf-own"); if (b) { b.hidden = t.value !== "+"; if (!b.hidden) $("nf-pname").focus(); } return; }
+  if (t.id === "fp-sale") { if (t.value === "+") PNEW = true; else { PNEW = false; ACT.wsSale({v:t.value}); } render(); if (PNEW) { const n = $("fp-pname"); if (n) n.focus(); } return; }
   if (t.dataset.wimp) { const f = t.files[0]; if (!f) return; const r = new FileReader();
     r.onload = () => { try { const d = JSON.parse(r.result); if (!d || !d.co || !Array.isArray(d.projs)) throw 0; W = Object.assign(blankW(), d, {user:W.user, mode:"own", cur:null, fun:null, ctab:"projects", wipe:false}); norm(); save(); render(); toast(L("Дані відновлено з копії","Данные восстановлены из копии")); } catch (x) { toast(L("Це не файл копії кабінету","Это не файл копии кабинета")); } };
     r.readAsText(f); return; }

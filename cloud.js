@@ -3,7 +3,7 @@
 const RK = window.RK || {};
 const CLOUD = !!(RK.url && RK.key) && (/(^|\.)github\.io$|^localhost$|^127\.0\.0\.1$/.test(location.hostname) || (RK.hosts || []).includes(location.hostname));
 let sb = null;
-const CL = {ready:false, state:"idle", cos:[], members:[], role:null, known:{}, snap:{co:"", p:{}}, timer:null, busy:false, again:false, at:0};
+const CL = {lib:[], ready:false, state:"idle", cos:[], members:[], role:null, known:{}, snap:{co:"", p:{}}, timer:null, busy:false, again:false, at:0};
 const ROLES = () => ({owner:L("Власник","Собственник"), lead:L("Керівник лідгену","Руководитель лидгена"), targetolog:L("Таргетолог","Таргетолог")});
 const canAdmin = () => !CLOUD || CL.role === "owner" || CL.role === "lead";
 const isOwner = () => !CLOUD || CL.role === "owner";
@@ -57,7 +57,12 @@ async function cloudOpen(id){
   CL.known = {co:c.data.updated_at}; (p.data || []).forEach(r => { CL.known[r.id] = r.updated_at; });
   if (!W.projs.some(x => x.id === W.cur)) { W.cur = null; W.fun = null; }
   norm(); cloudSnap(); CL.at = Date.now(); try { localStorage.setItem("rakurs_co", id); } catch (e) {}
+  cloudLibLoad(id);
 }
+/* общая библиотека платформы: одобренные находки других компаний (пока — пути продажи). Таблицы может ещё не быть — тогда молча пусто. */
+async function cloudLibLoad(coId){ try { const l = await sb.from("library").select("id,title,body,company_id").eq("kind", "sale_path").eq("status", "approved");
+    if (l.error) return; CL.lib = (l.data || []).filter(r => r.company_id !== coId).map(r => ({id:"l_" + r.id, name:r.title, steps:(r.body || {}).steps || ""})).filter(x => x.steps); } catch (e) {} }
+function cloudLibAdd(kind, x){ try { if (!sb || !W.co || !W.co.id) return; Promise.resolve(sb.from("library").insert({kind, title:x.name, body:{steps:x.steps}, company_id:W.co.id})).then(() => {}, () => {}); } catch (e) {} }
 function cloudQueue(){ if (!sb || !W.user || !W.co || !W.co.id) return; CL.state = "dirty"; cloudBadge(); clearTimeout(CL.timer); CL.timer = setTimeout(cloudSync, 900); }
 async function cloudSync(){
   if (!sb || !W.user || !W.co || !W.co.id) return;   /* вышли или сменили компанию, пока ждали */

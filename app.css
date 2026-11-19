@@ -403,3 +403,5 @@ button.nd:hover{border-color:var(--ink)}
 .sgb{border:1.5px solid var(--line);background:transparent;border-radius:2px;padding:5px 10px;font-size:12.5px;cursor:pointer;min-height:30px;color:var(--muted)}
 .sgb:hover{border-color:var(--ink);color:var(--ink)}
 .sgb[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--on-ink)}
+.ownp{border-left:3px solid var(--ink);padding-left:14px}
+.form .row.w{grid-column:1/-1}
