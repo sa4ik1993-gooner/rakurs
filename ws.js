@@ -245,6 +245,7 @@ function vProject(p){
           : empty(L("Воронок ще немає","Воронок ещё нет"), L("Цілі воронок зведуться сюди й звіряться з ціллю проєкту.","Цели воронок сведутся сюда и сверятся с целью проекта."))}
         <p class="sub">${L("Факт з’явиться тут же після підключення рекламних кабінетів і таблиці продажів.","Факт появится здесь же после подключения рекламных кабинетов и таблицы продаж.")}</p></div>
       ${factPanel(p)}
+      ${salesPanel(p)}
       ${chSumPanel(p)}`; },
     funnels: () => `<div class="row"><button class="btn btn--solid" data-act="modal" data-id="funnel">${L("Додати воронку","Добавить воронку")}</button></div>
       ${p.funnels.length?`<div class="cols">${p.funnels.map(f=>{ const c = fChain(f,p), done = c.filter(x=>x[2]).length, x = fT(f,p); return `<div class="panel"><div class="row sp"><h2>${esc(f.name)}</h2>${del("wsDelF", f.id)}</div><p class="sub">${esc(f.an.offer)}</p><div class="prog"><i style="width:${done/c.length*100}%"></i></div>
