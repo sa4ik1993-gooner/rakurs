@@ -320,7 +320,7 @@ function drawerCr(f){
   const T = TR(), bound = PHR.reduce((b,p)=>Math.abs(p-f.drop)<Math.abs(b-f.drop)?p:b, PHR[0]), tr = S.trim;
   const steps = [L("Знаходжу межу фрази біля провалу","Нахожу границу фразы возле провала"),L("Ріжу ролик","Режу ролик")+" "+tc(0)+"–"+tc(bound),L("Заливаю нову версію в кабінет","Заливаю новую версию в кабинет"),L("Збираю оголошення вимкненим","Собираю объявление выключенным")];
   return `
-    <div class="row sp"><div><span class="tag">${L("Сім’я креативу","Семья креатива")}</span><h1>${f.id}_v${f.v}</h1></div><button class="x" data-act="closeOverlay" aria-label="close">×</button></div>
+    <div class="row sp"><div><span class="tag">${L("Сім’я креативу","Семья креатива")}</span><h1>${f.id}_v${f.v}</h1></div><button class="x" data-act="closeOverlay" aria-label="${L("Закрити","Закрыть")}">×</button></div>
     <div class="row">${st(f.st)}${pill("mute","CTR "+f.ctr)}${pill("mute",L("частота","частота")+" "+f.fq)}${pill("mute",f.spend?"ROAS "+dec(roas(f)):L("ще без показів","ещё без показов"))}</div>
     <div class="row" style="align-items:flex-start;flex-wrap:nowrap;gap:16px">
       <div class="thumb thumb--lg" style="--h:${f.h}"><em>${tc(S.playhead)} / ${tc(f.dur)}</em><span>${f.id}_v${f.v}</span></div>
@@ -336,7 +336,7 @@ function drawerCr(f){
 function drawerLaunch(l){
   const fams = S.fam.filter(f => f.f === l.f).slice(0,3);
   return `
-    <div class="row sp"><div><span class="tag">${l.pl} · ${fname(l.f)}</span><h1 style="font-size:18px;overflow-wrap:anywhere">${l.n}</h1></div><button class="x" data-act="closeOverlay" aria-label="close">×</button></div>
+    <div class="row sp"><div><span class="tag">${l.pl} · ${fname(l.f)}</span><h1 style="font-size:18px;overflow-wrap:anywhere">${l.n}</h1></div><button class="x" data-act="closeOverlay" aria-label="${L("Закрити","Закрыть")}">×</button></div>
     <div class="row">${st(l.st)}</div>
     <div class="panel"><span class="tag">${L("Налаштування","Настройки")}</span>
       <dl class="kv"><dt>${L("Ціль","Цель")}</dt><dd>${L("Ліди, подія «реєстрація»","Лиды, событие «регистрация»")}</dd><dt>${L("Гео і вік","Гео и возраст")}</dt><dd>${l.n.includes("_PL_")?L("Польща","Польша"):L("Україна","Украина")}, 25–54</dd>
@@ -348,7 +348,7 @@ function drawerLaunch(l){
 }
 function modalFunnel(){
   return `
-    <div class="row sp"><h1>${L("Нова воронка","Новая воронка")}</h1><button class="x" data-act="closeOverlay" aria-label="close">×</button></div>
+    <div class="row sp"><h1>${L("Нова воронка","Новая воронка")}</h1><button class="x" data-act="closeOverlay" aria-label="${L("Закрити","Закрыть")}">×</button></div>
     <div class="form">
       <div class="field w"><label for="nf-name">${L("Назва","Название")}</label><input id="nf-name" value="${L("Чорна п’ятниця, −20%","Чёрная пятница, −20%")}"></div>
       <div class="field"><label for="nf-price">${L("Ціна","Цена")}</label><input id="nf-price" value="$544"></div>
@@ -373,7 +373,7 @@ function modalProject(){
     `<div class="field w"><label for="np-ban">${L("Заборонені формулювання","Запрещённые формулировки")}</label><textarea id="np-ban" rows="3">${L("«заговорите за місяць», «гарантія рівня»","«заговорите за месяц», «гарантия уровня»")}</textarea></div>
      <div class="field w"><label for="np-tone">${L("Тон","Тон")}</label><input id="np-tone" value="${L("дружній, без обіцянок швидкого результату","дружелюбный, без обещаний быстрого результата")}"></div>`][w];
   return `
-    <div class="row sp"><div><span class="tag">${L("Крок","Шаг")} ${w+1} / 3 · ${stepsT[w]}</span><h1>${L("Новий проєкт","Новый проект")}</h1></div><button class="x" data-act="closeOverlay" aria-label="close">×</button></div>
+    <div class="row sp"><div><span class="tag">${L("Крок","Шаг")} ${w+1} / 3 · ${stepsT[w]}</span><h1>${L("Новий проєкт","Новый проект")}</h1></div><button class="x" data-act="closeOverlay" aria-label="${L("Закрити","Закрыть")}">×</button></div>
     <div class="prog"><i style="width:${(w+1)/3*100}%"></i></div>
     <div class="form">${body}</div>
     <div class="row">${w>0?`<button class="btn" data-act="wiz" data-v="-1">${L("Назад","Назад")}</button>`:""}${w<2?`<button class="btn btn--solid" data-act="wiz" data-v="1">${L("Далі","Дальше")}</button>`:`<button class="btn btn--solid" data-act="createProject">${L("Створити і надіслати інтегратору","Создать и отправить интегратору")}</button>`}</div>`;
@@ -422,7 +422,7 @@ function asstHTML(){
     return `<div class="msg msg--bot"><small>Rakurs</small>${L("Добре, скажіть, що змінити.","Хорошо, скажите, что изменить.")}</div>`;
   }).join("");
   const rec = A.phase === "rec";
-  return `<div class="asst__h"><div><span class="tag">${L("Голосове керування","Голосовое управление")}</span><h2>Rakurs</h2></div><button class="x" data-act="asstClose" aria-label="close">×</button></div>
+  return `<div class="asst__h"><div><span class="tag">${L("Голосове керування","Голосовое управление")}</span><h2>Rakurs</h2></div><button class="x" data-act="asstClose" aria-label="${L("Закрити","Закрыть")}">×</button></div>
     <div class="asst__b" id="asst-b">${body || `<p class="sub">${L("Затисніть кнопку і скажіть, що зробити. Так само це працює в Telegram.","Зажмите кнопку и скажите, что сделать. Так же это работает в Telegram.")}</p>`}</div>
     <div class="asst__f">
       <span class="tag">${L("Спробуйте","Попробуйте")}</span>
@@ -466,7 +466,7 @@ function renderShell(){
     ${NAV().map(g=>`<nav class="navg"><span>${g[0]}</span>${g[1].map(n=>`<a href="#${n[0]}" ${n[0]===r?'aria-current="page"':""}>${n[1]}${n[0]==="today"&&pend?`<b>${pend}</b>`:""}</a>`).join("")}</nav>`).join("")}
     <div class="rail__foot"><button type="button" data-act="theme">${L("Тема: світла / темна","Тема: светлая / тёмная")}</button><button type="button" data-act="reset">${L("Скинути демо","Сбросить демо")}</button><a href="index.html">← ${L("На сайт","На сайт")}</a></div>`;
   $("bar").innerHTML = `<span class="crumb">${L("Школа 3D","Школа 3D")}</span><span class="badge">${L("демо-дані","демо-данные")}</span><span class="range">06.11 – 19.11</span>
-    <div class="bar__r"><div class="seg tier" role="group" aria-label="version"><button type="button" data-act="tier" data-v="lite" aria-pressed="${S.tier==="lite"}">Lite</button><button type="button" data-act="tier" data-v="pro" aria-pressed="${S.tier==="pro"}">Pro</button></div><div class="lang" role="group" aria-label="language"><button type="button" data-lang="uk" aria-pressed="${lang==="uk"}">UA</button><button type="button" data-lang="ru" aria-pressed="${lang==="ru"}">RU</button></div>
+    <div class="bar__r"><div class="seg tier" role="group" aria-label="${L("Режим","Режим")}"><button type="button" data-act="tier" data-v="lite" aria-pressed="${S.tier==="lite"}">Lite</button><button type="button" data-act="tier" data-v="pro" aria-pressed="${S.tier==="pro"}">Pro</button></div><div class="lang" role="group" aria-label="${L("Мова","Язык")}"><button type="button" data-lang="uk" aria-pressed="${lang==="uk"}">UA</button><button type="button" data-lang="ru" aria-pressed="${lang==="ru"}">RU</button></div>
     <button type="button" class="stop" data-act="stop" aria-pressed="${S.frozen}">${S.frozen?L("АВТОДІЇ ЗУПИНЕНО","АВТОДЕЙСТВИЯ ОСТАНОВЛЕНЫ"):L("СТОП","СТОП")}</button></div>`;
   const fz = $("frozen"); fz.hidden = !S.frozen; fz.textContent = L("Усі автодії по проєкту заморожено. Кампанії крутяться як є, бот нічого не змінює й не вмикає, доки ви не знімете стоп.","Все автодействия по проекту заморожены. Кампании крутятся как есть, бот ничего не меняет и не включает, пока вы не снимете стоп.");
   $("fab").innerHTML = `<i></i>${L("Сказати боту","Сказать боту")}`; $("fab").hidden = S.asst.open;

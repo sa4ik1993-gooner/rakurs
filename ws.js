@@ -326,7 +326,7 @@ function vFunnel(f, p){
     <p class="sub">${L("Назва кампанії буде такою: ","Название кампании будет таким: ")}<span class="mono">${esc(camp)}</span>. ${L("Кампанія збирається вимкненою, вмикає людина.","Кампания собирается выключенной, включает человек.")}</p></div>`;
 }
 function modalFunnelOwn(){ const p = P();
-  return `<div class="ob"><div class="row sp"><div><span class="tag">${esc(p.name)}</span><h1>${L("Нова воронка","Новая воронка")}</h1></div><button class="x" data-act="closeOverlay" aria-label="close">×</button></div>
+  return `<div class="ob"><div class="row sp"><div><span class="tag">${esc(p.name)}</span><h1>${L("Нова воронка","Новая воронка")}</h1></div><button class="x" data-act="closeOverlay" aria-label="${L("Закрити","Закрыть")}">×</button></div>
     <div class="form"><div class="field w"><label for="nf-name">${L("Назва","Название")}</label><input id="nf-name" placeholder="${L("Вебінар, повна ціна","Вебинар, полная цена")}"></div>
       <div class="field w"><label for="nf-offer">${L("Офер: що пропонуємо","Оффер: что предлагаем")}</label><input id="nf-offer" placeholder="${L("безкоштовний урок → курс","бесплатный урок → курс")}"></div>
       <div class="field"><label for="nf-price">${L("Ціна, $","Цена, $")}</label><input id="nf-price" value="${p.tg.check}" inputmode="decimal"></div>
@@ -367,7 +367,7 @@ function ownShell(){
     <div class="rail__foot">${W.user?`<div class="me"><small>${W.user.via==="tg"?"Telegram":L("Пошта","Почта")} · ${L("підтверджено","подтверждено")}</small><b>${esc(W.user.name || W.user.id)}</b>${TG()&&W.user.via!=="tg"&&CL.tg?`<small>Telegram · ${esc(CL.tg.username||CL.tg.name||L("прив’язано","привязан"))}</small>`:""}</div>${TG()&&W.user.via!=="tg"&&!CL.tg?`<button type="button" data-act="wsTgLink">${L("Прив’язати Telegram","Привязать Telegram")}</button>`:""}<button type="button" data-act="wsLogout">${L("Вийти","Выйти")}</button>`:""}<button type="button" data-act="wsSample">${L("Приклад «Школа 3D»","Пример «Школа 3D»")}</button><button type="button" data-act="theme">${L("Тема: світла / темна","Тема: светлая / тёмная")}</button>
       <a href="index.html">← ${L("На сайт","На сайт")}</a></div>`;
   $("bar").innerHTML = `<span class="crumb">${[W.co&&W.co.name, p&&p.name, f&&f.name].filter(Boolean).map(esc).join(" › ") || (W.user?L("Нова компанія","Новая компания"):L("Реєстрація","Регистрация"))}</span><span id="sync" role="status">${CLOUD ? cloudBadgeHTML() : `<span class="badge">${L("прототип · дані у браузері","прототип · данные в браузере")}</span>`}</span>
-    <div class="bar__r"><div class="seg tier" role="group" aria-label="version"><button type="button" data-act="tier" data-v="lite" aria-pressed="${S.tier==="lite"}">Lite</button><button type="button" data-act="tier" data-v="pro" aria-pressed="${S.tier==="pro"}">Pro</button></div><div class="lang" role="group" aria-label="language"><button type="button" data-lang="uk" aria-pressed="${lang==="uk"}">UA</button><button type="button" data-lang="ru" aria-pressed="${lang==="ru"}">RU</button></div></div>`;
+    <div class="bar__r"><div class="seg tier" role="group" aria-label="${L("Режим","Режим")}"><button type="button" data-act="tier" data-v="lite" aria-pressed="${S.tier==="lite"}">Lite</button><button type="button" data-act="tier" data-v="pro" aria-pressed="${S.tier==="pro"}">Pro</button></div><div class="lang" role="group" aria-label="${L("Мова","Язык")}"><button type="button" data-lang="uk" aria-pressed="${lang==="uk"}">UA</button><button type="button" data-lang="ru" aria-pressed="${lang==="ru"}">RU</button></div></div>`;
   $("frozen").hidden = true; $("fab").hidden = true; document.documentElement.lang = lang;
 }
 function ownView(){ const p = P(), f = F(); if (CLOUD && (!CL.ready || CL.entering || CL.opening)) return skelCab(); return !W.user ? vAuth() : !W.co ? vWelcome() : !p ? vCompany() : f ? vFunnel(f, p) : vProject(p); }
@@ -499,5 +499,57 @@ document.addEventListener("change", e => { const t = e.target; if (!own()) retur
   if (t.dataset.wf) { const files = [...t.files]; if (files.length) fileIntake(t.dataset.wf, files); return; }
   if (t.dataset.w) { renderShell(); if (/^(p\.name|f\.name|co\.name|p\.brand\.|co\.brand\.colors|p\.tg\.|f\.tg\.)/.test(t.dataset.w)) renderView(); } });
 document.addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && e.target.matches("a[role=button][data-act]")) { e.preventDefault(); e.target.click(); } });
+/* ---------- клавиатура и программы чтения с экрана ----------
+   Экран перерисовывается целиком, и фокус при этом пропадал: после любого нажатия человек с клавиатурой
+   начинал путь с начала страницы. Теперь после перерисовки фокус возвращается: на тот же элемент, если он остался;
+   в открывшееся окно; на того, кто окно открыл; на заголовок нового экрана. Окно не выпускает Tab наружу. */
+const FOC = {dlg:null, opener:null};
+const focDs = e => JSON.stringify(Object.assign({}, e.dataset));
+function focKey(){ const e = document.activeElement; if (!e || e === document.body || !e.closest) return null; const r = e.closest("#modal,#drawer,#view,#rail,#bar,#tabbar"); if (!r) return null;
+  const k = {root:r.id, id:e.id || "", tag:e.tagName, ds:focDs(e), n:0};
+  if (!k.id) k.n = [...r.querySelectorAll(e.tagName)].filter(x => focDs(x) === k.ds).indexOf(e);
+  try { if (typeof e.selectionStart === "number") { k.s = e.selectionStart; k.e = e.selectionEnd; } } catch (x) {}
+  return k; }
+function focFind(k){ if (!k) return null; if (k.id) { const e = document.getElementById(k.id); return e && !e.closest("[hidden]") ? e : null; }
+  const r = document.getElementById(k.root); if (!r || r.hidden) return null;
+  return [...r.querySelectorAll(k.tag)].filter(x => focDs(x) === k.ds)[k.n] || null; }
+function focPut(t, k){ if (!t || t === document.activeElement) return; try { t.focus({preventScroll:true}); if (k && typeof k.s === "number" && t.setSelectionRange) t.setSelectionRange(k.s, k.e); } catch (x) {} }
+const viewHead = () => { const h = document.querySelector("#view h1, #view h2") || $("view"); h.tabIndex = -1; return h; };
+const dlgNow = () => { const mo = $("modal"), dr = $("drawer"); return !mo.hidden ? mo : !dr.hidden ? dr : null; };
+const FOCUSABLE = "a[href],button:not([disabled]),input:not([type=hidden]):not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex='-1'])";
+/* куда встать в окне: на первое поле; на телефоне — на само окно, чтобы клавиатура не выскакивала сама */
+const dlgFirst = d => (matchMedia("(pointer:coarse)").matches ? null : d.querySelector("input:not([type=hidden]):not([type=file]):not([disabled]),select:not([disabled]),textarea:not([disabled])")) || d;
+/* перерисовка одного куска (без смены экрана): просто вернуть фокус туда же */
+const keepFocus = fn => function(){ const k = focKey(), r = fn.apply(this, arguments); if (k && (!document.activeElement || document.activeElement === document.body)) focPut(focFind(k), k); return r; };
+renderView = keepFocus(renderView); renderShell = keepFocus(renderShell);
+const _render0 = render;
+render = function(){
+  const k = focKey(), was = FOC.dlg, viewWas = ownKey;
+  _render0();
+  const d = dlgNow(), app = document.querySelector(".app"), tb = $("tabbar"), sk = $("skip");
+  if (app) app.inert = !!d; if (tb) tb.inert = !!d;
+  $("rail").setAttribute("aria-label", L("Навігація","Навигация")); if (sk) sk.textContent = L("До вмісту","К содержимому");
+  let now = null;
+  if (d) { const h = d.querySelector("h1,h2"), tag = d.querySelector(".tag"); d.tabIndex = -1; d.setAttribute("aria-modal", "true");
+    if (h) { h.id = h.id || "dlg-h"; d.setAttribute("aria-labelledby", h.id); }
+    now = [S.modal || S.cr || S.launch || "dlg", h ? h.textContent : "", tag ? tag.textContent : ""].join("|"); }
+  if (d && !was) FOC.opener = k;
+  FOC.dlg = now;
+  let t = null;
+  if (d) t = now !== was ? dlgFirst(d) : (k && k.root === d.id && focFind(k)) || (d.contains(document.activeElement) ? null : d);
+  else if (was) { t = focFind(FOC.opener) || viewHead(); FOC.opener = null; }
+  else if (k) t = own() && ownKey !== viewWas && k.root !== "bar" ? viewHead() : focFind(k) || (k.root === "view" ? viewHead() : null);
+  focPut(t, t && t.tagName !== "H1" && t.tagName !== "H2" ? k : null);
+};
+document.addEventListener("keydown", e => { if (e.key !== "Tab") return; const d = dlgNow(); if (!d) return;
+  const f = [...d.querySelectorAll(FOCUSABLE)].filter(x => x.offsetParent !== null), a = document.activeElement;
+  if (!f.length) { e.preventDefault(); d.focus(); return; }
+  if (!d.contains(a)) { e.preventDefault(); f[0].focus(); }
+  else if (e.shiftKey && (a === f[0] || a === d)) { e.preventDefault(); f[f.length - 1].focus(); }
+  else if (!e.shiftKey && a === f[f.length - 1]) { e.preventDefault(); f[0].focus(); } });
+/* «К содержимому»: первая остановка Tab, видна только при фокусе */
+(function(){ const b = document.createElement("button"); b.type = "button"; b.id = "skip"; b.className = "skip"; b.dataset.act = "skip"; document.body.insertBefore(b, document.body.firstChild); })();
+ACT.skip = function(){ const h = viewHead(); h.focus(); h.scrollIntoView({block:"start"}); return false; };
+
 render();
 cloudBoot();

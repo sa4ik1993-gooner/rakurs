@@ -119,19 +119,19 @@ function modalOnboard(){
       <div class="panel vf"><span class="tag">${L("Що буде далі","Что будет дальше")}</span><ol class="nx"><li>${L("Інтегратор перевірить доступи й події пікселя.","Интегратор проверит доступы и события пикселя.")}</li><li>${L("Ви створюєте першу воронку: офер, ціна, сайт, шлях продажу, канали трафіку.","Вы создаёте первую воронку: оффер, цена, сайт, путь продажи, каналы трафика.")}</li><li>${L("Бот збирає кампанії вимкненими. Вмикаєте ви.","Бот собирает кампании выключенными. Включаете вы.")}</li></ol></div>`; }][s]();
   const lastQ = s === 3 && lite() && o.q < 4;
   return `<div class="ob">
-    <div class="row sp"><div><span class="tag">${L("Крок","Шаг")} ${s+1} / ${st.length}</span><h1>${L("Новий проєкт","Новый проект")}</h1></div><button class="x" data-act="closeOverlay" aria-label="close">×</button></div>
+    <div class="row sp"><div><span class="tag">${L("Крок","Шаг")} ${s+1} / ${st.length}</span><h1>${L("Новий проєкт","Новый проект")}</h1></div><button class="x" data-act="closeOverlay" aria-label="${L("Закрити","Закрыть")}">×</button></div>
     <ol class="obst">${st.map((t,i)=>`<li class="${i<s?"ok":i===s?"on":""}"><i>${i+1}</i><span>${t}</span></li>`).join("")}</ol>
     ${body}
     <div class="row sp"><div class="row">${s>0||(s===3&&o.q>0)?`<button class="btn" data-act="obNav" data-v="-1">${L("Назад","Назад")}</button>`:""}${o.resumed?`<button class="lnk" data-act="obReset">${L("Очистити чернетку","Очистить черновик")}</button>`:""}</div>
       <div class="row">${s===1||s===4?`<button class="btn" data-act="obNav" data-v="9">${L("Пропустити","Пропустить")}</button>`:""}${s<st.length-1?`<button class="btn btn--solid" data-act="obNav" data-v="1">${lastQ?L("Далі","Дальше"):L("Далі","Дальше")}</button>`:`<button class="btn btn--solid" data-act="createProject">${L("Створити проєкт","Создать проект")}</button>`}</div></div></div>`;
 }
-function modalAud(){ return `<div class="ob"><div class="row sp"><div><span class="tag">${L("Школа 3D","Школа 3D")}</span><h1>${L("Доповнити аудиторію","Дополнить аудиторию")}</h1></div><button class="x" data-act="closeOverlay" aria-label="close">×</button></div>${audBlock(S.audm, "am")}<div class="row"><button class="btn btn--solid" data-act="closeOverlay">${L("Готово","Готово")}</button></div></div>`; }
+function modalAud(){ return `<div class="ob"><div class="row sp"><div><span class="tag">${L("Школа 3D","Школа 3D")}</span><h1>${L("Доповнити аудиторію","Дополнить аудиторию")}</h1></div><button class="x" data-act="closeOverlay" aria-label="${L("Закрити","Закрыть")}">×</button></div>${audBlock(S.audm, "am")}<div class="row"><button class="btn btn--solid" data-act="closeOverlay">${L("Готово","Готово")}</button></div></div>`; }
 
 /* ---------- новая воронка: свои цели, остальное наследуется ---------- */
 function modalFunnel(){
   const p = lite();
   return `<div class="ob">
-    <div class="row sp"><h1>${L("Нова воронка","Новая воронка")}</h1><button class="x" data-act="closeOverlay" aria-label="close">×</button></div>
+    <div class="row sp"><h1>${L("Нова воронка","Новая воронка")}</h1><button class="x" data-act="closeOverlay" aria-label="${L("Закрити","Закрыть")}">×</button></div>
     <div class="form">
       <div class="field w"><label for="nf-name">${L("Назва","Название")}</label><input id="nf-name" value="${L("Чорна п’ятниця, −20%","Чёрная пятница, −20%")}"></div>
       <div class="field"><label for="nf-price">${L("Ціна, $","Цена, $")}</label><input id="nf-price" data-nf value="544" inputmode="decimal"></div>
