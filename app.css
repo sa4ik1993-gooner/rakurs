@@ -428,3 +428,4 @@ a.btn{text-decoration:none}
 @media (pointer:coarse),(max-width:760px){ .btn--sm{min-height:40px} .sgb{min-height:38px;padding:8px 12px} .chks{gap:4px 18px} .chks .chk{min-height:40px;align-items:center} .sg button{min-height:44px} }
 .pathrow{border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:8px}
 .pathrow .ownp{border-left:0;padding-left:0}
+.segtpl{display:flex;flex-direction:column;gap:8px;margin-top:4px}

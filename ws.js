@@ -147,7 +147,7 @@ function vCompany(){
   ${body}`;
 }
 function segList(segs, act, tag){ return segs.length ? `<div class="segs">${segs.map(s=>`<div class="seg3"><div class="row sp"><b>${esc(s.name)}</b><span class="row">${tag?tag(s):""}${del(act, s.id)}</span></div><span class="sub">${esc(s.pain)}</span>${s.say?`<span class="mono">→ ${esc(s.say)}</span>`:""}</div>`).join("")}</div>` : ""; }
-function segAdder(pre, act){ return `<div class="form adder">
+function segAdder(pre, act, niche){ return `${segTpl(pre, niche)}<div class="form adder">
     <div class="field"><label for="${pre}-n">${L("Сегмент","Сегмент")}</label><input id="${pre}-n" placeholder="${L("хто це: вік, чим займається","кто это: возраст, чем занимается")}"></div>
     <div class="field"><label for="${pre}-p">${L("Що болить, чому купує","Что болит, почему покупает")}</label><input id="${pre}-p" placeholder="${L("подія або причина","событие или причина")}"></div>
     <div class="field w"><label for="${pre}-s">${L("Що казати в рекламі","Что говорить в рекламе")}</label><input id="${pre}-s" placeholder="${L("головна думка для цього сегмента","главная мысль для этого сегмента")}"></div>
@@ -212,7 +212,7 @@ function vProject(p){
       <div class="panel"><span class="tag">${L("Що де задається","Что где задаётся")}</span>${splitNote(0)}</div>`,
     aud: () => `<div class="panel"><span class="tag">${L("Аудиторія проєкту","Аудитория проекта")} · ${p.segs.length}</span>
         <p class="sub">${L("Базова ЦА на весь проєкт. У кожній воронці її можна звузити або доповнити.","Базовая ЦА на весь проект. В каждой воронке её можно сузить или дополнить.")}</p>
-        ${segList(p.segs, "wsDelSeg") || empty(L("Сегментів ще немає","Сегментов ещё нет"), L("Додайте хоча б один нижче.","Добавьте хотя бы один ниже."))}${segAdder("sg", "wsAddSeg")}</div>
+        ${segList(p.segs, "wsDelSeg") || empty(L("Сегментів ще немає","Сегментов ещё нет"), L("Додайте хоча б один нижче.","Добавьте хотя бы один ниже."))}${segAdder("sg", "wsAddSeg", p.niche)}</div>
       <div class="c2"><div class="panel"><span class="tag">${L("Опис покупця","Описание покупателя")}</span>${fld("p.audText",L("Як розповіли б новому менеджеру","Как рассказали бы новому менеджеру"),{area:6})}</div>
         <div class="panel"><span class="tag">${L("Матеріали про аудиторію","Материалы об аудитории")}</span>${filesBox("p.audFiles", L("Портрет клієнта, вивантаження з CRM, записи дзвінків, відгуки","Портрет клиента, выгрузка из CRM, записи звонков, отзывы"))}
           <p class="sub">${L("У прототипі файли лише прикріплюються: сегменти з них бот виділятиме після підключення.","В прототипе файлы только прикрепляются: сегменты из них бот будет выделять после подключения.")}</p></div></div>`,
@@ -263,7 +263,7 @@ function vFunnel(f, p){
         <p class="sub">${L("Тон і заборонені формулювання успадковано з проєкту: ","Тон и запрещённые формулировки унаследованы из проекта: ")}${esc([p.ban, W.co.ban].filter(Boolean).join(" · ") || "—")}. ${L("Бот бере матеріали з бази знань проєкту й компанії: ","Бот берёт материалы из базы знаний проекта и компании: ")}${p.kb.length} + ${kbInh(p).length}.</p></div>`,
     aud: () => `<div class="panel"><span class="tag">${L("Сегменти з проєкту","Сегменты из проекта")}</span><p class="sub">${L("Вимкніть ті, на кого ця воронка не розрахована.","Выключите тех, на кого эта воронка не рассчитана.")}</p>
         ${p.segs.length?`<div class="segs">${p.segs.map(s=>`<div class="seg3${f.aud.off.includes(s.id)?" off":""}"><div class="row sp"><b>${esc(s.name)}</b><button type="button" class="sw" data-act="wsSegT" data-id="${s.id}" aria-pressed="${!f.aud.off.includes(s.id)}" aria-label="toggle"></button></div><span class="sub">${esc(s.pain)}</span></div>`).join("")}</div>`:empty(L("У проєкті ще немає сегментів","В проекте ещё нет сегментов"),L("Додайте їх у проєкті або тільки для цієї воронки нижче.","Добавьте их в проекте или только для этой воронки ниже."))}</div>
-      <div class="panel"><span class="tag">${L("Тільки для цієї воронки","Только для этой воронки")} · ${f.aud.add.length}</span>${segList(f.aud.add, "wsDelFSeg")}${segAdder("fs", "wsAddFSeg")}</div>
+      <div class="panel"><span class="tag">${L("Тільки для цієї воронки","Только для этой воронки")} · ${f.aud.add.length}</span>${segList(f.aud.add, "wsDelFSeg")}${segAdder("fs", "wsAddFSeg", p.niche)}</div>
       <div class="panel">${fld("f.aud.note",L("Чим аудиторія цієї воронки відрізняється","Чем аудитория этой воронки отличается"),{area:3,ph:L("наприклад: тільки ті, хто вже був на вебінарі","например: только те, кто уже был на вебинаре")})}</div>`,
     land: () => `<div class="panel"><span class="tag">${L("Лендинги","Лендинги")} · ${f.lands.length}</span>
         ${f.lands.map(l=>`<div class="item"><div class="row sp"><b class="mono">${esc(l.url)}</b>${del("wsDelLand", l.id)}</div>${l.note?`<span class="sub">${esc(l.note)}</span>`:""}
@@ -313,7 +313,7 @@ function modalFunnelOwn(){ const p = P();
     ${splitNote(1)}
     <div class="row"><button class="btn btn--solid" data-act="createFunnel">${L("Створити воронку","Создать воронку")}</button></div></div>`; }
 function ownAudStep(o){ return `<p class="sub">${L("Хто купує. Можна додати зараз або пізніше в проєкті; у воронках аудиторію можна звужувати.","Кто покупает. Можно добавить сейчас или позже в проекте; в воронках аудиторию можно сужать.")}</p>
-  ${segList(o.segsOwn, "obSegDel")}${segAdder("os", "obSegAdd")}`; }
+  ${segList(o.segsOwn, "obSegDel")}${segAdder("os", "obSegAdd", o.d.niche)}`; }
 
 /* ---------- оболочка ---------- */
 function ownShell(){
