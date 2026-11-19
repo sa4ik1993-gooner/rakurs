@@ -59,6 +59,12 @@ function sgWrap(k, input, target, id, value){
 }
 const SGX = {el:null, i:-1};
 const sgBox = el => el && el.parentNode.querySelector(".sg");
+/* Куда раскрыть список. На телефоне клавиатура закрывает низ экрана: считаем по видимой части окна,
+   и если под полем места мало, а над ним больше — список открывается вверх. Высота списка — по свободному месту. */
+function sgPlace(el, box){ const vv = window.visualViewport, top = vv ? vv.offsetTop : 0, h = vv ? vv.height : window.innerHeight, r = el.getBoundingClientRect();
+  const below = top + h - r.bottom - 12, above = r.top - top - 12, up = below < 170 && above > below;
+  box.classList.toggle("sg--up", up); box.style.maxHeight = Math.round(Math.max(96, Math.min(264, up ? above : below))) + "px"; }
+if (window.visualViewport) window.visualViewport.addEventListener("resize", () => { const b = sgBox(SGX.el); if (b && !b.hidden) sgPlace(SGX.el, b); });
 function sgClose(){ const b = sgBox(SGX.el); if (b) { b.hidden = true; b.innerHTML = ""; } if (SGX.el) SGX.el.setAttribute("aria-expanded", "false"); SGX.el = null; SGX.i = -1; }
 function sgOpen(el){
   const k = el.dataset.sg, c = SG[k], box = sgBox(el); if (!c || !box) return;
@@ -68,7 +74,7 @@ function sgOpen(el){
   const rows = c.all().filter(r => !chosen.includes(r[0].toLowerCase()) && (hit(r[0]) || (r[2] || []).some(hit))).sort((a, b) => (a[0].toLowerCase().indexOf(tok) === 0 ? 0 : 1) - (b[0].toLowerCase().indexOf(tok) === 0 ? 0 : 1)).slice(0, 7);
   if (!rows.length || (rows.length === 1 && rows[0][0].toLowerCase() === tok)) { sgClose(); return; }
   box.innerHTML = rows.map((r, i) => `<button type="button" role="option" tabindex="-1" data-act="sgPick" data-r="1" data-k="${k}" data-t="${el.dataset.sgt}" data-i="${el.id}" data-v="${esc(r[0])}"${i === 0 ? ' class="on"' : ""}><span>${esc(r[0])}</span>${r[1] ? `<small>${r[1]}</small>` : ""}</button>`).join("");
-  box.hidden = false; el.setAttribute("aria-expanded", "true"); SGX.el = el; SGX.i = 0;
+  box.hidden = false; el.setAttribute("aria-expanded", "true"); SGX.el = el; SGX.i = 0; sgPlace(el, box);
 }
 Object.assign(ACT, {
   /* d.t = "ob:<поле анкеты>" или "w:<путь в проекте>"; d.r — выбор из списка заменяет то, что человек начал набирать */

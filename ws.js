@@ -139,7 +139,7 @@ function vCompany(){
         <dl class="kv"><dt>${L("Вхід","Вход")}</dt><dd>${u.via==="tg"?"Telegram":L("Пошта","Почта")} · ${L("підтверджено","подтверждено")}</dd><dt>${L("Ідентифікатор","Идентификатор")}</dt><dd class="mono">${esc(u.name || u.id)}</dd>${TG()&&u.via!=="tg"?`<dt>Telegram</dt><dd>${CL.tg?esc(CL.tg.username||CL.tg.name||"")+" · "+L("прив’язано","привязан"):`<button class="btn btn--sm" data-act="wsTgLink">${L("Прив’язати Telegram","Привязать Telegram")}</button>`}</dd>`:""}
           <dt>${L("Компанія","Компания")}</dt><dd>${esc(W.co.name)}</dd><dt>${L("Проєктів","Проектов")}</dt><dd class="mono">${W.projs.length}</dd><dt>${L("Обсяг даних","Объём данных")}</dt><dd class="mono">${size} KB</dd></dl>
         <div class="form">${fld("co.name",L("Назва компанії","Название компании"),{w:1})}</div>
-        <div class="row"><button class="btn" data-act="wsLogout">${L("Вийти","Выйти")}</button>${isOwner()?`<button class="btn btn--danger" data-act="wsWipe">${W.wipe?L("Точно видалити все?","Точно удалить всё?"):CLOUD?L("Видалити компанію й дані","Удалить компанию и данные"):L("Видалити акаунт і дані","Удалить аккаунт и данные")}</button>`:""}</div>${CLOUD&&CL.cos.length>1?`<span class="tag">${L("Ваші компанії","Ваши компании")}</span>${CL.cos.map(c=>`<div class="row sp"><b>${esc(c.id===W.co.id?W.co.name:c.name)}</b>${c.id===W.co.id?pill("good",L("відкрита","открыта")):`<button class="btn btn--sm" data-act="wsSwitchCo" data-id="${c.id}">${L("Відкрити","Открыть")}</button>`}</div>`).join("")}`:""}</div>
+        <div class="row"><button class="btn" data-act="wsLogout">${L("Вийти","Выйти")}</button><button class="btn" data-act="theme">${L("Тема: світла / темна","Тема: светлая / тёмная")}</button>${isOwner()?`<button class="btn btn--danger" data-act="wsWipe">${W.wipe?L("Точно видалити все?","Точно удалить всё?"):CLOUD?L("Видалити компанію й дані","Удалить компанию и данные"):L("Видалити акаунт і дані","Удалить аккаунт и данные")}</button>`:""}</div>${CLOUD&&CL.cos.length>1?`<span class="tag">${L("Ваші компанії","Ваши компании")}</span>${CL.cos.map(c=>`<div class="row sp"><b>${esc(c.id===W.co.id?W.co.name:c.name)}</b>${c.id===W.co.id?pill("good",L("відкрита","открыта")):`<button class="btn btn--sm" data-act="wsSwitchCo" data-id="${c.id}">${L("Відкрити","Открыть")}</button>`}</div>`).join("")}`:""}</div>
         <div class="panel vf"><span class="tag">${L("Де зберігаються дані","Где хранятся данные")}</span>
           <p>${L("Усе, що ви вводите, зберігається одразу і прив’язане до акаунта: після виходу та входу тим самим способом компанія, проєкти й бази знань на місці.","Всё, что вы вводите, сохраняется сразу и привязано к аккаунту: после выхода и входа тем же способом компания, проекты и базы знаний на месте.")}</p>
           ${CLOUD?`<p class="sub">${L("Дані лежать на сервері: вони доступні з будь-якого пристрою після входу й однакові для всієї команди. Роль у цій компанії: ","Данные лежат на сервере: они доступны с любого устройства после входа и одинаковы для всей команды. Роль в этой компании: ")}<b>${ROLES()[CL.role]||"—"}</b>.</p>`:`<p class="sub proto">${L("Прототип: дані лежать у цьому браузері. На іншому пристрої їх не буде, доки немає сервера, — перенесіть копією.","Прототип: данные лежат в этом браузере. На другом устройстве их не будет, пока нет сервера, — перенесите копией.")}</p>`}
@@ -148,7 +148,7 @@ function vCompany(){
   }[t]();
   return `<div class="head"><div><span class="tag">${W.co.kind==="agency"?L("Агентство","Агентство"):L("Компанія","Компания")}</span><h1>${esc(W.co.name)}</h1></div>
     ${(t==="projects"||t==="map")&&canAdmin()?`<button class="btn btn--solid" data-act="modal" data-id="project">${L("Додати проєкт","Добавить проект")}</button>`:""}</div>
-  <div class="seg" role="group">${tabs.map(x=>`<button type="button" data-act="wsCtab" data-v="${x[0]}" aria-pressed="${t===x[0]}">${x[1]}${x[0]==="kb"&&W.co.kb.length?" · "+W.co.kb.length:""}</button>`).join("")}</div>
+  <div class="seg seg--co" role="group">${tabs.map(x=>`<button type="button" data-act="wsCtab" data-v="${x[0]}" aria-pressed="${t===x[0]}">${x[1]}${x[0]==="kb"&&W.co.kb.length?" · "+W.co.kb.length:""}</button>`).join("")}</div>
   ${body}`;
 }
 function segList(segs, act, tag){ return segs.length ? `<div class="segs">${segs.map(s=>`<div class="seg3"><div class="row sp"><b>${esc(s.name)}</b><span class="row">${tag?tag(s):""}${del(act, s.id)}</span></div><span class="sub">${esc(s.pain)}</span>${s.say?`<span class="mono">→ ${esc(s.say)}</span>`:""}</div>`).join("")}</div>` : ""; }
@@ -342,11 +342,26 @@ function ownAudStep(o){ return `<p class="sub">${L("Хто купує. Можн�
   ${segList(o.segsOwn, "obSegDel")}${segAdder("os", "obSegAdd", o.d.niche)}`; }
 
 /* ---------- оболочка ---------- */
+/* нижняя навигация на телефоне: разделы компании под большим пальцем; разделы проекта остаются полосой сверху */
+const TBI = {
+  map:'<rect x="1.5" y="8" width="4" height="4"/><path d="M5.5 10h3M8.5 5v10M8.5 5h3M8.5 15h3"/><rect x="11.5" y="3" width="6" height="4"/><rect x="11.5" y="13" width="6" height="4"/>',
+  projects:'<path d="M2.5 5h5l1.5 2h8.5v9h-15z"/>',
+  kb:'<path d="M4 3.5h10.5A1.5 1.5 0 0 1 16 5v11.5H5.5A1.5 1.5 0 0 1 4 15z"/><path d="M4 15a1.5 1.5 0 0 1 1.5-1.5H16"/>',
+  team:'<circle cx="7.5" cy="7" r="2.5"/><path d="M2.5 16c.5-3 2.4-4.5 5-4.5s4.5 1.5 5 4.5"/><circle cx="14" cy="7.5" r="2"/><path d="M14.5 11.6c1.7.3 2.7 1.7 3 4.4"/>',
+  acc:'<circle cx="10" cy="10" r="7.5"/><circle cx="10" cy="8" r="2.5"/><path d="M5 15.3c1-2.1 2.7-3.1 5-3.1s4 1 5 3.1"/>'};
+function tabBar(){
+  let tb = $("tabbar"); if (!tb) { tb = document.createElement("nav"); tb.id = "tabbar"; tb.className = "tabbar"; document.body.appendChild(tb); }
+  const on = own() && !!W.user && !!W.co && !(CLOUD && (!CL.ready || CL.entering)); tb.hidden = !on; document.body.classList.toggle("has-tabbar", on); if (!on) { tb.innerHTML = ""; return; }
+  tb.setAttribute("aria-label", L("Розділи компанії","Разделы компании"));
+  const cur = P() ? "projects" : W.ctab;
+  tb.innerHTML = [["map",L("Карта","Карта")],["projects",L("Проєкти","Проекты")],["kb",L("База","База")],["team",L("Команда","Команда")],["acc",L("Акаунт","Аккаунт")]].map(x =>
+    `<button type="button" data-act="wsCtab" data-v="${x[0]}"${cur === x[0] ? ' aria-current="page"' : ""}><svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${TBI[x[0]]}</svg><span>${x[1]}</span></button>`).join("");
+}
 function ownShell(){
   const p = P(), f = F(), nb = (act, v, t, on) => `<a role="button" tabindex="0" data-act="${act}" data-v="${v}" ${on?'aria-current="page"':""}>${t}</a>`;
   $("rail").innerHTML = `<a class="logo" href="index.html"><i></i>RAKURS</a>
     ${W.user&&W.co?`<button type="button" class="ws" data-act="wsBackP"><small>${L("Компанія","Компания")}</small><b>${esc(W.co.name)}</b></button>
-    <nav class="navg"><span>${L("Компанія","Компания")}</span>${nb("wsCtab","map",L("Карта","Карта"),!p&&W.ctab==="map")}${nb("wsCtab","projects",L("Проєкти","Проекты")+(W.projs.length?` <b class="cnt">${W.projs.length}</b>`:""),!p&&W.ctab==="projects")}${nb("wsCtab","kb",L("База знань","База знаний")+(W.co.kb.length?` <b class="cnt">${W.co.kb.length}</b>`:""),!p&&W.ctab==="kb")}${nb("wsCtab","acc",L("Акаунт","Аккаунт"),!p&&W.ctab==="acc")}</nav>`:""}
+    <nav class="navg navg--co"><span>${L("Компанія","Компания")}</span>${nb("wsCtab","map",L("Карта","Карта"),!p&&W.ctab==="map")}${nb("wsCtab","projects",L("Проєкти","Проекты")+(W.projs.length?` <b class="cnt">${W.projs.length}</b>`:""),!p&&W.ctab==="projects")}${nb("wsCtab","kb",L("База знань","База знаний")+(W.co.kb.length?` <b class="cnt">${W.co.kb.length}</b>`:""),!p&&W.ctab==="kb")}${nb("wsCtab","acc",L("Акаунт","Аккаунт"),!p&&W.ctab==="acc")}</nav>`:""}
     ${W.user&&p?`<nav class="navg"><span>${esc(p.name)}</span>${pChain(p).map(c=>nb("wsTab",c[0],c[1]+(c[2]?"":" <em>·</em>"),!f&&W.tab===c[0])).join("")}</nav>`:""}
     ${W.user&&f?`<nav class="navg"><span>${esc(f.name)}</span>${fChain(f,p).map(c=>nb("wsFtab",c[0],c[1]+(c[2]?"":" <em>·</em>"),W.ftab===c[0])).join("")}</nav>`:""}
     <div class="rail__foot">${W.user?`<div class="me"><small>${W.user.via==="tg"?"Telegram":L("Пошта","Почта")} · ${L("підтверджено","подтверждено")}</small><b>${esc(W.user.name || W.user.id)}</b>${TG()&&W.user.via!=="tg"&&CL.tg?`<small>Telegram · ${esc(CL.tg.username||CL.tg.name||L("прив’язано","привязан"))}</small>`:""}</div>${TG()&&W.user.via!=="tg"&&!CL.tg?`<button type="button" data-act="wsTgLink">${L("Прив’язати Telegram","Привязать Telegram")}</button>`:""}<button type="button" data-act="wsLogout">${L("Вийти","Выйти")}</button>`:""}<button type="button" data-act="wsSample">${L("Приклад «Школа 3D»","Пример «Школа 3D»")}</button><button type="button" data-act="theme">${L("Тема: світла / темна","Тема: светлая / тёмная")}</button>
@@ -358,7 +373,7 @@ function ownShell(){
 function ownView(){ const p = P(), f = F(); if (CLOUD && (!CL.ready || CL.entering || CL.opening)) return skelCab(); return !W.user ? vAuth() : !W.co ? vWelcome() : !p ? vCompany() : f ? vFunnel(f, p) : vProject(p); }
 let ownKey = "";
 const _rs = renderShell, _rv = renderView, _ra = renderAsst, _mf = modalFunnel;
-renderShell = function(){ if (own()) ownShell(); else { _rs(); const ft = document.querySelector(".rail__foot"); if (ft) ft.insertAdjacentHTML("afterbegin", `<button type="button" data-act="wsOwn">← ${L("Моя компанія","Моя компания")}</button>`); } };
+renderShell = function(){ tabBar(); if (own()) ownShell(); else { _rs(); const ft = document.querySelector(".rail__foot"); if (ft) ft.insertAdjacentHTML("afterbegin", `<button type="button" data-act="wsOwn">← ${L("Моя компанія","Моя компания")}</button>`); } };
 renderView = function(){ if (!own()) return _rv(); const v = $("view"), k = [W.cur, W.fun, W.tab, W.ftab, W.ctab, !!W.co, !!W.user, AU.via, AU.step, AU.login].join("|"); v.innerHTML = ownView(); if (k !== ownKey) { enter(v); ownKey = k; window.scrollTo(0,0); } };
 renderAsst = function(){ if (own()) { $("asst").hidden = true; $("fab").hidden = true; return; } _ra(); };
 modalFunnel = function(){ return own() ? modalFunnelOwn() : _mf(); };
