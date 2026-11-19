@@ -227,7 +227,8 @@ function vProject(p){
           ${p.funnels.map(f=>{ const x = fT(f,p); return `<tr data-act="wsOpenF" data-id="${f.id}" tabindex="0"><td><b>${esc(f.name)}</b></td><td class="n mono">${num(x.pay)}</td><td class="n mono">$${num(f.tg.check)}</td><td class="n mono">${money(x.bud)}</td><td class="n mono">${num(x.leads)}</td><td class="n mono">$${dec(x.cap)}</td><td class="n mono">${money(x.rev)}</td></tr>`; }).join("")}
           <tr class="sum"><td><b>${L("Проєкт","Проект")}</b></td><td class="n mono"><b>${num(sum.pay)}</b></td><td></td><td class="n mono"><b>${money(sum.bud)}</b></td><td class="n mono"><b>${num(sum.leads)}</b></td><td></td><td class="n mono"><b>${money(sum.rev)}</b></td></tr></tbody></table></div>`
           : empty(L("Воронок ще немає","Воронок ещё нет"), L("Цілі воронок зведуться сюди й звіряться з ціллю проєкту.","Цели воронок сведутся сюда и сверятся с целью проекта."))}
-        <p class="sub">${L("Факт з’явиться тут же після підключення рекламних кабінетів і таблиці продажів.","Факт появится здесь же после подключения рекламных кабинетов и таблицы продаж.")}</p></div>`; },
+        <p class="sub">${L("Факт з’явиться тут же після підключення рекламних кабінетів і таблиці продажів.","Факт появится здесь же после подключения рекламных кабинетов и таблицы продаж.")}</p></div>
+      ${chSumPanel(p)}`; },
     funnels: () => `<div class="row"><button class="btn btn--solid" data-act="modal" data-id="funnel">${L("Додати воронку","Добавить воронку")}</button></div>
       ${p.funnels.length?`<div class="cols">${p.funnels.map(f=>{ const c = fChain(f,p), done = c.filter(x=>x[2]).length, x = fT(f,p); return `<div class="panel"><div class="row sp"><h2>${esc(f.name)}</h2>${del("wsDelF", f.id)}</div><p class="sub">${esc(f.an.offer)}</p><div class="prog"><i style="width:${done/c.length*100}%"></i></div>
         <dl class="kv"><dt>${L("Готовність","Готовность")}</dt><dd class="mono">${done} / ${c.length}</dd><dt>${L("ЦА","ЦА")}</dt><dd class="mono">${fSegs(f,p).length} ${L("сегм.","сегм.")}</dd><dt>${L("Лендингів","Лендингов")}</dt><dd class="mono">${f.lands.length}</dd><dt>${L("Креативів","Креативов")}</dt><dd class="mono">${f.crs.length}</dd><dt>${L("План","План")}</dt><dd class="mono">${num(x.pay)} ${L("оплат","оплат")} · ${money(x.rev)}</dd></dl>
@@ -287,6 +288,7 @@ function vFunnel(f, p){
         ${r("pay",L("План оплат на місяць","План оплат в месяц"),"")}${r("check",L("Чек","Чек"),"$")}${r("l2b",L("Лід → бронь","Лид → бронь"),"%")}${r("b2p",L("Бронь → оплата","Бронь → оплата"),"%")}</tbody></table></div>
         <p class="sub">${L("Конверсії взято з проєкту — змініть, якщо у цієї воронки вони інші. Частка маркетингу спільна: ","Конверсии взяты из проекта — измените, если у этой воронки они другие. Доля маркетинга общая: ")}${p.tg.share}%.</p></div>
         <div class="panel vf"><span class="tag">${L("План воронки","План воронки")}</span><div id="w-calc">${calcF(f,p)}</div></div></div>
+      ${chPlanPanel(f, p)}
       <div class="panel"><span class="tag">${L("Аналітика","Аналитика")}</span>
         <div class="tw tw--in"><table><thead><tr><th>${L("Показник","Показатель")}</th><th class="n">${L("Ціль","Цель")}</th><th class="n">${L("Факт","Факт")}</th></tr></thead><tbody>
         ${(()=>{ const x = fT(f,p); return [[L("Витрати","Расход"),money(x.bud)],[L("Ліди","Лиды"),num(x.leads)],[L("Ціна ліда","Цена лида"),"≤ $"+dec(x.cap)],[L("Лід → бронь","Лид → бронь"),pc(f.tg.l2b)],[L("Бронь → оплата","Бронь → оплата"),pc(f.tg.b2p,0)],[L("Оплати","Оплаты"),num(x.pay)],[L("Виручка","Выручка"),money(x.rev)],["ROAS",dec(100/p.tg.share)]].map(a=>`<tr><td>${a[0]}</td><td class="n mono">${a[1]}</td><td class="n mono sub">—</td></tr>`).join(""); })()}</tbody></table></div>
@@ -426,7 +428,7 @@ Object.assign(ACT, {
     p.funnels.push(f); W.fun = f.id; W.ftab = "an"; S.modal = null; save(); toast(L("Воронку створено","Воронка создана")); }
 });
 document.addEventListener("input", e => { const t = e.target; if (!t.dataset.w || !own()) return; const path = t.dataset.w, isN = /\.tg\./.test(path);
-  if (isN) { const n = pnum(t.value); if (!(n > 0)) return; wset(path, n); const c = $("w-calc"); if (c) c.innerHTML = F() ? calcF(F(), P()) : calcP(P()); } else wset(path, t.value); });
+  if (isN) { const n = pnum(t.value); if (!(n > 0)) return; wset(path, n); const c = $("w-calc"); if (c) c.innerHTML = F() ? calcF(F(), P()) : calcP(P()); const cp = $("ch-plan"); if (cp && F()) cp.innerHTML = chPlanBody(F(), P()); } else wset(path, t.value); });
 document.addEventListener("change", e => { const t = e.target; if (!own()) return;
   if (t.dataset.w && /^co\.paths\.\d+\.steps$/.test(t.dataset.w)) { const v = stepsNorm(t.value); if (v && v !== t.value) { wset(t.dataset.w, v); render(); } return; }
   if (t.id === "nf-sale") { const b = $("nf-own"); if (b) { b.hidden = t.value !== "+"; if (!b.hidden) $("nf-pname").focus(); } return; }

@@ -53,6 +53,33 @@ function pathRead(pre){ const n = (document.getElementById(pre + "-pname") || {}
   return pathAdd(n.trim(), st); }
 const plural = (n, a, b, c) => { const m = n % 100, k = n % 10; return n + " " + (m > 10 && m < 20 ? c : k === 1 ? a : k > 1 && k < 5 ? b : c); };
 
+/* ---------- план воронки по каналам ----------
+   Доля — часть бюджета воронки на канал, %. Что задано — как задано, остальным каналам остаток поровну. */
+function chShares(f){ const ch = f.ch || [], sh = f.chs || {}, out = {}, set = ch.filter(c => typeof sh[c] === "number" && sh[c] >= 0), used = set.reduce((a, c) => a + sh[c], 0), free = ch.filter(c => !set.includes(c));
+  set.forEach(c => { out[c] = sh[c]; }); free.forEach(c => { out[c] = Math.max(0, (100 - used) / free.length); }); return out; }
+function chPlan(f, p){ const x = fT(f, p), s = chShares(f); return (f.ch || []).map(c => ({id:c, share:s[c], bud:x.bud * s[c] / 100, leads:x.leads * s[c] / 100, pay:x.pay * s[c] / 100})); }
+function chPlanBody(f, p){ const rows = chPlan(f, p), tot = rows.reduce((a, r) => a + r.share, 0), ok = Math.abs(tot - 100) < 0.5, sum = k => rows.reduce((a, r) => a + r[k], 0);
+  return `<div class="row sp"><span class="tag">${L("План за каналами","План по каналам")}</span>${rows.length ? (ok ? pill("good", L("частки в сумі 100%","доли в сумме 100%")) : pill("warn", L("частки в сумі ","доли в сумме ") + Math.round(tot) + "%")) : ""}</div>
+    ${rows.length ? `<div class="tw tw--in"><table><thead><tr><th>${L("Канал","Канал")}</th><th class="n">${L("Частка бюджету","Доля бюджета")}</th><th class="n">${L("Бюджет","Бюджет")}</th><th class="n">${L("Лідів","Лидов")}</th><th class="n">${L("Оплат","Оплат")}</th></tr></thead><tbody>
+      ${rows.map(r => `<tr><td><b>${chOf(r.id)[1]}</b></td><td class="n"><input class="tin" data-chs="${r.id}" value="${Math.round(r.share * 10) / 10}" inputmode="decimal" aria-label="${chOf(r.id)[1]}, %"> <span class="sub mono">%</span></td><td class="n mono">${money(r.bud)}</td><td class="n mono">${num(r.leads)}</td><td class="n mono">${num(r.pay)}</td></tr>`).join("")}
+      <tr class="sum"><td><b>${L("Воронка","Воронка")}</b></td><td class="n mono"><b>${Math.round(tot)}%</b></td><td class="n mono"><b>${money(sum("bud"))}</b></td><td class="n mono"><b>${num(sum("leads"))}</b></td><td class="n mono"><b>${num(sum("pay"))}</b></td></tr></tbody></table></div>
+      <div class="row"><button class="btn btn--sm" data-act="chEven">${L("Розділити порівну","Разделить поровну")}</button></div>
+      <p class="sub">${L("Частка — це частина бюджету воронки на канал. Поки немає факту, ліди й оплати діляться в тій самій пропорції; після підключення кабінетів у кожного каналу буде своя ціна ліда.","Доля — это часть бюджета воронки на канал. Пока нет факта, лиды и оплаты делятся в той же пропорции; после подключения кабинетов у каждого канала будет своя цена лида.")}</p>`
+    : `${empty(L("У воронки немає каналів трафіку","У воронки нет каналов трафика"), L("Позначте канали — план розкладеться за ними.","Отметьте каналы — план разложится по ним."))}${chOpts(p, f)}`}`; }
+const chPlanPanel = (f, p) => `<div class="panel" id="ch-plan">${chPlanBody(f, p)}</div>`;
+/* свод проекта по каналам: канал → воронка → проект */
+function chSumPanel(p){ if (!p.funnels.length) return "";
+  const acc = {}, none = {bud:0, leads:0, pay:0, n:0};
+  p.funnels.forEach(f => { const rows = chPlan(f, p); if (!rows.length) { const x = fT(f, p); none.bud += x.bud; none.leads += x.leads; none.pay += x.pay; none.n++; return; }
+    rows.forEach(r => { const a = acc[r.id] = acc[r.id] || {bud:0, leads:0, pay:0, n:0}; a.bud += r.bud; a.leads += r.leads; a.pay += r.pay; a.n++; }); });
+  const ids = CHAN().map(c => c[0]).filter(c => acc[c]), all = ids.reduce((a, c) => a + acc[c].bud, 0) + none.bud;
+  const row = (name, a, st) => `<tr><td><b>${name}</b></td><td class="n mono">${a.n}</td><td class="n mono">${money(a.bud)}</td><td class="n mono">${all ? Math.round(a.bud / all * 100) : 0}%</td><td class="n mono">${num(a.leads)}</td><td class="n mono">${num(a.pay)}</td><td>${st}</td></tr>`;
+  return `<div class="panel"><span class="tag">${L("Зведення за каналами","Свод по каналам")}</span>
+    <div class="tw tw--in"><table><thead><tr><th>${L("Канал","Канал")}</th><th class="n">${L("Воронок","Воронок")}</th><th class="n">${L("Бюджет","Бюджет")}</th><th class="n">${L("Частка","Доля")}</th><th class="n">${L("Лідів","Лидов")}</th><th class="n">${L("Оплат","Оплат")}</th><th>${L("Кабінет","Кабинет")}</th></tr></thead><tbody>
+      ${ids.map(c => row(chOf(c)[1], acc[c], p.conn[c] === 1 ? pill("good", L("підключено","подключён")) : p.conn[c] ? pill("warn", L("до підключення","к подключению")) : pill("mute", L("немає","нет")))).join("")}
+      ${none.n ? row(L("Канал не обрано","Канал не выбран"), none, pill("warn", L("розподіліть у воронці","распределите в воронке"))) : ""}</tbody></table></div>
+    <p class="sub">${L("Цифри зводяться знизу вгору: частки каналів задаються у воронці, тут — сума за всіма воронками проєкту.","Цифры сводятся снизу вверх: доли каналов задаются в воронке, здесь — сумма по всем воронкам проекта.")}</p></div>`; }
+
 /* дерево из настоящих данных компании */
 function mapTree(){
   const co = {k:"co", lv:0, t:W.co.name, s:plural(W.projs.length, L("проєкт","проект"), L("проєкти","проекта"), L("проєктів","проектов")) + (CLOUD ? " · " + plural(CL.members.length, L("людина","человек"), L("людини","человека"), L("людей","человек")) : ""), kids:[]};
@@ -60,7 +87,7 @@ function mapTree(){
     const pn = {k:"co/" + p.id, lv:1, t:p.name, s:[p.niche, p.geo].filter(Boolean).join(" · "), m:p.tg && p.tg.budget ? L("бюджет ","бюджет ") + money(p.tg.budget) : "", kids:[]};
     p.funnels.forEach(f => {
       const fn = {k:pn.k + "/" + f.id, lv:2, t:f.name, s:saleName(f), m:f.tg && f.tg.pay ? L("ціль: ","цель: ") + plural(f.tg.pay, L("оплата","оплата"), L("оплати","оплаты"), L("оплат","оплат")) : "", kids:[]};
-      (f.ch || []).forEach(c => { const ch = chOf(c); fn.kids.push({k:fn.k + "/" + c, lv:3, t:ch[1], s:ch[2], m:p.conn[c] === 1 ? L("кабінет підключено","кабинет подключён") : p.conn[c] ? L("кабінет позначено","кабинет отмечен") : L("кабінет не підключено","кабинет не подключён"), warn:!p.conn[c]}); });
+      const plan = chPlan(f, p); (f.ch || []).forEach(c => { const ch = chOf(c), pl = plan.find(r => r.id === c); fn.kids.push({k:fn.k + "/" + c, lv:3, t:ch[1], s:pl && pl.bud > 0 ? money(pl.bud) + " · " + Math.round(pl.share) + "%" : ch[2], m:p.conn[c] === 1 ? L("кабінет підключено","кабинет подключён") : p.conn[c] ? L("кабінет позначено","кабинет отмечен") : L("кабінет не підключено","кабинет не подключён"), warn:!p.conn[c]}); });
       if ((f.ch || []).length < CHAN().length) fn.kids.push({add:"c", k:fn.k + "/+", lv:3, t:L("Канал","Канал")});
       pn.kids.push(fn);
     });
@@ -139,8 +166,14 @@ Object.assign(ACT, {
     MP.sel = "co/" + pid + "/" + fid; },
   mapCh(d){ const p = W.projs.find(x => x.id === d.p), f = p && p.funnels.find(x => x.id === d.f); if (!f) return;
     f.ch = f.ch || []; f.ch = f.ch.includes(d.v) ? f.ch.filter(c => c !== d.v) : CHAN().map(c => c[0]).filter(c => c === d.v || f.ch.includes(c));
+    if (!f.ch.includes(d.v) && f.chs) delete f.chs[d.v];
     if (MP.sel && MP.sel.split("/")[3] === d.v && !f.ch.includes(d.v)) MP.sel = "co/" + p.id + "/" + f.id;
     save(); },
+  chEven(){ const f = F(); if (!f) return false; f.chs = {}; save(); },
   mapOpenF(d){ W.cur = d.p; W.fun = d.id; W.ftab = "an"; save(); },
   mapConn(d){ W.cur = d.id; W.fun = null; W.tab = "conn"; save(); },
 });
+document.addEventListener("change", e => { const t = e.target; if (!t.dataset || !t.dataset.chs) return; const f = F(); if (!f) return;
+  const raw = t.value.trim().replace(",", "."), n = parseFloat(raw); f.chs = f.chs || {};
+  if (raw === "") delete f.chs[t.dataset.chs]; else if (n >= 0 && n <= 100) f.chs[t.dataset.chs] = Math.round(n * 10) / 10; else { toast(L("Частка — число від 0 до 100","Доля — число от 0 до 100")); render(); return; }
+  save(); render(); });
