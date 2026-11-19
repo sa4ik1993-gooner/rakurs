@@ -222,7 +222,7 @@ function vProject(p){
         <dl class="kv"><dt>${L("Готовність","Готовность")}</dt><dd class="mono">${done} / ${c.length}</dd><dt>${L("ЦА","ЦА")}</dt><dd class="mono">${fSegs(f,p).length} ${L("сегм.","сегм.")}</dd><dt>${L("Лендингів","Лендингов")}</dt><dd class="mono">${f.lands.length}</dd><dt>${L("Креативів","Креативов")}</dt><dd class="mono">${f.crs.length}</dd><dt>${L("План","План")}</dt><dd class="mono">${num(x.pay)} ${L("оплат","оплат")} · ${money(x.rev)}</dd></dl>
         <div class="row"><button class="btn btn--sm btn--solid" data-act="wsOpenF" data-id="${f.id}">${L("Відкрити","Открыть")}</button></div></div>`; }).join("")}</div>`
         : empty(L("Воронок ще немає","Воронок ещё нет"), L("Воронка — це один офер з ціною: вебінар, акція, лід-форма. У неї свої лендинги, креативи й цілі.","Воронка — это один оффер с ценой: вебинар, акция, лид-форма. У неё свои лендинги, креативы и цели."))}`,
-    conn: () => `${MT.open === p.id ? metaGuide(p) : ""}<p class="sub">${L("Meta Ads підключається напряму, за кроками. Решту кабінетів поки що позначте: що є, те інтегратор підключить.","Meta Ads подключается напрямую, по шагам. Остальные кабинеты пока отметьте: что есть, то интегратор подключит.")}</p>
+    conn: () => `${MT.open === p.id ? metaGuide(p) : ""}<p class="sub">${L("Meta Ads підключається напряму, покроково. Решту кабінетів поки що позначте: що є, те інтегратор підключить.","Meta Ads подключается напрямую, по шагам. Остальные кабинеты пока отметьте: что есть, то интегратор подключит.")}</p>
       <div class="conn">${OBCONN().map(c=>{ const v = p.conn[c[0]]; return `<div class="panel"><div class="row sp"><h2>${c[1]}</h2>${v===1?pill("good",L("підключено","подключено")):v?pill("warn",L("до підключення","к подключению")):pill("mute",L("немає","нет"))}</div>${c[0]==="meta" ? metaCard(p) : `<p class="sub">${c[2]}</p><div class="row"><button class="btn btn--sm" data-act="wsConn" data-id="${c[0]}">${v?L("Прибрати","Убрать"):L("Є, підключити","Есть, подключить")}</button></div>`}</div>`; }).join("")}</div>`
   }[t]();
   const next = ch.find(c=>!c[2]);
@@ -235,7 +235,7 @@ function calcP(p){ const c = pT(p); return `<div class="kpis">${[[L("Вируч�
 function calcF(f, p){ const x = fT(f,p); return `<div class="kpis">${[[L("Бюджет","Бюджет"),money(x.bud)],[L("Лідів","Лидов"),num(x.leads)],[L("Оплат","Оплат"),num(x.pay)],[L("Виручка","Выручка"),money(x.rev)],[L("Стеля ліда","Потолок лида"),"$"+dec(x.cap)]].map(k=>`<div class="kpi"><span class="tag">${k[0]}</span><strong>${k[1]}</strong></div>`).join("")}</div>`; }
 function vFunnel(f, p){
   const ch = fChain(f,p), t = W.ftab, hasConn = Object.values(p.conn).some(Boolean);
-  const ready = [[L("Офер і ціна","Оффер и цена"),ch[0][2]],[L("ЦА: хоча б один сегмент","ЦА: хотя бы один сегмент"),ch[1][2]],[L("Лендинг","Лендинг"),ch[2][2]],[L("Креативи: від трьох","Креативы: от трёх"),ch[3][2]],[L("Цілі воронки","Цели воронки"),ch[4][2]],[L("Кабінети відмічено до підключення","Кабинеты отмечены к подключению"),hasConn]];
+  const ready = [[L("Офер і ціна","Оффер и цена"),ch[0][2]],[L("ЦА: хоча б один сегмент","ЦА: хотя бы один сегмент"),ch[1][2]],[L("Лендинг","Лендинг"),ch[2][2]],[L("Креативи: від трьох","Креативы: от трёх"),ch[3][2]],[L("Цілі воронки","Цели воронки"),ch[4][2]],[L("Кабінети позначено до підключення","Кабинеты отмечены к подключению"),hasConn]];
   const camp = [slug(p.name), geoCode(p.geo), slug(f.name), f.goal==="form"?"Form":"Site", "ABO"].filter(Boolean).join("_");
   const body = {
     an: () => `<div class="panel"><span class="tag">${L("Анамнез воронки","Анамнез воронки")}</span><div class="form">
@@ -279,7 +279,7 @@ function vFunnel(f, p){
       <div class="panel"><span class="tag">${L("Аналітика","Аналитика")}</span>
         <div class="tw tw--in"><table><thead><tr><th>${L("Показник","Показатель")}</th><th class="n">${L("Ціль","Цель")}</th><th class="n">${L("Факт","Факт")}</th></tr></thead><tbody>
         ${(()=>{ const x = fT(f,p); return [[L("Витрати","Расход"),money(x.bud)],[L("Ліди","Лиды"),num(x.leads)],[L("Ціна ліда","Цена лида"),"≤ $"+dec(x.cap)],[L("Лід → бронь","Лид → бронь"),pc(f.tg.l2b)],[L("Бронь → оплата","Бронь → оплата"),pc(f.tg.b2p,0)],[L("Оплати","Оплаты"),num(x.pay)],[L("Виручка","Выручка"),money(x.rev)],["ROAS",dec(100/p.tg.share)]].map(a=>`<tr><td>${a[0]}</td><td class="n mono">${a[1]}</td><td class="n mono sub">—</td></tr>`).join(""); })()}</tbody></table></div>
-        <p class="sub">${L("Факт рахується по даті вебінару і до оплати. З’явиться після першого запуску; як це виглядає — у заповненому прикладі.","Факт считается по дате вебинара и до оплаты. Появится после первого запуска; как это выглядит — в заполненном примере.")}</p></div>`; }
+        <p class="sub">${L("Факт рахується за датою вебінару й до оплати. З’явиться після першого запуску; як це виглядає — у заповненому прикладі.","Факт считается по дате вебинара и до оплаты. Появится после первого запуска; как это выглядит — в заполненном примере.")}</p></div>`; }
   }[t]();
   return `<button class="back" data-act="wsBackF">← ${esc(p.name)}</button>
   <div class="head"><div><span class="tag">${L("Воронка","Воронка")}</span><h1>${esc(f.name)}</h1><p class="sub">${esc(f.an.offer)}</p></div></div>

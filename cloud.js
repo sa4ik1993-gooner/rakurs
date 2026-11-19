@@ -24,7 +24,7 @@ async function cloudBoot(){
     const r = await sb.auth.getSession(); CL.state = "idle";
     if (/access_token=|error=|error_code=/.test(location.hash)) try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
     if (r.data && r.data.session) await cloudSigned(r.data.session.user, /access_token=/.test(h0));
-    else if (/error=|error_code=/.test(h0)) setTimeout(() => toast(L("Посилання з листа застаріло або вже використане. Запросіть новий лист","Ссылка из письма устарела или уже использована. Запросите новое письмо")), 300);
+    else if (/error=|error_code=/.test(h0)) setTimeout(() => toast(L("Посилання з листа застаріло або вже використане. Отримайте новий лист","Ссылка из письма устарела или уже использована. Запросите новое письмо")), 300);
     if (sb.auth.onAuthStateChange) sb.auth.onAuthStateChange((ev, s) => { if (ev === "SIGNED_IN" && s && s.user) setTimeout(() => cloudSigned(s.user, true), 0); });
   } catch (e) { cErr(e, L("Не вдалося з’єднатися із сервером","Не удалось соединиться с сервером")); }
   CL.ready = true; render();
@@ -138,6 +138,6 @@ async function cloudDeleteCo(){ const r = await sb.from("companies").delete().eq
 async function cloudMembers(){ const m = await sb.from("members").select("*").eq("company_id", W.co.id).order("created_at"); if (!m.error) CL.members = m.data || []; }
 async function cloudAddMember(email, role, proj){
   const r = await sb.from("members").insert({company_id:W.co.id, email, role, project_ids: proj ? [proj] : null}); if (r.error) { toast(/duplicate|unique/i.test(r.error.message) ? L("Ця людина вже в команді","Этот человек уже в команде") : L("Не вдалося додати: ","Не удалось добавить: ") + r.error.message); return; }
-  await cloudMembers(); render(); toast(L("Доступ видано. Надішліть людині посилання на кабінет","Доступ выдан. Отправьте человеку ссылку на кабинет"));
+  await cloudMembers(); render(); toast(L("Доступ надано. Надішліть людині посилання на кабінет","Доступ выдан. Отправьте человеку ссылку на кабинет"));
 }
 async function cloudDelMember(id){ const r = await sb.from("members").delete().eq("id", id); if (r.error) return cErr(r.error, L("Не вдалося прибрати","Не удалось убрать")); await cloudMembers(); render(); toast(L("Доступ закрито","Доступ закрыт")); }

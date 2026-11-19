@@ -60,7 +60,7 @@ function mapTree(){
     const pn = {k:"co/" + p.id, lv:1, t:p.name, s:[p.niche, p.geo].filter(Boolean).join(" · "), m:p.tg && p.tg.budget ? L("бюджет ","бюджет ") + money(p.tg.budget) : "", kids:[]};
     p.funnels.forEach(f => {
       const fn = {k:pn.k + "/" + f.id, lv:2, t:f.name, s:saleName(f), m:f.tg && f.tg.pay ? L("ціль: ","цель: ") + plural(f.tg.pay, L("оплата","оплата"), L("оплати","оплаты"), L("оплат","оплат")) : "", kids:[]};
-      (f.ch || []).forEach(c => { const ch = chOf(c); fn.kids.push({k:fn.k + "/" + c, lv:3, t:ch[1], s:ch[2], m:p.conn[c] === 1 ? L("кабінет підключено","кабинет подключён") : p.conn[c] ? L("кабінет відмічено","кабинет отмечен") : L("кабінет не підключено","кабинет не подключён"), warn:!p.conn[c]}); });
+      (f.ch || []).forEach(c => { const ch = chOf(c); fn.kids.push({k:fn.k + "/" + c, lv:3, t:ch[1], s:ch[2], m:p.conn[c] === 1 ? L("кабінет підключено","кабинет подключён") : p.conn[c] ? L("кабінет позначено","кабинет отмечен") : L("кабінет не підключено","кабинет не подключён"), warn:!p.conn[c]}); });
       if ((f.ch || []).length < CHAN().length) fn.kids.push({add:"c", k:fn.k + "/+", lv:3, t:L("Канал","Канал")});
       pn.kids.push(fn);
     });
@@ -105,7 +105,7 @@ function mapInfo(){
   if (pid && !p || fid && !f || cid && !(f.ch || []).includes(cid)) { MP.sel = null; return mapLegend(); }
   if (cid) { const ch = chOf(cid);
     return `<div class="panel">${lvTag(3)}<h2>${ch[1]}</h2><p class="sub">${LEVELS()[3][1]}</p>
-      <dl class="kv"><dt>${L("Воронка","Воронка")}</dt><dd>${esc(f.name)}</dd><dt>${L("Проєкт","Проект")}</dt><dd>${esc(p.name)}</dd><dt>${L("Кабінет","Кабинет")}</dt><dd>${p.conn[cid] ? pill("good", L("відмічено до підключення","отмечен к подключению")) : pill("warn", L("не підключено","не подключён"))}</dd></dl>
+      <dl class="kv"><dt>${L("Воронка","Воронка")}</dt><dd>${esc(f.name)}</dd><dt>${L("Проєкт","Проект")}</dt><dd>${esc(p.name)}</dd><dt>${L("Кабінет","Кабинет")}</dt><dd>${p.conn[cid] ? pill("good", L("позначено до підключення","отмечен к подключению")) : pill("warn", L("не підключено","не подключён"))}</dd></dl>
       <p class="sub">${L("Витрати, ліди й оплати цього каналу зводяться у воронку, а воронки — у проєкт.","Расход, лиды и оплаты этого канала сводятся в воронку, а воронки — в проект.")}</p>
       <div class="row"><button class="btn btn--sm btn--solid" data-act="mapConn" data-id="${p.id}">${L("Підключення проєкту","Подключения проекта")}</button><button class="btn btn--sm" data-act="mapCh" data-p="${p.id}" data-f="${f.id}" data-v="${cid}">${L("Прибрати канал із воронки","Убрать канал из воронки")}</button></div></div>`; }
   if (f) return `<div class="panel">${lvTag(2)}<h2>${esc(f.name)}</h2><p class="sub">${LEVELS()[2][1]}</p>
@@ -114,7 +114,7 @@ function mapInfo(){
       <div class="row"><button class="btn btn--sm btn--solid" data-act="mapOpenF" data-p="${p.id}" data-id="${f.id}">${L("Відкрити воронку","Открыть воронку")}</button></div></div>`;
   if (p) { const conn = CHAN().filter(c => p.conn[c[0]]).map(c => c[1]);
     return `<div class="panel">${lvTag(1)}<h2>${esc(p.name)}</h2><p class="sub">${LEVELS()[1][1]}</p>
-      <dl class="kv"><dt>${L("Воронок","Воронок")}</dt><dd class="mono">${p.funnels.length}</dd><dt>${L("Бюджет на місяць","Бюджет в месяц")}</dt><dd class="mono">${p.tg.budget ? money(p.tg.budget) : "—"}</dd><dt>${L("Сегментів ЦА","Сегментов ЦА")}</dt><dd class="mono">${p.segs.length}</dd><dt>${L("Рекламні кабінети","Рекламные кабинеты")}</dt><dd>${conn.length ? esc(conn.join(", ")) : L("не відмічено","не отмечены")}</dd></dl>
+      <dl class="kv"><dt>${L("Воронок","Воронок")}</dt><dd class="mono">${p.funnels.length}</dd><dt>${L("Бюджет на місяць","Бюджет в месяц")}</dt><dd class="mono">${p.tg.budget ? money(p.tg.budget) : "—"}</dd><dt>${L("Сегментів ЦА","Сегментов ЦА")}</dt><dd class="mono">${p.segs.length}</dd><dt>${L("Рекламні кабінети","Рекламные кабинеты")}</dt><dd>${conn.length ? esc(conn.join(", ")) : L("не позначено","не отмечены")}</dd></dl>
       <div class="row"><button class="btn btn--sm btn--solid" data-act="wsOpenP" data-id="${p.id}">${L("Відкрити проєкт","Открыть проект")}</button><button class="btn btn--sm" data-act="mapAdd" data-k="co/${p.id}/+" data-what="f">${L("Додати воронку","Добавить воронку")}</button></div></div>`; }
   const nf = W.projs.reduce((a, x) => a + x.funnels.length, 0), nc = W.projs.reduce((a, x) => a + x.funnels.reduce((b, y) => b + (y.ch || []).length, 0), 0);
   return `<div class="panel">${lvTag(0)}<h2>${esc(W.co.name)}</h2><p class="sub">${LEVELS()[0][1]}</p>

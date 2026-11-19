@@ -288,7 +288,7 @@ rules(){
     [L("Менеджер","Менеджер"),L("питання, стоп поганого креативу","вопросы, стоп плохого креатива"),L("не витрачає гроші","не тратит деньги")]];
   return `<div class="head"><div><h1>${L("Правила й ролі","Правила и роли")}</h1><p class="sub">${L("Пороги рахуються від стелі ціни ліда з анамнезу. Автоматично бот тільки зупиняє — усе, що збільшує витрати, чекає на кнопку.","Пороги считаются от потолка цены лида из анамнеза. Автоматически бот только останавливает — всё, что увеличивает расход, ждёт кнопки.")}</p></div></div>
   <div class="tw"><table><thead><tr><th>${L("Ситуація","Ситуация")}</th><th>${L("Поріг","Порог")}</th><th>${L("Дія","Действие")}</th><th>${L("Як","Как")}</th><th class="n">${L("Увімкнено","Включено")}</th></tr></thead>
-  <tbody>${R.map((r,i)=>`<tr><td><b>${r[0]}</b></td><td class="mono">${r[1]}</td><td>${r[2]}</td><td>${pill(r[3]==="auto"?"ink":"mute",r[3]==="auto"?L("сам","сам"):L("по кнопці","по кнопке"))}</td><td class="n"><button type="button" class="sw" data-act="rule" data-id="${i}" aria-pressed="${!!S.rules[i]}" aria-label="toggle"></button></td></tr>`).join("")}</tbody></table></div>
+  <tbody>${R.map((r,i)=>`<tr><td><b>${r[0]}</b></td><td class="mono">${r[1]}</td><td>${r[2]}</td><td>${pill(r[3]==="auto"?"ink":"mute",r[3]==="auto"?L("сам","сам"):L("за кнопкою","по кнопке"))}</td><td class="n"><button type="button" class="sw" data-act="rule" data-id="${i}" aria-pressed="${!!S.rules[i]}" aria-label="toggle"></button></td></tr>`).join("")}</tbody></table></div>
   <div class="tw"><table><thead><tr><th>${L("Роль","Роль")}</th><th>${L("Що може","Что может")}</th><th>${L("Стеля без підтвердження","Потолок без подтверждения")}</th></tr></thead>
   <tbody>${T.map(r=>`<tr><td><b>${r[0]}</b></td><td>${r[1]}</td><td class="mono">${r[2]}</td></tr>`).join("")}</tbody></table></div>`;
 },
@@ -304,7 +304,7 @@ journal(){
   return `<div class="head"><div><h1>${L("Журнал","Журнал")}</h1><p class="sub">${L("Кожна дія: хто, коли, що і на якій підставі.","Каждое действие: кто, когда, что и на каком основании.")}</p></div></div>
   <div class="panel"><div class="log">${S.log.map(l=>`<div><time>${l[0]}</time><span>${W[l[1]]}</span><p>${typeof l[2]==="number"?T[l[2]]:l[2]}</p></div>`).join("")}</div></div>`;
 }};
-const modeName = m => ({adv:L("Радник","Советник"),btn:L("По кнопці","По кнопке"),auto:L("Автопілот","Автопилот")}[m]);
+const modeName = m => ({adv:L("Радник","Советник"),btn:L("За кнопкою","По кнопке"),auto:L("Автопілот","Автопилот")}[m]);
 function crCard(f){ return `<button type="button" class="cr" data-act="openCr" data-id="${f.id}"><div class="thumb" style="--h:${f.h}"><em>${tc(f.dur)}</em><span>${f.id}_v${f.v}</span></div><div class="row sp">${st(f.st)}<b class="mono">${f.spend?"ROAS "+dec(roas(f)):L("новий","новый")}</b></div><span class="sub mono">${f.v} ${L("версії","версии")} · ${money(f.spend)}</span></button>`; }
 
 /* ---------- оверлеи ---------- */
@@ -507,7 +507,7 @@ const ACT = {
   createProject(){ S.projects.push(["new",L("Школа англійської","Школа английского"),L("онлайн-освіта","онлайн-образование"),L("чекає на підключення","ждёт подключения"),0,"—",0]); S.modal = null; logAdd("you", L("Створено проєкт «Школа англійської». Інтегратор отримав запит на підключення кабінетів.","Создан проект «Школа английского». Интегратор получил запрос на подключение кабинетов.")); toast(L("Проєкт створено, запит інтегратору надіслано","Проект создан, запрос интегратору отправлен")); },
   createFunnel(){ const name = $("nf-name").value.trim() || L("Нова воронка","Новая воронка"), goal = $("nf-goal").value, url = $("nf-url").value.trim();
     const id = "n" + Date.now(); S.funnels.push({id,name,goal,cap:4,limit:60,mode:"btn",spend:0,leads:0,pay:0,landing:url}); S.modal = null; S.funnel = id;
-    logAdd("you", L("Створено воронку «","Создана воронка «") + name + L("», режим «по кнопці».","», режим «по кнопке».")); location.hash = "funnels"; toast(L("Воронку створено","Воронка создана")); },
+    logAdd("you", L("Створено воронку «","Создана воронка «") + name + L("», режим «за кнопкою».","», режим «по кнопке».")); location.hash = "funnels"; toast(L("Воронку створено","Воронка создана")); },
   openFunnel(d){ S.funnel = d.id; window.scrollTo(0,0); },
   closeFunnel(){ S.funnel = null; },
   mode(d){ S.funnels.find(f=>f.id===d.id).mode = d.v; toast(L("Режим змінено","Режим изменён")); },

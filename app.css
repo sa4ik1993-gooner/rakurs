@@ -421,3 +421,8 @@ button.nd:hover{border-color:var(--ink)}
 .mterr{color:var(--play);font-size:13.5px;margin:0}
 a.btn{text-decoration:none}
 @media (max-width:760px){ .mtg__in{grid-template-columns:1fr} .mtg__steps{flex-direction:row;overflow-x:auto} .mtg__steps button{border-left:0;border-bottom:3px solid var(--line);white-space:nowrap} .mtg__steps li.on button{border-bottom-color:var(--play)} .mtg__steps li.ok button{border-bottom-color:var(--track)} .mtg__steps small{display:none} }
+
+/* окна: кнопки действия всегда на виду, даже когда содержимое длиннее экрана */
+.ob>.row:last-child{position:sticky;bottom:-24px;z-index:5;background:var(--surface);padding:12px 0 24px;margin-bottom:-24px;border-top:1px solid var(--line)}
+/* палец: цели нажатия не меньше 40 px */
+@media (pointer:coarse),(max-width:760px){ .btn--sm{min-height:40px} .sgb{min-height:38px;padding:8px 12px} .chks{gap:4px 18px} .chks .chk{min-height:40px;align-items:center} .sg button{min-height:44px} }
