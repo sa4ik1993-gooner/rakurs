@@ -13,6 +13,8 @@ async function fxLoad(p){ const x = fxOf(p); if (!CLOUD || !sb || x.loading) ret
   try { const r = await sb.rpc("ad_summary", {p:p.id, d1:fxDay(new Date(Date.now() - (x.days - 1) * 86400000)), d2:fxDay(new Date())});
     const d1 = fxDay(new Date(Date.now() - (x.days - 1) * 86400000)), d2 = fxDay(new Date()); x.sales = null;
     try { const sr = await sb.rpc("sales_summary", {p:p.id, d1, d2}); if (!sr.error) x.sales = (sr.data || []).map(o => ({kind:o.kind, k:fxKey(o.utm_campaign), n:fxKey(o.utm_content), cur:o.currency || "", ev:+o.events || 0, amt:+o.amount || 0})); } catch (e) {}
+    x.coh = null; x.lag = null; try { const cr = await sb.rpc("sales_cohorts", {p:p.id, d1:fxDay(new Date(Date.now() - 60 * 86400000)), d2}); if (!cr.error) x.coh = cr.data || [];
+      const lr = await sb.rpc("sales_lag", {p:p.id}); if (!lr.error) x.lag = lr.data || []; } catch (e) {}
     x.ads = null; try { const ar = await sb.rpc("ad_creatives", {p:p.id, d1, d2}); if (!ar.error) x.ads = (ar.data || []).map(o => ({cid:o.campaign_id, k:fxKey(o.campaign_name), name:o.ad_name || "", spend:+o.spend || 0, imp:+o.impressions || 0, clicks:+o.clicks || 0, leads:+o.leads || 0})); } catch (e) {}
     if (r.error) x.err = fxErr(r.error.message); else { x.rows = (r.data || []).map(o => ({prov:o.provider, f:o.funnel_id || "", id:o.campaign_id, name:o.campaign_name || o.campaign_id, spend:+o.spend || 0, imp:+o.impressions || 0, clicks:+o.clicks || 0, leads:+o.leads || 0})); x.at = Date.now(); } }
   catch (e) { x.err = fxErr(e && e.message); }
@@ -45,6 +47,23 @@ function fxCreatives(p, x, rows, f){ if (!x.ads) return null;
     const b = fxBase(s.n), t = s.n && s.n.indexOf("{{") < 0 && bases[s.k] && bases[s.k].has(b) ? g[b] : lost;
     if (s.kind === "booking") t.book += s.ev; else if (s.kind === "payment") { t.pay += s.ev; t.rev += rate ? s.amt / rate : 0; } });
   return {list:Object.values(g).sort((a, b) => b.spend - a.spend), lost, noRate}; }
+/* Зрелость вебинара: какая доля оплат обычно уже пришла к этому дню.
+   Кривая берётся из прошлых вебинаров проекта; пока истории мало, считаем, что оплаты собираются за 14 дней. */
+function fxCurve(lag){ const tot = (lag || []).reduce((a, r) => a + (+r.events || 0), 0); if (tot < 30) return null;
+  const c = []; let acc = 0; for (let d = 0; d <= 60; d++) { acc += (lag.filter(r => +r.lag === d)[0] || {events:0}).events * 1; c[d] = acc / tot; } return c; }
+const fxRipe = (curve, days) => days < 0 ? 0 : curve ? curve[Math.min(60, days)] : Math.min(1, days / 14);
+function fxCohorts(p, x){ if (!x.coh || !x.coh.length) return "";
+  const curve = fxCurve(x.lag), by = {}, today = new Date(fxDay(new Date())).getTime(); let noRate = false;
+  x.coh.forEach(r => { const o = by[r.cohort] = by[r.cohort] || {d:r.cohort, book:0, pay:0, rev:0}, rate = r.currency === "USD" || !r.currency ? 1 : (p.fx || {})[r.currency];
+    if (r.kind === "booking") o.book += +r.events; else if (r.kind === "payment") { o.pay += +r.events; if (!rate && +r.amount) noRate = true; o.rev += rate ? r.amount / rate : 0; } });
+  const list = Object.values(by).filter(o => o.book || o.pay).sort((a, b) => a.d < b.d ? 1 : -1).slice(0, 10);
+  if (!list.length) return "";
+  const day90 = curve ? curve.findIndex(v => v >= 0.9) : 13;
+  return `<span class="tag">${L("Когорти за датою вебінару","Когорты по дате вебинара")}</span>
+    <div class="tw"><table><thead><tr><th>${L("Вебінар","Вебинар")}</th><th class="n">${L("Броні","Брони")}</th><th class="n">${L("Оплати","Оплаты")}</th><th class="n">${L("Бронь → оплата","Бронь → оплата")}</th><th class="n">${L("Виручка, $","Выручка, $")}</th><th>${L("Зрілість","Зрелость")}</th></tr></thead><tbody>
+      ${list.map(o => { const days = Math.round((today - new Date(o.d).getTime()) / 86400000), m = fxRipe(curve, days), ripe = m >= 0.9;
+        return `<tr class="${ripe ? "" : "unripe"}"><td class="mono">${exDate(o.d)}</td><td class="n mono">${num(o.book)}</td><td class="n mono">${num(o.pay)}</td><td class="n mono">${o.book ? dec(o.pay / o.book * 100, 1) + "%" : "—"}${ripe || !o.book ? "" : " *"}</td><td class="n mono">${noRate ? "—" : num(o.rev)}</td><td>${pill(ripe ? "good" : "warn", Math.round(m * 100) + "%")} <span class="sub">${ripe ? L("оплати зібрано","оплаты собраны") : L("ще збирає оплати","ещё собирает оплаты")}</span></td></tr>`; }).join("")}</tbody></table></div>
+    <p class="sub">${curve ? L("Зрілість пораховано за вашими минулими вебінарами: 90% оплат зазвичай надходить до ","Зрелость посчитана по вашим прошлым вебинарам: 90% оплат обычно приходит к ") + (day90 + 1) + L("-го дня.","-му дню.") : L("Зрілість поки що оцінюється за замовчуванням: вважаємо, що оплати збираються за 14 днів. Щойно накопичиться 30 оплат за вебінарами, старшими за місяць, оцінка рахуватиметься за вашими даними.","Зрелость пока оценивается по умолчанию: считаем, что оплаты собираются за 14 дней. Как только накопится 30 оплат по вебинарам старше месяца, оценка будет считаться по вашим данным.")} ${L("* Конверсію недозрілого вебінару оцінювати рано: вона ще виросте.","* Конверсию недозревшего вебинара оценивать рано: она ещё вырастет.")}</p>`; }
 /* продажи по кампаниям: брони, оплаты и выручка в долларах; что не совпало ни с одной кампанией кабинета — отдельно */
 function fxSales(p, x, rows){ const by = {}, other = {book:0, pay:0, rev:0}, names = new Set(rows.map(r => fxKey(r.name))); let noRate = false;
   (x.sales || []).forEach(s => { const rate = s.cur === "USD" || !s.cur ? 1 : (p.fx || {})[s.cur]; if (!rate && s.kind === "payment" && s.amt) noRate = true;
@@ -86,6 +105,7 @@ function factPanel(p, f){
         ${cr.list.slice(0, 30).map(c => `<tr><td class="mono">${esc(c.name)}${c.vers.size > 1 ? ` <span class="sub">${L("версій: ","версий: ")}${c.vers.size}</span>` : ""}</td>${td(c, cap)}</tr>`).join("")}
         ${hs && (cr.lost.book || cr.lost.pay) ? `<tr><td><b>${L("Без мітки креативу","Без метки креатива")}</b></td><td colspan="5"></td><td class="n mono">${num(cr.lost.book)}</td><td class="n mono">${num(cr.lost.pay)}</td><td class="n mono">${sl.noRate ? "—" : num(cr.lost.rev)}</td></tr>` : ""}</tbody></table></div>
       <p class="sub">${L("Версії одного ролика зведено до базової назви. Продаж належить ролику лише всередині своєї кампанії; якщо мітка порожня або не збігається з жодним оголошенням — рядок «Без мітки креативу».","Версии одного ролика сведены к базовому названию. Продажа относится к ролику только внутри своей кампании; если метка пустая или не совпадает ни с одним объявлением — строка «Без метки креатива».")}</p>`; }
+  if (!f) body += fxCohorts(p, x);
   return `<div class="panel" id="fact">${bar}${kpi}${notUsd ? `<p class="sub">${L("Валюта кабінету — ","Валюта кабинета — ")}${esc(cur)}${L(", а стелю задано в доларах: порівняння ціни ліда умовне.",", а потолок задан в долларах: сравнение цены лида условное.")}</p>` : ""}${body}
     ${hs ? `<p class="sub">${L("Броні й оплати беруться із завантажених файлів і рахуються за датою вебінару в цьому періоді; до кампанії прив’язуються за точним збігом назви з міткою utm_campaign.","Брони и оплаты берутся из загруженных файлов и считаются по дате вебинара в этом периоде; к кампании привязываются по точному совпадению названия с меткой utm_campaign.")}${!f && (sl.other.book || sl.other.pay) ? ` ${L("Поза кампаніями цього кабінету: броней ","Вне кампаний этого кабинета: броней ")}${num(sl.other.book)}, ${L("оплат ","оплат ")}${num(sl.other.pay)}.` : ""}${sl.noRate ? ` ${L("Виручку не показано: задайте курс у блоці продажів.","Выручка не показана: задайте курс в блоке продаж.")}` : ""}</p>`
       : `<p class="sub">${L("Тут тільки реклама: витрати, кліки й ліди за даними кабінету. Броні й оплати з’являться після завантаження файлів продажів нижче.","Здесь только реклама: расход, клики и лиды по данным кабинета. Брони и оплаты появятся после загрузки файлов продаж ниже.")}</p>`}</div>`;
