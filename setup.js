@@ -122,7 +122,7 @@ function modalOnboard(){
     <div class="row sp"><div><span class="tag">${L("Крок","Шаг")} ${s+1} / ${st.length}</span><h1>${L("Новий проєкт","Новый проект")}</h1></div><button class="x" data-act="closeOverlay" aria-label="close">×</button></div>
     <ol class="obst">${st.map((t,i)=>`<li class="${i<s?"ok":i===s?"on":""}"><i>${i+1}</i><span>${t}</span></li>`).join("")}</ol>
     ${body}
-    <div class="row sp"><div class="row">${s>0||(s===3&&o.q>0)?`<button class="btn" data-act="obNav" data-v="-1">${L("Назад","Назад")}</button>`:""}</div>
+    <div class="row sp"><div class="row">${s>0||(s===3&&o.q>0)?`<button class="btn" data-act="obNav" data-v="-1">${L("Назад","Назад")}</button>`:""}${o.resumed?`<button class="lnk" data-act="obReset">${L("Очистити чернетку","Очистить черновик")}</button>`:""}</div>
       <div class="row">${s===1||s===4?`<button class="btn" data-act="obNav" data-v="9">${L("Пропустити","Пропустить")}</button>`:""}${s<st.length-1?`<button class="btn btn--solid" data-act="obNav" data-v="1">${lastQ?L("Далі","Дальше"):L("Далі","Дальше")}</button>`:`<button class="btn btn--solid" data-act="createProject">${L("Створити проєкт","Создать проект")}</button>`}</div></div></div>`;
 }
 function modalAud(){ return `<div class="ob"><div class="row sp"><div><span class="tag">${L("Школа 3D","Школа 3D")}</span><h1>${L("Доповнити аудиторію","Дополнить аудиторию")}</h1></div><button class="x" data-act="closeOverlay" aria-label="close">×</button></div>${audBlock(S.audm, "am")}<div class="row"><button class="btn btn--solid" data-act="closeOverlay">${L("Готово","Готово")}</button></div></div>`; }
@@ -256,7 +256,8 @@ Object.assign(ACT, {
 });
 function audFiles(o){ if (o.files) return; o.files = [{n:L("портрет_клієнта.pdf","портрет_клиента.pdf"),p:0},{n:"crm_export_2026.xlsx",p:0},{n:L("дзвінки_менеджерів.zip","звонки_менеджеров.zip"),p:0}];
   const iv = setInterval(() => { let all = true; o.files.forEach((f,i)=>{ if (f.p < 100) { f.p = Math.min(100, f.p + 12 + i*5); all = false; } }); if (all) clearInterval(iv); renderOverlay(); }, 240); timers.push(iv); }
-const ccl = ACT.closeOverlay; ACT.closeOverlay = function(){ ccl(); S.ob = null; };
+/* в своей компании начатая анкета проекта переживает закрытие окна; в примере — сбрасывается, как раньше */
+const ccl = ACT.closeOverlay; ACT.closeOverlay = function(){ const keep = own() && S.modal === "project" && S.ob && String(S.ob.d.name || "").trim() ? S.ob : null; ccl(); S.ob = keep; };
 const rst = ACT.reset; ACT.reset = function(){ const t = S.tier; rst(); S.tier = t; };
 
 /* ввод в анкете и таблицах целей: без полной перерисовки, чтобы поле не теряло фокус */

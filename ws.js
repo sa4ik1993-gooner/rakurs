@@ -380,6 +380,9 @@ document.addEventListener("change", e => fieldOk(e.target));
 const need = (v, t, id) => { if (!v) { fieldErr(id, t); return false; } return true; };
 const _mod = ACT.modal, _cp = ACT.createProject, _cf = ACT.createFunnel, _oc = ACT.obConn, _on = ACT.obNav;
 Object.assign(ACT, {
+  /* анкета проекта не теряется, если окно закрыли случайно: при повторном открытии продолжаем с того же места */
+  modal(d){ if (own() && d.id === "project" && S.ob && String(S.ob.d.name || "").trim()) { S.modal = "project"; S.asst.open = false; S.ob.resumed = true; return; } return _mod(d); },
+  obReset(){ S.ob = obFresh(); },
   wsAuthVia(d){ AU.via = d.v; AU.step = 0; AU.id = ""; },
   wsAuthMode(){ AU.login = !AU.login; AU.step = 0; },
   wsAuthBack(){ AU.step = 0; },
