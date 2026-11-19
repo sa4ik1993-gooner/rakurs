@@ -476,3 +476,15 @@ input[type=checkbox][aria-invalid="true"]{outline:2px solid var(--play);outline-
 #fact td.n,#fact th.n,#ch-plan td.n,#ch-plan th.n{white-space:nowrap}
 #fact td:first-child{min-width:120px}
 .empty .row{margin-top:8px}
+/* карта: значки каналов, факт на карточках, сворачивание веток */
+.chi{display:inline-block;width:16px;height:16px;flex:none;vertical-align:-3px;margin-right:6px}
+.nd .fx{font:500 11px/1.35 var(--f-mono);color:var(--ink)}
+.nd--l0 .fx{color:var(--on-ink);opacity:1}
+.nd--can{padding-right:20px}
+.mt li>.fold{position:absolute;left:calc(var(--w) - 11px);top:50%;transform:translateY(-50%);z-index:1;width:22px;height:22px;padding:0;display:grid;place-items:center;border:1.5px solid var(--line);border-radius:50%;background:var(--bg);color:var(--muted);font:600 14px/1 var(--f-mono);cursor:pointer}
+.mt li>.fold:hover,.mt li>.fold:focus-visible{border-color:var(--ink);color:var(--ink)}
+.nd--fold{border-style:dashed;background:transparent;min-height:44px}
+.nd--fold .go{color:var(--muted)}
+.map__bar{align-items:center}
+@media (pointer:coarse){ .mt li>.fold{width:30px;height:30px;left:calc(var(--w) - 15px)} .nd--can{padding-right:26px} }
+@container map (max-width:640px){ .mt li>.fold{left:auto;right:8px;top:8px;transform:none} .nd--can{padding-right:44px} }

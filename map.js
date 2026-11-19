@@ -8,7 +8,14 @@ const LEVELS = () => [
   [L("Проєкт","Проект"), L("Окремий продукт: опис, ЦА, своя база знань, цілі й бюджет, підключені кабінети.","Отдельный продукт: описание, ЦА, своя база знаний, цели и бюджет, подключённые кабинеты.")],
   [L("Воронка","Воронка"), L("Шлях до оплати: офер і анамнез, правки ЦА, лендинги, креативи, цілі й аналітика.","Путь до оплаты: оффер и анамнез, правки ЦА, лендинги, креативы, цели и аналитика.")],
   [L("Канал трафіку","Канал трафика"), L("Звідки йдуть люди: рекламний кабінет, кампанії, бюджет каналу, UTM-мітки.","Откуда идут люди: рекламный кабинет, кампании, бюджет канала, UTM-метки.")]];
-const MP = {sel:null, demo:null};
+const MP = {sel:null, demo:null, fold:{}};
+/* значки каналов: простые знаки по смыслу (лента, поиск, короткое видео, сообщение), не логотипы площадок */
+const CHI = {
+  meta:'<path d="M4.5 11C3 11 2 9.7 2 8s1-3 2.5-3C7 5 9 11 11.5 11 13 11 14 9.7 14 8s-1-3-2.5-3C9 5 7 11 4.5 11z"/>',
+  gg:'<circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/>',
+  tt:'<path d="M6.5 11.5v-9c.8 2 2.3 3.2 4.5 3.4"/><circle cx="4.6" cy="11.6" r="1.9"/>',
+  tga:'<path d="M14 2 2 7l4.5 2 2 4.5L14 2zM6.5 9 14 2"/>'};
+const chIcon = id => CHI[id] ? `<svg class="chi" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${CHI[id]}</svg>` : "";
 /* что задаётся в проекте, а что в каждой воронке */
 const SPLIT = () => [
   [L("У проєкті — спільне для всіх воронок","В проекте — общее для всех воронок"), [L("назва, ніша, гео, що продаємо","название, ниша, гео, что продаём"), L("правила реклами: що працювало, заборони, тон","правила рекламы: что работало, запреты, тон"), L("глобальні цифри: бюджет, середній чек, частка маркетингу, базові конверсії","глобальные цифры: бюджет, средний чек, доля маркетинга, базовые конверсии"), L("базова ЦА","базовая ЦА"), L("база знань","база знаний"), L("рекламні кабінети, продажі, Telegram","рекламные кабинеты, продажи, Telegram")]],
@@ -80,15 +87,57 @@ function chSumPanel(p){ if (!p.funnels.length) return "";
       ${none.n ? row(L("Канал не обрано","Канал не выбран"), none, pill("warn", L("розподіліть у воронці","распределите в воронке"))) : ""}</tbody></table></div>
     <p class="sub">${L("Цифри зводяться знизу вгору: частки каналів задаються у воронці, тут — сума за всіма воронками проєкту.","Цифры сводятся снизу вверх: доли каналов задаются в воронке, здесь — сумма по всем воронкам проекта.")}</p></div>`; }
 
+/* Факт на карте: расход и лиды за 7 дней из статистики, уже собранной на сервере.
+   Только чтение: к рекламному кабинету карта не обращается, свежесть данных — забота блока «Факт рекламы» и ночного обновления. */
+const MFX = {};
+const mapFxOn = p => CLOUD && p.meta && p.meta.conn;
+function mapFactLoad(){ if (!CLOUD || !sb) return;
+  W.projs.forEach(p => { if (!mapFxOn(p)) return; const x = MFX[p.id] = MFX[p.id] || {rows:null, at:0, loading:false};
+    if (x.loading || Date.now() - x.at < 10 * 60000) return; x.loading = true;
+    const done = r => { x.loading = false; x.at = Date.now(); if (!r || r.error) return;
+      x.rows = (r.data || []).map(o => ({prov:o.provider, f:o.funnel_id || "", id:o.campaign_id, spend:+o.spend || 0, leads:+o.leads || 0}));
+      if (W.co && !W.cur && W.ctab === "map" && !S.modal) render(); };
+    Promise.resolve(sb.rpc("ad_summary", {p:p.id, d1:fxDay(new Date(Date.now() - 6 * 86400000)), d2:fxDay(new Date())})).then(done, () => done(null)); }); }
+const mapFxRows = p => (mapFxOn(p) && MFX[p.id] && MFX[p.id].rows) || null;
+const mapFxCur = p => (p.meta.conn.account || {}).currency || "";
+const mapFxSum = rows => rows.reduce((a, r) => { a.spend += r.spend; a.leads += r.leads; return a; }, {spend:0, leads:0});
+function mapFxText(s, cur){ if (!s.spend && !s.leads) return "";
+  const usd = !cur || cur === "USD", m = (v, f) => usd ? "$" + f(v) : f(v) + " " + cur;
+  return L("факт 7 дн.: ","факт 7 дн.: ") + m(s.spend, num) + " · " + (s.leads ? plural(s.leads, L("лід","лид"), L("ліди","лида"), L("лідів","лидов")) + L(" по "," по ") + m(s.spend / s.leads, fxM) : L("лідів немає","лидов нет")); }
+/* проект целиком, одна воронка или один канал воронки */
+function mapFx(p, f, c){ const rows = mapFxRows(p); if (!rows) return "";
+  const r = f ? rows.filter(x => fxFunnel(p, x) === f.id && (!c || x.prov === c)) : rows;
+  return mapFxText(mapFxSum(r), mapFxCur(p)) || (f ? "" : L("факт 7 дн.: витрат немає","факт 7 дн.: расхода нет")); }
+/* компания: складываем проекты, только если у всех кабинетов одна валюта */
+function mapFxCo(){ const ps = W.projs.filter(mapFxRows); if (!ps.length) return ""; const curs = [...new Set(ps.map(p => mapFxCur(p) || "USD"))];
+  return curs.length > 1 ? "" : mapFxText(mapFxSum(ps.reduce((a, p) => a.concat(mapFxRows(p)), [])), curs[0]); }
+
+/* Сворачивание веток. Пока структура небольшая, всё раскрыто. Когда строк на доске много,
+   проекты по умолчанию свёрнуты до одной строки; в проекте, где больше шести воронок, свёрнуты каналы воронок.
+   Явный выбор человека (MP.fold) главнее правила. */
+const MAP_ROWS = 16, MAP_FUNS = 6;
+const mapRows = () => W.projs.reduce((a, p) => a + 1 + p.funnels.reduce((b, f) => b + Math.max(1, (f.ch || []).length + ((f.ch || []).length < CHAN().length ? 1 : 0)), 0), 0);
+const mapMany = () => W.projs.length > 1 && mapRows() > MAP_ROWS;
+const mapFolded = (k, def) => k in MP.fold ? MP.fold[k] : def;
+const plCh = n => plural(n, L("канал","канал"), L("канали","канала"), L("каналів","каналов"));
+const plFn = n => plural(n, L("воронка","воронка"), L("воронки","воронки"), L("воронок","воронок"));
+
 /* дерево из настоящих данных компании */
 function mapTree(){
-  const co = {k:"co", lv:0, t:W.co.name, s:plural(W.projs.length, L("проєкт","проект"), L("проєкти","проекта"), L("проєктів","проектов")) + (CLOUD ? " · " + plural(CL.members.length, L("людина","человек"), L("людини","человека"), L("людей","человек")) : ""), kids:[]};
+  mapFactLoad();
+  const many = mapMany();
+  const co = {k:"co", lv:0, t:W.co.name, s:plural(W.projs.length, L("проєкт","проект"), L("проєкти","проекта"), L("проєктів","проектов")) + (CLOUD ? " · " + plural(CL.members.length, L("людина","человек"), L("людини","человека"), L("людей","человек")) : ""), fx:mapFxCo(), kids:[]};
   W.projs.forEach(p => {
-    const pn = {k:"co/" + p.id, lv:1, t:p.name, s:[p.niche, p.geo].filter(Boolean).join(" · "), m:p.tg && p.tg.budget ? L("бюджет ","бюджет ") + money(p.tg.budget) : "", kids:[]};
+    mtHealth(p);
+    const nch = p.funnels.reduce((a, f) => a + (f.ch || []).length, 0);
+    const pn = {k:"co/" + p.id, lv:1, t:p.name, s:[p.niche, p.geo].filter(Boolean).join(" · "), m:p.tg && p.tg.budget ? L("бюджет ","бюджет ") + money(p.tg.budget) : "", fx:mapFx(p), kids:[]};
+    if (p.funnels.length) { pn.can = true; pn.fold = mapFolded(pn.k, many); pn.stub = [plFn(p.funnels.length), nch ? plCh(nch) : L("канали не обрано","каналы не выбраны")]; }
+    if (pn.fold && MP.sel && MP.sel.indexOf(pn.k + "/") === 0) MP.sel = pn.k;
     p.funnels.forEach(f => {
-      mtHealth(p);
-    const fn = {k:pn.k + "/" + f.id, lv:2, t:f.name, s:saleName(f), m:f.tg && f.tg.pay ? L("ціль: ","цель: ") + plural(f.tg.pay, L("оплата","оплата"), L("оплати","оплаты"), L("оплат","оплат")) : "", kids:[]};
-      const plan = chPlan(f, p); (f.ch || []).forEach(c => { const ch = chOf(c), pl = plan.find(r => r.id === c); fn.kids.push({k:fn.k + "/" + c, lv:3, t:ch[1], s:pl && pl.bud > 0 ? money(pl.bud) + " · " + Math.round(pl.share) + "%" : ch[2], m:c === "meta" && mtBroken(p) ? L("підключення зламалося","подключение сломалось") : p.conn[c] === 1 ? L("кабінет підключено","кабинет подключён") : p.conn[c] ? L("кабінет позначено","кабинет отмечен") : L("кабінет не підключено","кабинет не подключён"), warn:!p.conn[c] || (c === "meta" && mtBroken(p))}); });
+      const fn = {k:pn.k + "/" + f.id, lv:2, t:f.name, s:saleName(f), m:f.tg && f.tg.pay ? L("ціль: ","цель: ") + plural(f.tg.pay, L("оплата","оплата"), L("оплати","оплаты"), L("оплат","оплат")) : "", fx:mapFx(p, f), kids:[]};
+      if ((f.ch || []).length) { fn.can = true; fn.fold = mapFolded(fn.k, p.funnels.length > MAP_FUNS); fn.ics = f.ch; fn.stub = [plCh(f.ch.length), f.ch.map(c => chOf(c)[1]).join(" · ")]; }
+      if (fn.fold && MP.sel && MP.sel.indexOf(fn.k + "/") === 0) MP.sel = fn.k;
+      const plan = chPlan(f, p); (f.ch || []).forEach(c => { const ch = chOf(c), pl = plan.find(r => r.id === c); fn.kids.push({k:fn.k + "/" + c, lv:3, ic:c, t:ch[1], s:pl && pl.bud > 0 ? money(pl.bud) + " · " + Math.round(pl.share) + "%" : ch[2], fx:mapFx(p, f, c), m:c === "meta" && mtBroken(p) ? L("підключення зламалося","подключение сломалось") : p.conn[c] === 1 ? L("кабінет підключено","кабинет подключён") : p.conn[c] ? L("кабінет позначено","кабинет отмечен") : L("кабінет не підключено","кабинет не подключён"), warn:!p.conn[c] || (c === "meta" && mtBroken(p))}); });
       if ((f.ch || []).length < CHAN().length) fn.kids.push({add:"c", k:fn.k + "/+", lv:3, t:L("Канал","Канал")});
       pn.kids.push(fn);
     });
@@ -100,7 +149,7 @@ function mapTree(){
 }
 /* учебный пример для экрана до создания компании */
 function mapDemoTree(){
-  const c = id => { const ch = chOf(id); return {lv:3, t:ch[1], s:ch[2]}; };
+  const c = id => { const ch = chOf(id); return {lv:3, ic:id, t:ch[1], s:ch[2]}; };
   const t = {lv:0, t:L("Ваша компанія","Ваша компания"), s:L("команда · спільна база знань","команда · общая база знаний"), kids:[
     {lv:1, t:L("Проєкт «Курс»","Проект «Курс»"), s:L("свій продукт і своя ЦА","свой продукт и своя ЦА"), kids:[
       {lv:2, t:L("Воронка «Вебінар»","Воронка «Вебинар»"), s:L("свій офер і лендинг","свой оффер и лендинг"), kids:[c("meta"), c("gg")]},
@@ -111,12 +160,19 @@ function mapDemoTree(){
   return t;
 }
 function mapNode(n, sel){
-  const on = sel && (n.k === sel || n.k.indexOf(sel + "/") === 0 || sel.indexOf(n.k + "/") === 0), lv = LEVELS()[n.lv];
+  const on = sel && (n.k === sel || n.k.indexOf(sel + "/") === 0 || sel.indexOf(n.k + "/") === 0), lv = LEVELS()[n.lv], open = n.can && !n.fold;
   const card = n.ghost ? `<div class="nd nd--ghost"><small class="lv">${lv[0]}</small><b>${n.t}</b><span>${n.s}</span></div>`
     : n.add ? `<button type="button" class="nd nd--add" data-act="mapAdd" data-k="${n.k}" data-what="${n.add}"><b>+ ${n.t}</b></button>`
-    : `<button type="button" class="nd nd--l${n.lv}${n.k === sel ? " sel" : ""}" data-act="mapSel" data-k="${n.k}" aria-pressed="${n.k === sel}"><small class="lv">${lv[0]}</small><b>${esc(n.t)}</b>${n.s ? `<span>${esc(n.s)}</span>` : ""}${n.m ? `<em${n.warn ? ' class="w"' : ""}>${esc(n.m)}</em>` : ""}</button>`;
-  return `<li class="${sel ? (on ? "on" : "dim") : ""}">${card}${n.kids && n.kids.length ? `<ul>${n.kids.map(x => mapNode(x, sel)).join("")}</ul>` : ""}</li>`;
+    : `<button type="button" class="nd nd--l${n.lv}${open ? " nd--can" : ""}${n.k === sel ? " sel" : ""}" data-act="mapSel" data-k="${n.k}" aria-pressed="${n.k === sel}"><small class="lv">${lv[0]}</small><b>${n.ic ? chIcon(n.ic) : ""}${esc(n.t)}</b>${n.s ? `<span>${esc(n.s)}</span>` : ""}${n.fx ? `<span class="fx">${esc(n.fx)}</span>` : ""}${n.m ? `<em${n.warn ? ' class="w"' : ""}>${esc(n.m)}</em>` : ""}</button>`;
+  const tog = open ? `<button type="button" class="fold" data-act="mapFold" data-k="${n.k}" aria-expanded="true" aria-label="${L("Згорнути гілку: ","Свернуть ветку: ")}${esc(n.t)}" title="${L("Згорнути гілку","Свернуть ветку")}">−</button>` : "";
+  const kids = n.can && n.fold ? `<ul><li class="${sel ? "dim" : ""}"><button type="button" class="nd nd--fold" data-act="mapFold" data-k="${n.k}" aria-expanded="false" aria-label="${L("Розгорнути гілку: ","Развернуть ветку: ")}${esc(n.t)}"><b>${(n.ics || []).map(chIcon).join("")}${n.stub[0]}</b><span>${esc(n.stub[1])}</span><em class="go">${L("розгорнути","развернуть")} →</em></button></li></ul>`
+    : n.kids && n.kids.length ? `<ul>${n.kids.map(x => mapNode(x, sel)).join("")}</ul>` : "";
+  return `<li class="${sel ? (on ? "on" : "dim") : ""}">${card}${tog}${kids}</li>`;
 }
+/* кнопки над доской появляются, когда есть что сворачивать */
+function mapBar(){ const n = W.projs.reduce((a, p) => a + (p.funnels.length ? 1 : 0) + p.funnels.filter(f => (f.ch || []).length).length, 0); if (n < 2) return "";
+  const auto = (mapMany() || W.projs.some(p => p.funnels.length > MAP_FUNS)) && !Object.keys(MP.fold).length;
+  return `<div class="row map__bar"><button class="btn btn--sm" data-act="mapFoldAll" data-v="1">${L("Згорнути все","Свернуть всё")}</button><button class="btn btn--sm" data-act="mapFoldAll" data-v="0">${L("Розгорнути все","Развернуть всё")}</button>${auto ? `<span class="sub">${L("Структура велика, тому частину гілок згорнуто. Розгорніть потрібну.","Структура большая, поэтому часть веток свёрнута. Разверните нужную.")}</span>` : ""}</div>`; }
 const mapBoard = (tree, sel) => `<div class="map__scroll" tabindex="0" role="group" aria-label="${L("Карта структури","Карта структуры")}"><div class="map__in">
   <div class="map__heads">${LEVELS().map((l, i) => `<div><i>0${i + 1}</i><b>${l[0]}</b></div>`).join("")}</div>
   <ul class="mt">${mapNode(tree, sel)}</ul></div></div>`;
@@ -124,7 +180,7 @@ const mapLegend = () => `<div class="panel"><span class="tag">${L("Як чита
   <ol class="lvls">${LEVELS().map((l, i) => `<li><i>0${i + 1}</i><div><b>${l[0]}</b><span class="sub">${l[1]}</span></div></li>`).join("")}</ol>
   <p class="sub">${L("Кожен рівень живе всередині попереднього. Цифри зводяться знизу вгору: канал → воронка → проєкт → компанія. Натисніть на картку, щоб побачити її гілку.","Каждый уровень живёт внутри предыдущего. Цифры сводятся снизу вверх: канал → воронка → проект → компания. Нажмите на карточку, чтобы увидеть её ветку.")}</p></div>`;
 const lvTag = i => `<span class="tag">${L("Рівень","Уровень")} 0${i + 1} · ${LEVELS()[i][0]}</span>`;
-const chOpts = (p, f) => `<div class="opts opts--sm">${CHAN().map(c => `<button type="button" class="opt" data-act="mapCh" data-p="${p.id}" data-f="${f.id}" data-v="${c[0]}" aria-pressed="${(f.ch || []).includes(c[0])}">${c[1]}</button>`).join("")}</div>`;
+const chOpts = (p, f) => `<div class="opts opts--sm">${CHAN().map(c => `<button type="button" class="opt" data-act="mapCh" data-p="${p.id}" data-f="${f.id}" data-v="${c[0]}" aria-pressed="${(f.ch || []).includes(c[0])}">${chIcon(c[0])}${c[1]}</button>`).join("")}</div>`;
 
 /* панель под доской: что выбрано и что с этим можно сделать */
 function mapInfo(){
@@ -133,16 +189,16 @@ function mapInfo(){
   if (pid && !p || fid && !f || cid && !(f.ch || []).includes(cid)) { MP.sel = null; return mapLegend(); }
   if (cid) { const ch = chOf(cid);
     return `<div class="panel">${lvTag(3)}<h2>${ch[1]}</h2><p class="sub">${LEVELS()[3][1]}</p>
-      <dl class="kv"><dt>${L("Воронка","Воронка")}</dt><dd>${esc(f.name)}</dd><dt>${L("Проєкт","Проект")}</dt><dd>${esc(p.name)}</dd><dt>${L("Кабінет","Кабинет")}</dt><dd>${p.conn[cid] ? pill("good", L("позначено до підключення","отмечен к подключению")) : pill("warn", L("не підключено","не подключён"))}</dd></dl>
+      <dl class="kv"><dt>${L("Воронка","Воронка")}</dt><dd>${esc(f.name)}</dd><dt>${L("Проєкт","Проект")}</dt><dd>${esc(p.name)}</dd><dt>${L("Кабінет","Кабинет")}</dt><dd>${p.conn[cid] ? pill("good", L("позначено до підключення","отмечен к подключению")) : pill("warn", L("не підключено","не подключён"))}</dd>${mapFx(p, f, cid) ? `<dt>${L("Реклама","Реклама")}</dt><dd class="mono">${mapFx(p, f, cid)}</dd>` : ""}</dl>
       <p class="sub">${L("Витрати, ліди й оплати цього каналу зводяться у воронку, а воронки — у проєкт.","Расход, лиды и оплаты этого канала сводятся в воронку, а воронки — в проект.")}</p>
       <div class="row"><button class="btn btn--sm btn--solid" data-act="mapConn" data-id="${p.id}">${L("Підключення проєкту","Подключения проекта")}</button><button class="btn btn--sm" data-act="mapCh" data-p="${p.id}" data-f="${f.id}" data-v="${cid}">${L("Прибрати канал із воронки","Убрать канал из воронки")}</button></div></div>`; }
   if (f) return `<div class="panel">${lvTag(2)}<h2>${esc(f.name)}</h2><p class="sub">${LEVELS()[2][1]}</p>
-      <dl class="kv"><dt>${L("Проєкт","Проект")}</dt><dd>${esc(p.name)}</dd><dt>${L("Ціль","Цель")}</dt><dd class="mono">${f.tg.pay} ${L("оплат","оплат")} × ${money(f.tg.check)}</dd><dt>${L("Лендингів","Лендингов")}</dt><dd class="mono">${f.lands.length}</dd><dt>${L("Креативів","Креативов")}</dt><dd class="mono">${f.crs.length}</dd></dl>
+      <dl class="kv"><dt>${L("Проєкт","Проект")}</dt><dd>${esc(p.name)}</dd><dt>${L("Ціль","Цель")}</dt><dd class="mono">${f.tg.pay} ${L("оплат","оплат")} × ${money(f.tg.check)}</dd><dt>${L("Лендингів","Лендингов")}</dt><dd class="mono">${f.lands.length}</dd><dt>${L("Креативів","Креативов")}</dt><dd class="mono">${f.crs.length}</dd>${mapFx(p, f) ? `<dt>${L("Реклама","Реклама")}</dt><dd class="mono">${mapFx(p, f)}</dd>` : ""}</dl>
       <div class="field"><label>${L("Канали трафіку цієї воронки","Каналы трафика этой воронки")}</label>${chOpts(p, f)}</div>
       <div class="row"><button class="btn btn--sm btn--solid" data-act="mapOpenF" data-p="${p.id}" data-id="${f.id}">${L("Відкрити воронку","Открыть воронку")}</button></div></div>`;
   if (p) { const conn = CHAN().filter(c => p.conn[c[0]]).map(c => c[1]);
     return `<div class="panel">${lvTag(1)}<h2>${esc(p.name)}</h2><p class="sub">${LEVELS()[1][1]}</p>
-      <dl class="kv"><dt>${L("Воронок","Воронок")}</dt><dd class="mono">${p.funnels.length}</dd><dt>${L("Бюджет на місяць","Бюджет в месяц")}</dt><dd class="mono">${p.tg.budget ? money(p.tg.budget) : "—"}</dd><dt>${L("Сегментів ЦА","Сегментов ЦА")}</dt><dd class="mono">${p.segs.length}</dd><dt>${L("Рекламні кабінети","Рекламные кабинеты")}</dt><dd>${conn.length ? esc(conn.join(", ")) : L("не позначено","не отмечены")}</dd></dl>
+      <dl class="kv"><dt>${L("Воронок","Воронок")}</dt><dd class="mono">${p.funnels.length}</dd><dt>${L("Бюджет на місяць","Бюджет в месяц")}</dt><dd class="mono">${p.tg.budget ? money(p.tg.budget) : "—"}</dd><dt>${L("Сегментів ЦА","Сегментов ЦА")}</dt><dd class="mono">${p.segs.length}</dd><dt>${L("Рекламні кабінети","Рекламные кабинеты")}</dt><dd>${conn.length ? esc(conn.join(", ")) : L("не позначено","не отмечены")}</dd>${mapFx(p) ? `<dt>${L("Реклама","Реклама")}</dt><dd class="mono">${mapFx(p)}</dd>` : ""}</dl>
       <div class="row"><button class="btn btn--sm btn--solid" data-act="wsOpenP" data-id="${p.id}">${L("Відкрити проєкт","Открыть проект")}</button><button class="btn btn--sm" data-act="mapAdd" data-k="co/${p.id}/+" data-what="f">${L("Додати воронку","Добавить воронку")}</button></div></div>`; }
   const nf = W.projs.reduce((a, x) => a + x.funnels.length, 0), nc = W.projs.reduce((a, x) => a + x.funnels.reduce((b, y) => b + (y.ch || []).length, 0), 0);
   return `<div class="panel">${lvTag(0)}<h2>${esc(W.co.name)}</h2><p class="sub">${LEVELS()[0][1]}</p>
@@ -155,7 +211,7 @@ function mapDemoInfo(){
   return `<div class="lvnote"><i>0${i + 1}</i><div><b>${LEVELS()[i][0]}</b><span class="sub">${LEVELS()[i][1]}</span></div></div>`;
 }
 const vMap = () => `<p class="sub">${L("Уся структура компанії на одній дошці: компанія, її проєкти, воронки кожного проєкту й канали трафіку кожної воронки. Натисніть на картку, щоб побачити її гілку.","Вся структура компании на одной доске: компания, её проекты, воронки каждого проекта и каналы трафика каждой воронки. Нажмите на карточку, чтобы увидеть её ветку.")}</p>
-  <div class="map">${mapBoard(mapTree(), MP.sel)}${mapInfo()}</div>`;
+  <div class="map">${mapBar()}${mapBoard(mapTree(), MP.sel)}${mapInfo()}</div>`;
 const vMapDemo = () => `<div class="map">${mapBoard(mapDemoTree(), MP.demo)}${mapDemoInfo()}</div>`;
 
 Object.assign(ACT, {
@@ -163,13 +219,19 @@ Object.assign(ACT, {
     setTimeout(() => { const e = [...document.querySelectorAll(".nd[data-k]")].find(x => x.dataset.k === d.k); if (e) e.focus({preventScroll:true}); }, 0); },
   mapAdd(d){ const [, pid, fid] = d.k.split("/");
     if (d.what === "p") return ACT.modal({id:"project"});
-    if (d.what === "f") { W.cur = pid; W.fun = null; W.tab = "funnels"; return ACT.modal({id:"funnel"}); }
+    if (d.what === "f") { W.cur = pid; W.fun = null; W.tab = "funnels"; MP.fold["co/" + pid] = false; return ACT.modal({id:"funnel"}); }
     MP.sel = "co/" + pid + "/" + fid; },
   mapCh(d){ const p = W.projs.find(x => x.id === d.p), f = p && p.funnels.find(x => x.id === d.f); if (!f) return;
     f.ch = f.ch || []; f.ch = f.ch.includes(d.v) ? f.ch.filter(c => c !== d.v) : CHAN().map(c => c[0]).filter(c => c === d.v || f.ch.includes(c));
     if (!f.ch.includes(d.v) && f.chs) delete f.chs[d.v];
     if (MP.sel && MP.sel.split("/")[3] === d.v && !f.ch.includes(d.v)) MP.sel = "co/" + p.id + "/" + f.id;
     save(); },
+  mapFold(d){ const [, pid, fid] = d.k.split("/"), p = W.projs.find(x => x.id === pid); if (!p) return;
+    const now = mapFolded(d.k, fid ? p.funnels.length > MAP_FUNS : mapMany()); MP.fold[d.k] = !now;
+    setTimeout(() => { const e = [...document.querySelectorAll(now ? ".nd[data-act=mapSel]" : ".nd--fold")].find(x => x.dataset.k === d.k); if (e) e.focus({preventScroll:true}); }, 0); },
+  /* «свернуть всё»: при нескольких проектах сворачиваются проекты, при одном — каналы его воронок */
+  mapFoldAll(d){ const on = d.v === "1", one = W.projs.length < 2; MP.fold = {};
+    W.projs.forEach(p => { MP.fold["co/" + p.id] = on && !one; p.funnels.forEach(f => { MP.fold["co/" + p.id + "/" + f.id] = on && one; }); }); },
   chEven(){ const f = F(); if (!f) return false; f.chs = {}; save(); },
   mapOpenF(d){ W.cur = d.p; W.fun = d.id; W.ftab = "an"; save(); },
   mapConn(d){ W.cur = d.id; W.fun = null; W.tab = "conn"; save(); },
