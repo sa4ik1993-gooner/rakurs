@@ -382,3 +382,13 @@ button.nd:hover{border-color:var(--ink)}
   .nd .lv{display:block}
 }
 @media (prefers-reduced-motion:reduce){ .nd{transition:none} }
+
+/* что задаётся в проекте, что в воронке */
+.split{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.split>div{border:1.5px solid var(--line);border-radius:2px;padding:12px 14px;min-width:0;color:var(--muted)}
+.split>div.on{border-color:var(--ink);color:var(--ink)}
+.split b{font-size:13.5px;color:var(--ink)}
+.split ul{margin:6px 0 0;padding-left:18px;font-size:13px;display:flex;flex-direction:column;gap:2px}
+.chks{display:flex;flex-wrap:wrap;gap:10px 22px}
+@media (max-width:760px){ .split{grid-template-columns:1fr} }
+.chkf{display:flex;flex-direction:column;gap:8px}

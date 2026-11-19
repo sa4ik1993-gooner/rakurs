@@ -10,7 +10,7 @@ const accGet = id => { try { const a = JSON.parse(localStorage.getItem(accKey(id
 /* приводит сохранённые данные к текущей структуре */
 function norm(){ W.ctab = W.ctab || "map";
   if (W.co) { W.co.kb = W.co.kb || []; W.co.brand = Object.assign(blankBrand(), W.co.brand); W.co.ban = W.co.ban || ""; W.co.tone = W.co.tone || ""; }
-  W.projs.forEach(p => { p.kb = p.kb || []; p.kbOff = p.kbOff || []; const b = p.brand = Object.assign(blankBrand(), p.brand); if (b.own == null) b.own = !!(b.colors || b.fonts || b.voice); (p.funnels || []).forEach(f => { f.ch = f.ch || []; }); }); }
+  W.projs.forEach(p => { p.kb = p.kb || []; p.kbOff = p.kbOff || []; const b = p.brand = Object.assign(blankBrand(), p.brand); if (b.own == null) b.own = !!(b.colors || b.fonts || b.voice); (p.funnels || []).forEach(f => { f.ch = f.ch || []; f.sale = f.sale || p.sale || "web"; }); }); }
 norm();
 if (location.hash === "#sample") { W.mode = "sample"; location.hash = "today"; }
 const save = () => { if (CLOUD) return cloudQueue(); try { localStorage.setItem("rakurs_ws", JSON.stringify(W)); if (W.user) localStorage.setItem(accKey(W.user.id), JSON.stringify(Object.assign({}, W, {mode:"own", wipe:false}))); } catch (e) {} };
@@ -191,13 +191,13 @@ function vProject(p){
   const body = {
     about: () => `<div class="panel"><span class="tag">${L("Про проєкт","О проекте")}</span><div class="form">
         ${fld("p.name",L("Назва проєкту","Название проекта"))}${fld("p.niche",L("Ніша","Ниша"),{ph:L("онлайн-освіта, послуги, товари","онлайн-образование, услуги, товары")})}
-        ${fld("p.geo",L("Гео","Гео"),{ph:L("країни та мови","страны и языки")})}${fld("p.site",L("Сайти","Сайты"),{ph:"example.com"})}
+        ${fld("p.geo",L("Гео","Гео"),{w:1,ph:L("країни та мови","страны и языки")})}
         ${fld("p.product",L("Що продаємо","Что продаём"),{w:1,ph:L("продукт, тривалість, ціна","продукт, длительность, цена")})}
-        ${fld("p.desc",L("Опис проєкту своїми словами","Описание проекта своими словами"),{w:1,area:4,ph:L("для кого, у чому користь, чим відрізняємося від інших","для кого, в чём польза, чем отличаемся от других")})}
-        <div class="field w"><label>${L("Як відбувається продаж","Как происходит продажа")}</label>${optsW("p.sale", SALE())}</div></div></div>
+        ${fld("p.desc",L("Опис проєкту своїми словами","Описание проекта своими словами"),{w:1,area:4,ph:L("для кого, у чому користь, чим відрізняємося від інших","для кого, в чём польза, чем отличаемся от других")})}</div></div>
       <div class="panel"><span class="tag">${L("Правила для реклами","Правила для рекламы")}</span><div class="form">
         ${fld("p.worked",L("Що вже спрацьовувало","Что уже срабатывало"),{w:1})}${fld("p.ban",L("Що не можна обіцяти й казати","Что нельзя обещать и говорить"),{w:1})}${fld("p.tone",L("Тон","Тон"),{w:1})}</div>
-        <p class="sub">${L("Ці правила успадковують усі воронки проєкту.","Эти правила наследуют все воронки проекта.")}${W.co.ban||W.co.tone?L(" З компанії додаються: "," Из компании добавляются: ")+esc([W.co.ban,W.co.tone].filter(Boolean).join(" · ")):""}</p></div>`,
+        <p class="sub">${L("Ці правила успадковують усі воронки проєкту.","Эти правила наследуют все воронки проекта.")}${W.co.ban||W.co.tone?L(" З компанії додаються: "," Из компании добавляются: ")+esc([W.co.ban,W.co.tone].filter(Boolean).join(" · ")):""}</p></div>
+      <div class="panel"><span class="tag">${L("Що де задається","Что где задаётся")}</span>${splitNote(0)}</div>`,
     aud: () => `<div class="panel"><span class="tag">${L("Аудиторія проєкту","Аудитория проекта")} · ${p.segs.length}</span>
         <p class="sub">${L("Базова ЦА на весь проєкт. У кожній воронці її можна звузити або доповнити.","Базовая ЦА на весь проект. В каждой воронке её можно сузить или дополнить.")}</p>
         ${segList(p.segs, "wsDelSeg") || empty(L("Сегментів ще немає","Сегментов ещё нет"), L("Додайте хоча б один нижче.","Добавьте хотя бы один ниже."))}${segAdder("sg", "wsAddSeg")}</div>
@@ -243,6 +243,7 @@ function vFunnel(f, p){
         ${fld("f.an.offer",L("Офер: що саме пропонуємо","Оффер: что именно предлагаем"),{w:1,ph:L("безкоштовний урок → курс за $680","бесплатный урок → курс за $680")})}
         ${fld("f.an.promo",L("Акція","Акция"),{ph:L("бонус, знижка — або порожньо","бонус, скидка — или пусто")})}${fld("f.an.until",L("Діє до","Действует до"),{ph:"30.11"})}
         <div class="field w"><label>${L("Ціль реклами","Цель рекламы")}</label>${optsW("f.goal", [["site",L("Конверсія на сайті","Конверсия на сайте")],["form",L("Лід-форма","Лид-форма")]])}</div>
+        <div class="field w"><label>${L("Як відбувається продаж","Как происходит продажа")}</label><div class="opts opts--sm">${SALE().map(x=>`<button type="button" class="opt" data-act="wsSale" data-v="${x[0]}" aria-pressed="${f.sale===x[0]}">${x[1]}</button>`).join("")}</div></div>
         ${fld("f.an.path",L("Шлях клієнта","Путь клиента"),{w:1})}${fld("f.an.event",L("Результат рахуємо до","Результат считаем до"),{ph:L("оплати","оплаты")})}${fld("f.an.diff",L("Чим відрізняється від інших воронок","Чем отличается от других воронок"))}
         ${fld("f.an.obj",L("Заперечення, які чують менеджери","Возражения, которые слышат менеджеры"),{w:1,area:3})}
         <div class="field w"><label>${L("Режим автономії","Режим автономии")}</label>${optsW("f.mode", [["adv",modeName("adv")],["btn",modeName("btn")],["auto",modeName("auto")]])}</div></div>
@@ -290,9 +291,12 @@ function modalFunnelOwn(){ const p = P();
     <div class="form"><div class="field w"><label for="nf-name">${L("Назва","Название")}</label><input id="nf-name" placeholder="${L("Вебінар, повна ціна","Вебинар, полная цена")}"></div>
       <div class="field w"><label for="nf-offer">${L("Офер: що пропонуємо","Оффер: что предлагаем")}</label><input id="nf-offer" placeholder="${L("безкоштовний урок → курс","бесплатный урок → курс")}"></div>
       <div class="field"><label for="nf-price">${L("Ціна, $","Цена, $")}</label><input id="nf-price" value="${p.tg.check}" inputmode="decimal"></div>
-      <div class="field"><label for="nf-goal">${L("Ціль","Цель")}</label><select id="nf-goal"><option value="site">${L("Конверсія на сайті","Конверсия на сайте")}</option><option value="form">${L("Лід-форма","Лид-форма")}</option></select></div>
-      <div class="field w"><label for="nf-url">${L("Лендинг","Лендинг")}</label><input id="nf-url" placeholder="${esc(p.site || "example.com/page")}"></div></div>
-    <p class="sub">${L("ЦА, тон і конверсії успадкуються з проєкту. Усе можна змінити всередині воронки.","ЦА, тон и конверсии унаследуются из проекта. Всё можно изменить внутри воронки.")}</p>
+      <div class="field"><label for="nf-goal">${L("Ціль реклами","Цель рекламы")}</label><select id="nf-goal"><option value="site">${L("Конверсія на сайті","Конверсия на сайте")}</option><option value="form">${L("Лід-форма","Лид-форма")}</option></select></div>
+      <div class="field w"><label for="nf-sale">${L("Як відбувається продаж","Как происходит продажа")}</label><select id="nf-sale">${SALE().map(x=>`<option value="${x[0]}"${(p.sale||"web")===x[0]?" selected":""}>${x[1]}</option>`).join("")}</select></div>
+      <div class="field w"><label for="nf-url">${L("Сайт: лендинг цієї воронки","Сайт: лендинг этой воронки")}</label><input id="nf-url" inputmode="url" autocapitalize="none" placeholder="example.com/page"></div>
+      <div class="w chkf"><span class="tag">${L("Канали трафіку","Каналы трафика")}</span><div class="chks">${CHAN().map(c=>`<label class="chk"><input type="checkbox" class="nf-ch" value="${c[0]}"${p.conn[c[0]]?" checked":""}><span>${c[1]}</span></label>`).join("")}</div></div></div>
+    <p class="sub">${L("З проєкту успадкуються ЦА, правила й конверсії. Аудиторію можна правити всередині воронки: вимкнути сегменти проєкту й додати свої.","Из проекта унаследуются ЦА, правила и конверсии. Аудиторию можно править внутри воронки: выключить сегменты проекта и добавить свои.")}</p>
+    ${splitNote(1)}
     <div class="row"><button class="btn btn--solid" data-act="createFunnel">${L("Створити воронку","Создать воронку")}</button></div></div>`; }
 function ownAudStep(o){ return `<p class="sub">${L("Хто купує. Можна додати зараз або пізніше в проєкті; у воронках аудиторію можна звужувати.","Кто покупает. Можно добавить сейчас или позже в проекте; в воронках аудиторию можно сужать.")}</p>
   ${segList(o.segsOwn, "obSegDel")}${segAdder("os", "obSegAdd")}`; }
@@ -364,7 +368,8 @@ Object.assign(ACT, {
   wsOpenP(d){ W.cur = d.id; W.fun = null; W.tab = "about"; save(); },
   wsTab(d){ W.fun = null; W.tab = d.v; save(); },
   wsDelP(d){ if (!canAdmin()) { toast(L("Проєкти видаляє власник або керівник","Проекты удаляет собственник или руководитель")); return false; } W.projs = W.projs.filter(p=>p.id!==d.id); save(); toast(L("Проєкт видалено","Проект удалён")); },
-  wsSet(d){ wset(d.k, d.v); if (d.k === "p.sale") { /* путь клиента новых воронок берётся из схемы продажи */ } },
+  wsSet(d){ wset(d.k, d.v); },
+  wsSale(d){ const f = F(), std = Object.values(PATHS()); if (!f.an.path || std.includes(f.an.path)) f.an.path = PATHS()[d.v] || f.an.path; f.sale = d.v; save(); },
   wsAddSeg(){ const n = val("sg-n"); if (!need(n, L("Опишіть сегмент","Опишите сегмент"))) return false; P().segs.push({id:uid(), name:n, pain:val("sg-p"), say:val("sg-s")}); save(); },
   wsDelSeg(d){ const p = P(); p.segs = p.segs.filter(s=>s.id!==d.id); p.funnels.forEach(f=>{ f.aud.off = f.aud.off.filter(x=>x!==d.id); }); save(); },
   wsAddKb(d){ const t = val("kb-"+d.id+"-t"); if (!need(t, L("Дайте матеріалу назву","Дайте материалу название"))) return false; kbHolder(W.cur ? "p" : "co").kb.push({id:uid(), type:d.id, title:t, src:val("kb-"+d.id+"-s"), note:val("kb-"+d.id+"-n")}); save(); },
@@ -389,13 +394,13 @@ Object.assign(ACT, {
   obConn(d){ if (own()) { S.ob.conn[d.id] = 3; return; } return _oc(d); },
   obNav(d){ if (own() && S.ob.step === 0 && +d.v > 0 && !String(S.ob.d.name).trim()) { toast(L("Введіть назву проєкту","Введите название проекта")); return false; } return _on(d); },
   createProject(){ if (!own()) return _cp(); const o = S.ob, d = o.d;
-    const p = {id:pid(), name:String(d.name).trim(), niche:d.niche, geo:d.geo, site:d.site, product:d.product, sale:d.sale, desc:"", worked:d.worked, ban:d.ban, tone:d.tone,
+    const p = {id:pid(), name:String(d.name).trim(), niche:d.niche, geo:d.geo, product:d.product, desc:"", worked:d.worked, ban:d.ban, tone:d.tone,
       tg:{budget:d.budget, check:d.check, share:d.share, l2b:d.l2b, b2p:d.b2p}, segs:o.segsOwn, audText:"", audFiles:[], brand:Object.assign(blankBrand(), {own:false}), kb:[], kbOff:[], conn:Object.assign(W.user && W.user.via === "tg" ? {tg:3} : {}, o.conn), funnels:[]};
     W.projs.push(p); W.cur = p.id; W.fun = null; W.tab = p.segs.length ? "kb" : "aud"; S.modal = null; S.ob = null; save(); toast(L("Проєкт створено. Далі — база знань і воронки","Проект создан. Дальше — база знаний и воронки")); },
   createFunnel(){ if (!own()) return _cf(); const p = P(), n = val("nf-name"); if (!need(n, L("Дайте воронці назву","Дайте воронке название"))) return false;
-    const check = nfv("nf-price") || p.tg.check, u = val("nf-url").replace(/^https?:\/\//,""), first = !p.funnels.length;
-    const f = {id:uid(), name:n, goal:$("nf-goal").value, mode:"btn", an:{offer:val("nf-offer"), promo:"", until:"", path:PATHS()[p.sale] || PATHS().web, event:L("оплати","оплаты"), diff:"", obj:""},
-      aud:{off:[], add:[], note:""}, lands:u?[{id:uid(), url:u, note:""}]:[], crs:[], ch:CHAN().map(c => c[0]).filter(c => p.conn[c]), tg:{pay: first ? Math.max(1, Math.round(pT(p).rev / check)) : 10, check, l2b:p.tg.l2b, b2p:p.tg.b2p}};
+    const check = nfv("nf-price") || p.tg.check, u = val("nf-url").replace(/^https?:\/\//,""), first = !p.funnels.length, sale = $("nf-sale").value || "web";
+    const f = {id:uid(), name:n, goal:$("nf-goal").value, sale, mode:"btn", an:{offer:val("nf-offer"), promo:"", until:"", path:PATHS()[sale] || PATHS().web, event:L("оплати","оплаты"), diff:"", obj:""},
+      aud:{off:[], add:[], note:""}, lands:u?[{id:uid(), url:u, note:""}]:[], crs:[], ch:[...document.querySelectorAll(".nf-ch:checked")].map(e => e.value), tg:{pay: first ? Math.max(1, Math.round(pT(p).rev / check)) : 10, check, l2b:p.tg.l2b, b2p:p.tg.b2p}};
     p.funnels.push(f); W.fun = f.id; W.ftab = "an"; S.modal = null; save(); toast(L("Воронку створено","Воронка создана")); }
 });
 document.addEventListener("input", e => { const t = e.target; if (!t.dataset.w || !own()) return; const path = t.dataset.w, isN = /\.tg\./.test(path);
