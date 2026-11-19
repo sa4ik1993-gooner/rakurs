@@ -1,6 +1,6 @@
 /* Своя компания: Компания → Проекты → Воронки. Пустой старт, всё введённое хранится в браузере.
    Подключается после setup.js. Заполненный пример «Школа 3D» остаётся отдельным режимом. */
-const blankW = () => ({mode:"own", user:null, co:null, projs:[], cur:null, fun:null, tab:"about", ftab:"an", ctab:"projects", wipe:false});
+const blankW = () => ({mode:"own", user:null, co:null, projs:[], cur:null, fun:null, tab:"about", ftab:"an", ctab:"map", wipe:false});
 const blankBrand = () => ({colors:"", fonts:"", voice:"", files:[]});
 let W = blankW();
 try { const s = JSON.parse(localStorage.getItem("rakurs_ws")); if (s && Array.isArray(s.projs)) W = Object.assign(W, s, {wipe:false}); } catch (e) {}
@@ -8,9 +8,9 @@ if (CLOUD) W = blankW();   /* с сервером локальная копия 
 const accKey = id => "rakurs_acc_" + id;
 const accGet = id => { try { const a = JSON.parse(localStorage.getItem(accKey(id))); return a && Array.isArray(a.projs) ? a : null; } catch (e) { return null; } };
 /* приводит сохранённые данные к текущей структуре */
-function norm(){ W.ctab = W.ctab || "projects";
+function norm(){ W.ctab = W.ctab || "map";
   if (W.co) { W.co.kb = W.co.kb || []; W.co.brand = Object.assign(blankBrand(), W.co.brand); W.co.ban = W.co.ban || ""; W.co.tone = W.co.tone || ""; }
-  W.projs.forEach(p => { p.kb = p.kb || []; p.kbOff = p.kbOff || []; const b = p.brand = Object.assign(blankBrand(), p.brand); if (b.own == null) b.own = !!(b.colors || b.fonts || b.voice); }); }
+  W.projs.forEach(p => { p.kb = p.kb || []; p.kbOff = p.kbOff || []; const b = p.brand = Object.assign(blankBrand(), p.brand); if (b.own == null) b.own = !!(b.colors || b.fonts || b.voice); (p.funnels || []).forEach(f => { f.ch = f.ch || []; }); }); }
 norm();
 if (location.hash === "#sample") { W.mode = "sample"; location.hash = "today"; }
 const save = () => { if (CLOUD) return cloudQueue(); try { localStorage.setItem("rakurs_ws", JSON.stringify(W)); if (W.user) localStorage.setItem(accKey(W.user.id), JSON.stringify(Object.assign({}, W, {mode:"own", wipe:false}))); } catch (e) {} };
@@ -84,16 +84,13 @@ function vWelcome(){
     <div class="field"><label for="co-name">${L("Назва компанії","Название компании")}</label><input id="co-name" placeholder="${L("наприклад, Visual360","например, Visual360")}"></div>
     <div class="field"><label>${L("Хто ви","Кто вы")}</label><div class="opts" id="co-kind">${[["own",L("Своя компанія","Своя компания")],["agency",L("Агентство, ведемо клієнтів","Агентство, ведём клиентов")]].map((x,i)=>`<button type="button" class="opt" data-act="wsKind" data-v="${x[0]}" aria-pressed="${(W.kind||"own")===x[0]}">${x[1]}</button>`).join("")}</div></div>
     <div class="row"><button class="btn btn--solid" data-act="wsCo">${L("Створити компанію","Создать компанию")}</button><button class="btn" data-act="wsSample">${L("Подивитися заповнений приклад","Посмотреть заполненный пример")}</button></div></div>
-  <div class="panel"><span class="tag">${L("Як усе влаштовано","Как всё устроено")}</span>
-    <div class="tree">
-      <div><b>${L("Компанія","Компания")}</b><span class="sub">${L("назва, хто має доступ","название, у кого доступ")}</span></div>
-      <div><b>${L("Проєкт","Проект")}</b><span class="sub">${L("опис, ЦА, база знань, цілі, підключені кабінети","описание, ЦА, база знаний, цели, подключённые кабинеты")}</span></div>
-      <div><b>${L("Воронка","Воронка")}</b><span class="sub">${L("свій анамнез, правки ЦА, лендинги, креативи, цілі й аналітика","свой анамнез, правки ЦА, лендинги, креативы, цели и аналитика")}</span></div>
-    </div></div>`;
+  <div class="panel"><span class="tag">${L("Як усе влаштовано · приклад","Как всё устроено · пример")}</span>
+    ${vMapDemo()}</div>`;
 }
 function vCompany(){
-  const t = W.ctab, tabs = [["projects",L("Проєкти","Проекты")],["kb",L("База знань компанії","База знаний компании")],["team",L("Команда","Команда")],["acc",L("Акаунт","Аккаунт")]];
+  const t = W.ctab, tabs = [["map",L("Карта","Карта")],["projects",L("Проєкти","Проекты")],["kb",L("База знань компанії","База знаний компании")],["team",L("Команда","Команда")],["acc",L("Акаунт","Аккаунт")]];
   const body = {
+    map: () => vMap(),
     projects: () => `${W.projs.length ? `<div class="cols">${W.projs.map(p=>{ const ch = pChain(p), done = ch.filter(c=>c[2]).length; return `<div class="panel">
       <div class="row sp"><h2>${esc(p.name)}</h2>${canAdmin()?del("wsDelP", p.id):""}</div><p class="sub">${esc([p.niche,p.geo].filter(Boolean).join(" · "))}</p>
       <div class="prog"><i style="width:${done/ch.length*100}%"></i></div>
@@ -133,7 +130,7 @@ function vCompany(){
             ${CLOUD?"":`<label class="btn btn--sm"><input type="file" hidden accept=".json,application/json" data-wimp="1">${L("Відновити з копії","Восстановить из копии")}</label>`}</div></div></div>`; }
   }[t]();
   return `<div class="head"><div><span class="tag">${W.co.kind==="agency"?L("Агентство","Агентство"):L("Компанія","Компания")}</span><h1>${esc(W.co.name)}</h1></div>
-    ${t==="projects"&&canAdmin()?`<button class="btn btn--solid" data-act="modal" data-id="project">${L("Додати проєкт","Добавить проект")}</button>`:""}</div>
+    ${(t==="projects"||t==="map")&&canAdmin()?`<button class="btn btn--solid" data-act="modal" data-id="project">${L("Додати проєкт","Добавить проект")}</button>`:""}</div>
   <div class="seg" role="group">${tabs.map(x=>`<button type="button" data-act="wsCtab" data-v="${x[0]}" aria-pressed="${t===x[0]}">${x[1]}${x[0]==="kb"&&W.co.kb.length?" · "+W.co.kb.length:""}</button>`).join("")}</div>
   ${body}`;
 }
@@ -242,6 +239,7 @@ function vFunnel(f, p){
   const body = {
     an: () => `<div class="panel"><span class="tag">${L("Анамнез воронки","Анамнез воронки")}</span><div class="form">
         ${fld("f.name",L("Назва воронки","Название воронки"))}${fld("f.tg.check",L("Ціна, $","Цена, $"),{num:1})}
+        <div class="field w"><label>${L("Канали трафіку","Каналы трафика")}</label>${chOpts(p, f)}</div>
         ${fld("f.an.offer",L("Офер: що саме пропонуємо","Оффер: что именно предлагаем"),{w:1,ph:L("безкоштовний урок → курс за $680","бесплатный урок → курс за $680")})}
         ${fld("f.an.promo",L("Акція","Акция"),{ph:L("бонус, знижка — або порожньо","бонус, скидка — или пусто")})}${fld("f.an.until",L("Діє до","Действует до"),{ph:"30.11"})}
         <div class="field w"><label>${L("Ціль реклами","Цель рекламы")}</label>${optsW("f.goal", [["site",L("Конверсія на сайті","Конверсия на сайте")],["form",L("Лід-форма","Лид-форма")]])}</div>
@@ -304,7 +302,7 @@ function ownShell(){
   const p = P(), f = F(), nb = (act, v, t, on) => `<a role="button" tabindex="0" data-act="${act}" data-v="${v}" ${on?'aria-current="page"':""}>${t}</a>`;
   $("rail").innerHTML = `<a class="logo" href="index.html"><i></i>RAKURS</a>
     ${W.user&&W.co?`<button type="button" class="ws" data-act="wsBackP"><small>${L("Компанія","Компания")}</small><b>${esc(W.co.name)}</b></button>
-    <nav class="navg"><span>${L("Компанія","Компания")}</span>${nb("wsCtab","projects",L("Проєкти","Проекты")+(W.projs.length?` <b class="cnt">${W.projs.length}</b>`:""),!p&&W.ctab==="projects")}${nb("wsCtab","kb",L("База знань","База знаний")+(W.co.kb.length?` <b class="cnt">${W.co.kb.length}</b>`:""),!p&&W.ctab==="kb")}${nb("wsCtab","acc",L("Акаунт","Аккаунт"),!p&&W.ctab==="acc")}</nav>`:""}
+    <nav class="navg"><span>${L("Компанія","Компания")}</span>${nb("wsCtab","map",L("Карта","Карта"),!p&&W.ctab==="map")}${nb("wsCtab","projects",L("Проєкти","Проекты")+(W.projs.length?` <b class="cnt">${W.projs.length}</b>`:""),!p&&W.ctab==="projects")}${nb("wsCtab","kb",L("База знань","База знаний")+(W.co.kb.length?` <b class="cnt">${W.co.kb.length}</b>`:""),!p&&W.ctab==="kb")}${nb("wsCtab","acc",L("Акаунт","Аккаунт"),!p&&W.ctab==="acc")}</nav>`:""}
     ${W.user&&p?`<nav class="navg"><span>${esc(p.name)}</span>${pChain(p).map(c=>nb("wsTab",c[0],c[1]+(c[2]?"":" <em>·</em>"),!f&&W.tab===c[0])).join("")}</nav>`:""}
     ${W.user&&f?`<nav class="navg"><span>${esc(f.name)}</span>${fChain(f,p).map(c=>nb("wsFtab",c[0],c[1]+(c[2]?"":" <em>·</em>"),W.ftab===c[0])).join("")}</nav>`:""}
     <div class="rail__foot">${W.user?`<div class="me"><small>${W.user.via==="tg"?"Telegram":L("Пошта","Почта")} · ${L("підтверджено","подтверждено")}</small><b>${esc(W.user.name || W.user.id)}</b>${TG()&&W.user.via!=="tg"&&CL.tg?`<small>Telegram · ${esc(CL.tg.username||CL.tg.name||L("прив’язано","привязан"))}</small>`:""}</div>${TG()&&W.user.via!=="tg"&&!CL.tg?`<button type="button" data-act="wsTgLink">${L("Прив’язати Telegram","Привязать Telegram")}</button>`:""}<button type="button" data-act="wsLogout">${L("Вийти","Выйти")}</button>`:""}<button type="button" data-act="wsSample">${L("Приклад «Школа 3D»","Пример «Школа 3D»")}</button><button type="button" data-act="theme">${L("Тема: світла / темна","Тема: светлая / тёмная")}</button>
@@ -362,7 +360,7 @@ Object.assign(ACT, {
   wsCo(){ const n = val("co-name"); if (!need(n, L("Введіть назву компанії","Введите название компании"))) return false; if (CLOUD) { cloudCreateCo(n, W.kind || "own"); return false; } W.co = {name:n, kind:W.kind || "own"}; norm(); save(); },
   wsSample(){ W.mode = "sample"; save(); location.hash = "today"; lastRoute = null; },
   wsOwn(){ W.mode = "own"; S.cr = S.launch = S.modal = null; S.asst.open = false; save(); ownKey = ""; },
-  wsBackP(){ W.cur = null; W.fun = null; W.ctab = "projects"; save(); },
+  wsBackP(){ W.cur = null; W.fun = null; W.ctab = "map"; save(); },
   wsOpenP(d){ W.cur = d.id; W.fun = null; W.tab = "about"; save(); },
   wsTab(d){ W.fun = null; W.tab = d.v; save(); },
   wsDelP(d){ if (!canAdmin()) { toast(L("Проєкти видаляє власник або керівник","Проекты удаляет собственник или руководитель")); return false; } W.projs = W.projs.filter(p=>p.id!==d.id); save(); toast(L("Проєкт видалено","Проект удалён")); },
@@ -397,7 +395,7 @@ Object.assign(ACT, {
   createFunnel(){ if (!own()) return _cf(); const p = P(), n = val("nf-name"); if (!need(n, L("Дайте воронці назву","Дайте воронке название"))) return false;
     const check = nfv("nf-price") || p.tg.check, u = val("nf-url").replace(/^https?:\/\//,""), first = !p.funnels.length;
     const f = {id:uid(), name:n, goal:$("nf-goal").value, mode:"btn", an:{offer:val("nf-offer"), promo:"", until:"", path:PATHS()[p.sale] || PATHS().web, event:L("оплати","оплаты"), diff:"", obj:""},
-      aud:{off:[], add:[], note:""}, lands:u?[{id:uid(), url:u, note:""}]:[], crs:[], tg:{pay: first ? Math.max(1, Math.round(pT(p).rev / check)) : 10, check, l2b:p.tg.l2b, b2p:p.tg.b2p}};
+      aud:{off:[], add:[], note:""}, lands:u?[{id:uid(), url:u, note:""}]:[], crs:[], ch:CHAN().map(c => c[0]).filter(c => p.conn[c]), tg:{pay: first ? Math.max(1, Math.round(pT(p).rev / check)) : 10, check, l2b:p.tg.l2b, b2p:p.tg.b2p}};
     p.funnels.push(f); W.fun = f.id; W.ftab = "an"; S.modal = null; save(); toast(L("Воронку створено","Воронка создана")); }
 });
 document.addEventListener("input", e => { const t = e.target; if (!t.dataset.w || !own()) return; const path = t.dataset.w, isN = /\.tg\./.test(path);

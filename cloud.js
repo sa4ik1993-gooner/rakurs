@@ -60,6 +60,7 @@ async function cloudOpen(id){
 }
 function cloudQueue(){ if (!sb || !W.user || !W.co || !W.co.id) return; CL.state = "dirty"; cloudBadge(); clearTimeout(CL.timer); CL.timer = setTimeout(cloudSync, 900); }
 async function cloudSync(){
+  if (!sb || !W.user || !W.co || !W.co.id) return;   /* вышли или сменили компанию, пока ждали */
   if (CL.busy) { CL.again = true; return; }
   CL.busy = true; CL.again = false; let conflict = false, denied = false;
   try {
@@ -124,7 +125,7 @@ async function cloudCreateCo(name, kind){
   const r = await sb.from("companies").insert({name, kind}).select().single(); if (r.error) return cErr(r.error, L("Не вдалося створити компанію","Не удалось создать компанию"));
   CL.cos.push(r.data); try { await cloudOpen(r.data.id); CL.state = "saved"; } catch (e) { return cErr(e, L("Компанію створено, але вона не відкрилася","Компания создана, но не открылась")); } render();
 }
-async function cloudSwitch(id){ try { CL.state = "load"; cloudBadge(); await cloudOpen(id); W.ctab = "projects"; CL.state = "saved"; } catch (e) { cErr(e, L("Не вдалося відкрити компанію","Не удалось открыть компанию")); } render(); }
+async function cloudSwitch(id){ try { CL.state = "load"; cloudBadge(); await cloudOpen(id); W.ctab = "map"; CL.state = "saved"; } catch (e) { cErr(e, L("Не вдалося відкрити компанію","Не удалось открыть компанию")); } render(); }
 async function cloudDeleteCo(){ const r = await sb.from("companies").delete().eq("id", W.co.id); if (r.error) return cErr(r.error, L("Не вдалося видалити","Не удалось удалить"));
   CL.cos = CL.cos.filter(c => c.id !== W.co.id); W.co = null; W.projs = []; W.cur = W.fun = null; try { localStorage.removeItem("rakurs_co"); } catch (e) {}
   if (CL.cos[0]) await cloudOpen(CL.cos[0].id); else cloudSnap(); render(); toast(L("Компанію видалено","Компания удалена")); }

@@ -323,3 +323,62 @@ label.drop{cursor:pointer}
 .gaps li span{min-width:0}
 label.btn{cursor:pointer}
 .view>.seg{align-self:flex-start;flex-wrap:wrap}
+
+/* карта структуры: компания → проект → воронка → канал трафика */
+.map{display:flex;flex-direction:column;gap:14px;min-width:0}
+.map__scroll{overflow-x:auto;padding:4px 3px 12px;min-width:0;container:map / inline-size}
+.map__in{--g:36px;--w:clamp(150px,calc((100cqw - 3 * var(--g) - 8px) / 4),230px);display:inline-flex;flex-direction:column;gap:14px}
+.map__heads{display:grid;grid-template-columns:repeat(4,var(--w));column-gap:var(--g);font:600 11px/1 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.map__heads div{display:flex;gap:8px;align-items:baseline;padding-bottom:8px;border-bottom:2px solid var(--line)}
+.map__heads i,.lvls i,.lvnote i{font:600 11px/1 var(--f-mono);font-style:normal;color:var(--play)}
+.map__heads b{font-weight:600}
+.mt,.mt ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.mt li{display:flex;align-items:center;position:relative}
+.mt ul{margin-left:var(--g);position:relative}
+.mt ul::before{content:"";position:absolute;left:calc(var(--g) * -1);top:50%;width:calc(var(--g) / 2);border-top:1.5px solid var(--line)}
+.mt ul>li::before{content:"";position:absolute;left:calc(var(--g) / -2);top:50%;width:calc(var(--g) / 2);border-top:1.5px solid var(--line)}
+.mt ul>li::after{content:"";position:absolute;left:calc(var(--g) / -2);top:-5px;bottom:-5px;border-left:1.5px solid var(--line)}
+.mt ul>li:first-child::after{top:50%}
+.mt ul>li:last-child::after{bottom:50%}
+.mt ul>li:only-child::after{display:none}
+.mt ul>li.on::before{border-color:var(--ink)}
+.nd{width:var(--w);flex:none;text-align:left;display:flex;flex-direction:column;gap:3px;padding:10px 12px;border:1.5px solid var(--line);border-radius:2px;background:var(--surface);color:var(--ink);min-height:58px;justify-content:center;font-size:13px;line-height:1.3;transition:opacity .15s ease,border-color .15s ease}
+button.nd{cursor:pointer}
+.nd b{font-weight:600;font-size:13.5px;overflow-wrap:anywhere}
+.nd span{color:var(--muted);font-size:12px;overflow-wrap:anywhere}
+.nd em{font:600 10.5px/1.25 var(--f-mono);font-style:normal;color:var(--good);margin-top:2px}
+.nd em.w{color:var(--warn)}
+.nd .lv{display:none;font:600 10px/1 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+button.nd:hover{border-color:var(--ink)}
+.nd--l0{background:var(--ink);color:var(--on-ink);border-color:var(--ink)}
+.nd--l0 span,.nd--l0 .lv{color:var(--on-ink);opacity:.72}
+.nd--l1{border-left:4px solid var(--track)}
+.nd--l2{border-left:4px solid var(--mark)}
+.nd--l3{border-left:4px solid var(--play)}
+.nd.sel{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--ink)}
+.nd--add{border-style:dashed;background:transparent;color:var(--muted);min-height:44px}
+.nd--add:hover{color:var(--ink)}
+.nd--ghost{border-style:dashed;background:transparent;opacity:.75}
+.mt li.dim>.nd{opacity:.5}
+.mt li.on>.nd{border-top-color:var(--ink);border-right-color:var(--ink);border-bottom-color:var(--ink)}
+.lvls{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.lvls li,.lvnote{display:flex;gap:10px;align-items:baseline}
+.lvls li div,.lvnote div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.lvls .sub,.lvnote .sub{font-size:13px}
+.lvnote{border-left:3px solid var(--ink);padding:4px 0 4px 12px}
+.opts--sm .opt{padding:7px 12px;min-height:36px;font-size:13px}
+@media (max-width:1100px){ .lvls{grid-template-columns:repeat(2,minmax(0,1fr))} }
+@media (max-width:760px){ .lvls{grid-template-columns:1fr} }
+@container map (max-width:640px){
+  .map__in{display:flex;--w:100%}
+  .map__heads{display:none}
+  .mt li{flex-direction:column;align-items:stretch}
+  .mt ul{margin:10px 0 0 20px}
+  .mt ul::before{display:none}
+  .mt ul>li::before{left:-12px;top:28px;width:12px}
+  .mt ul>li::after,.mt ul>li:first-child::after{left:-12px;top:-10px;bottom:-10px}
+  .mt ul>li:last-child::after{bottom:auto;height:38px}
+  .mt ul>li:only-child::after{display:block}
+  .nd .lv{display:block}
+}
+@media (prefers-reduced-motion:reduce){ .nd{transition:none} }
