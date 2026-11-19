@@ -88,6 +88,16 @@ function vWelcome(){
   <div class="panel"><span class="tag">${L("Як усе влаштовано · приклад","Как всё устроено · пример")}</span>
     ${vMapDemo()}</div>`;
 }
+/* свои пути продажи компании: переименовать, поправить шаги, удалить, добавить */
+function pathsPanel(){
+  const own = saleOwn(), adm = canAdmin(), use = id => W.projs.reduce((a, p) => a + p.funnels.filter(f => f.sale === id).length, 0);
+  return `<div class="panel"><span class="tag">${L("Свої шляхи продажу","Свои пути продажи")} · ${own.length}</span>
+    <p class="sub">${L("Шляхи, які ви додали самі. Вони є у списку «Як відбувається продаж» кожної воронки компанії. Стандартні шляхи доступні завжди й тут не показані.","Пути, которые вы добавили сами. Они есть в списке «Как происходит продажа» каждой воронки компании. Стандартные пути доступны всегда и здесь не показаны.")}</p>
+    ${own.length ? own.map((x, i) => `<div class="pathrow">${adm ? `<div class="form">${fld("co.paths." + i + ".name", L("Назва","Название"))}${fld("co.paths." + i + ".steps", L("Кроки","Шаги"))}</div>` : `<b>${esc(x.name)}</b><span class="sub">${esc(x.steps)}</span>`}
+        <div class="row sp"><span class="sub">${L("Воронок із цим шляхом: ","Воронок с этим путём: ")}${use(x.id)}</span>${adm ? del("wsDelPath", x.id) : ""}</div></div>`).join("")
+      : empty(L("Своїх шляхів ще немає","Своих путей пока нет"), L("Додайте тут або під час створення воронки: «Як відбувається продаж» → «+ Свій шлях…».","Добавьте здесь или при создании воронки: «Как происходит продажа» → «+ Свой путь…»."))}
+    ${adm ? `<div class="pathrow"><div class="form">${saleNew("kp")}</div><div class="row"><button class="btn btn--sm btn--solid" data-act="wsPathNew">${L("Додати шлях","Добавить путь")}</button></div></div>` : ""}</div>`;
+}
 function vCompany(){
   const t = W.ctab, tabs = [["map",L("Карта","Карта")],["projects",L("Проєкти","Проекты")],["kb",L("База знань компанії","База знаний компании")],["team",L("Команда","Команда")],["acc",L("Акаунт","Аккаунт")]];
   const body = {
@@ -103,6 +113,7 @@ function vCompany(){
       ${brandPanel("co")}
       <div class="panel"><span class="tag">${L("Спільні правила","Общие правила")}</span><div class="form">${fld("co.ban",L("Що не можна обіцяти й казати в жодному проєкті","Что нельзя обещать и говорить ни в одном проекте"),{w:1})}${fld("co.tone",L("Тон компанії","Тон компании"),{w:1})}</div>
         <p class="sub">${L("Додаються до правил кожного проєкту й перевіряються в кожному ролику й тексті.","Добавляются к правилам каждого проекта и проверяются в каждом ролике и тексте.")}</p></div>
+      ${pathsPanel()}
       ${kbCols("co")}`,
     team: () => { if (!CLOUD) return `<div class="panel vf"><span class="tag">${L("Команда","Команда")}</span><p>${L("Кілька людей в одній компанії з’являться разом із сервером: кожен входить своєю поштою й бачить ті проєкти, до яких йому дали доступ.","Несколько человек в одной компании появятся вместе с сервером: каждый входит своей почтой и видит те проекты, к которым ему дали доступ.")}</p><p class="sub proto">${L("Прототип: сервер ще не підключено.","Прототип: сервер ещё не подключён.")}</p></div>`;
       const R = ROLES(), link = location.origin + location.pathname, pn = ids => ids ? ids.map(i => (W.projs.find(p=>p.id===i)||{}).name || "—").join(", ") : L("усі проєкти","все проекты");
@@ -376,6 +387,10 @@ Object.assign(ACT, {
     if (!f.an.path || known.includes(f.an.path) || d.force) f.an.path = sp.steps; f.sale = sp.id; f.saleName = sp.name; save(); },
   wsPathAdd(){ const sp = pathRead("fp"); if (!sp) return false; PNEW = false; ACT.wsSale({force:1}, sp); toast(L("Шлях збережено","Путь сохранён")); },
   wsPathCancel(){ PNEW = false; },
+  wsPathNew(){ const sp = pathRead("kp"); if (!sp) return false; save(); toast(L("Шлях додано","Путь добавлен")); },
+  wsDelPath(d){ const x = saleOwn().find(y => y.id === d.id); if (!x) return false;
+    W.projs.forEach(p => p.funnels.forEach(f => { if (f.sale === x.id) f.saleName = x.name; }));   /* воронки сохраняют название и свои шаги */
+    W.co.paths = W.co.paths.filter(y => y.id !== x.id); save(); toast(L("Шлях видалено. Воронки, що його використовували, зберегли свої кроки","Путь удалён. Воронки, которые его использовали, сохранили свои шаги")); },
   wsAddSeg(){ const n = val("sg-n"); if (!need(n, L("Опишіть сегмент","Опишите сегмент"))) return false; P().segs.push({id:uid(), name:n, pain:val("sg-p"), say:val("sg-s")}); save(); },
   wsDelSeg(d){ const p = P(); p.segs = p.segs.filter(s=>s.id!==d.id); p.funnels.forEach(f=>{ f.aud.off = f.aud.off.filter(x=>x!==d.id); }); save(); },
   wsAddKb(d){ const t = val("kb-"+d.id+"-t"); if (!need(t, L("Дайте матеріалу назву","Дайте материалу название"))) return false; kbHolder(W.cur ? "p" : "co").kb.push({id:uid(), type:d.id, title:t, src:val("kb-"+d.id+"-s"), note:val("kb-"+d.id+"-n")}); save(); },
@@ -413,6 +428,7 @@ Object.assign(ACT, {
 document.addEventListener("input", e => { const t = e.target; if (!t.dataset.w || !own()) return; const path = t.dataset.w, isN = /\.tg\./.test(path);
   if (isN) { const n = pnum(t.value); if (!(n > 0)) return; wset(path, n); const c = $("w-calc"); if (c) c.innerHTML = F() ? calcF(F(), P()) : calcP(P()); } else wset(path, t.value); });
 document.addEventListener("change", e => { const t = e.target; if (!own()) return;
+  if (t.dataset.w && /^co\.paths\.\d+\.steps$/.test(t.dataset.w)) { const v = stepsNorm(t.value); if (v && v !== t.value) { wset(t.dataset.w, v); render(); } return; }
   if (t.id === "nf-sale") { const b = $("nf-own"); if (b) { b.hidden = t.value !== "+"; if (!b.hidden) $("nf-pname").focus(); } return; }
   if (t.id === "fp-sale") { if (t.value === "+") PNEW = true; else { PNEW = false; ACT.wsSale({v:t.value}); } render(); if (PNEW) { const n = $("fp-pname"); if (n) n.focus(); } return; }
   if (t.dataset.wimp) { const f = t.files[0]; if (!f) return; const r = new FileReader();
