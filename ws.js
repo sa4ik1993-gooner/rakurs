@@ -10,7 +10,7 @@ const accGet = id => { try { const a = JSON.parse(localStorage.getItem(accKey(id
 /* приводит сохранённые данные к текущей структуре */
 function norm(){ W.ctab = W.ctab || "map";
   if (W.co) { W.co.kb = W.co.kb || []; W.co.paths = W.co.paths || []; W.co.brand = Object.assign(blankBrand(), W.co.brand); W.co.ban = W.co.ban || ""; W.co.tone = W.co.tone || ""; }
-  W.projs.forEach(p => { p.kb = p.kb || []; p.kbOff = p.kbOff || []; const b = p.brand = Object.assign(blankBrand(), p.brand); if (b.own == null) b.own = !!(b.colors || b.fonts || b.voice); (p.funnels || []).forEach(f => { f.ch = f.ch || []; f.sale = f.sale || p.sale || "web"; }); }); }
+  W.projs.forEach(p => { p.kb = p.kb || []; p.exp = p.exp || []; p.kbOff = p.kbOff || []; const b = p.brand = Object.assign(blankBrand(), p.brand); if (b.own == null) b.own = !!(b.colors || b.fonts || b.voice); (p.funnels || []).forEach(f => { f.ch = f.ch || []; f.sale = f.sale || p.sale || "web"; }); }); }
 norm();
 if (location.hash === "#sample") { W.mode = "sample"; location.hash = "today"; }
 const save = () => { if (CLOUD) return cloudQueue(); try { localStorage.setItem("rakurs_ws", JSON.stringify(W)); if (W.user) localStorage.setItem(accKey(W.user.id), JSON.stringify(Object.assign({}, W, {mode:"own", wipe:false}))); } catch (e) {} };
@@ -39,7 +39,7 @@ const PATHS = () => ({web:L("реклама → лендинг → вебіна�
 const pT = p => { const t = p.tg, rv = t.budget / (t.share/100), pay = rv / t.check; return {rev:rv, pay, leads: pay/(t.b2p/100)/(t.l2b/100), cap: t.l2b/100*t.b2p/100*t.check*t.share/100, roas:100/t.share}; };
 const fT = (f, p) => { const t = f.tg, rv = t.pay * t.check, bud = rv * p.tg.share/100, leads = t.pay/(t.b2p/100)/(t.l2b/100); return {pay:t.pay, rev:rv, bud, leads, cap: t.l2b/100*t.b2p/100*t.check*p.tg.share/100}; };
 const fSegs = (f, p) => p.segs.filter(s => !f.aud.off.includes(s.id)).concat(f.aud.add);
-const pChain = p => [["about",L("Опис","Описание"),!!(p.name && p.product)],["aud",L("ЦА","ЦА"),p.segs.length>0],["kb",L("База знань","База знаний"),p.kb.length>0],["goals",L("Цілі","Цели"),p.tg.budget>0],["funnels",L("Воронки","Воронки"),p.funnels.length>0],["conn",L("Підключення","Подключения"),Object.values(p.conn).some(Boolean)]];
+const pChain = p => [["about",L("Опис","Описание"),!!(p.name && p.product)],["aud",L("ЦА","ЦА"),p.segs.length>0],["kb",L("База знань","База знаний"),p.kb.length>0],["goals",L("Цілі","Цели"),p.tg.budget>0],["funnels",L("Воронки","Воронки"),p.funnels.length>0],["conn",L("Підключення","Подключения"),Object.values(p.conn).some(Boolean)],["exp",L("Досвід","Опыт"),(p.exp||[]).length>0]];
 const fChain = (f, p) => [["an",L("Анамнез","Анамнез"),!!(f.an.offer && f.tg.check)],["aud",L("ЦА воронки","ЦА воронки"),fSegs(f,p).length>0],["land",L("Лендинги","Лендинги"),f.lands.length>0],["cr",L("Креативи","Креативы"),f.crs.length>=3],["goals",L("Цілі й аналітика","Цели и аналитика"),f.tg.pay>0]];
 
 /* ---------- экраны ---------- */
@@ -217,6 +217,7 @@ function vProject(p){
         <div class="panel"><span class="tag">${L("Матеріали про аудиторію","Материалы об аудитории")}</span>${filesBox("p.audFiles", L("Портрет клієнта, вивантаження з CRM, записи дзвінків, відгуки","Портрет клиента, выгрузка из CRM, записи звонков, отзывы"))}
           <p class="sub">${L("У прототипі файли лише прикріплюються: сегменти з них бот виділятиме після підключення.","В прототипе файлы только прикрепляются: сегменты из них бот будет выделять после подключения.")}</p></div></div>`,
     kb: () => kbProject(p),
+    exp: () => vExp(p),
     goals: () => { const sum = p.funnels.reduce((a,f)=>{ const x = fT(f,p); a.pay+=x.pay; a.rev+=x.rev; a.bud+=x.bud; a.leads+=x.leads; return a; }, {pay:0,rev:0,bud:0,leads:0}), ok = p.funnels.length && Math.abs(sum.rev - tgt.rev) < tgt.rev*0.05;
       const r = (k, tt, u) => `<tr><td>${tt}</td><td class="n"><input class="tin" data-w="p.tg.${k}" value="${p.tg[k]}" inputmode="decimal" aria-label="${tt}"> <span class="sub mono">${u}</span></td></tr>`;
       return `<div class="c2"><div class="panel"><span class="tag">${L("Цільові цифри проєкту","Целевые цифры проекта")}</span><div class="tw tw--in"><table class="tnar"><tbody>

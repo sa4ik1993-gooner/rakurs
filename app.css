@@ -429,3 +429,14 @@ a.btn{text-decoration:none}
 .pathrow{border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:8px}
 .pathrow .ownp{border-left:0;padding-left:0}
 .segtpl{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+
+/* опыт проекта: журнал тестов */
+.exr{margin-top:12px}
+.exn{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.tin--w{width:100%;text-align:left}
+.exf{margin:0;display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px}
+.exl{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
+.exl li span{display:block}
+.c2--eq{grid-template-columns:1fr 1fr;margin-top:12px}
+.exr select{min-height:36px;padding:4px 8px;border:1.5px solid var(--line);border-radius:2px;background:var(--bg)}
+@media (max-width:760px){ .exn{grid-template-columns:repeat(2,minmax(0,1fr))} .c2--eq{grid-template-columns:1fr} }
