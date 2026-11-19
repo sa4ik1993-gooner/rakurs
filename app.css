@@ -276,3 +276,33 @@ td.n b{white-space:nowrap}
 .lights span{grid-column:2;color:var(--muted)}
 .nx{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
 @media (max-width:900px){ .obst{grid-template-columns:repeat(3,minmax(0,1fr))} .quiz h2{font-size:19px} .verdict{font-size:18px} }
+
+/* своя компания: пустой старт, цепочка, списки с добавлением */
+.hero0{max-width:720px;gap:16px}
+.hero0 h1{font-size:28px}
+.tree{display:flex;flex-direction:column;gap:0}
+.tree>div{display:flex;flex-direction:column;gap:2px;border-left:3px solid var(--track);padding:8px 0 8px 14px}
+.tree>div:nth-child(2){margin-left:22px}
+.tree>div:nth-child(3){margin-left:44px}
+.obst--nav li{padding:0;border-top-width:3px}
+.obst--nav li button{all:unset;display:flex;flex-direction:column;gap:6px;padding-top:8px;cursor:pointer;width:100%;min-width:0;color:inherit;font:inherit}
+.obst--nav li button:focus-visible{outline:2.5px solid var(--play);outline-offset:2px}
+.obst--nav li button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.navg a[role=button]{cursor:pointer}
+.navg a em{font-style:normal;color:var(--play)}
+.navg a b.cnt{background:var(--rail-on);color:var(--rail-fg)}
+.empty{border:2px dashed var(--line);padding:22px;display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+.adder{border-top:1px dashed var(--line);padding-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.adder .w{grid-column:1/-1}
+.cols .adder{grid-template-columns:1fr}
+.x--sm{width:26px;height:26px;font-size:15px}
+.chipx{border:0;background:none;cursor:pointer;color:var(--muted);padding:0 0 0 4px;font:inherit}
+.seg3.off{opacity:.45;border-left-color:var(--line)}
+.sw3{display:flex;flex-wrap:wrap;gap:10px}
+.sw3 span{display:flex;flex-direction:column;gap:4px}
+.sw3 i{display:block;width:64px;height:40px;border:1px solid var(--line)}
+.sw3 em{font-style:normal;font-size:11px}
+.utm{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}
+.utm code{font:400 11.5px/1.5 var(--f-mono);background:var(--bg);border:1px solid var(--line);padding:6px 8px;overflow-x:auto;white-space:nowrap;user-select:all}
+label.drop{cursor:pointer}
+@media (max-width:900px){ .adder{grid-template-columns:1fr} .tree>div:nth-child(2){margin-left:12px} .tree>div:nth-child(3){margin-left:24px} }

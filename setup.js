@@ -67,7 +67,8 @@ function audBlock(o, act){
 
 /* ---------- анкета нового проекта ---------- */
 const OBS = () => [L("Проєкт","Проект"),L("Акаунти","Аккаунты"),L("Анамнез","Анамнез"),L("Цілі","Цели"),L("Аудиторія","Аудитория"),L("Підсумок","Итог")];
-const obFresh = () => ({step:0, q:0, conn:{}, tab:"files", files:null, seg:false, segs:SEGEN,
+const obFresh = () => { const o = obFreshS(); if (own()) { Object.assign(o.d, {name:"", niche:"", geo:"", site:"", product:"", worked:"", ban:"", tone:""}); o.text = ""; } return o; };
+const obFreshS = () => ({step:0, q:0, conn:{}, tab:"files", files:null, seg:false, segs:SEGEN, segsOwn:[],
   text:L("Дорослі 25–45, англійська потрібна для роботи. Найчастіше приходять перед співбесідою або коли з’являються іноземні клієнти.","Взрослые 25–45, английский нужен для работы. Чаще всего приходят перед собеседованием или когда появляются иностранные клиенты."),
   d:{name:L("Школа англійської","Школа английского"), niche:L("онлайн-освіта","онлайн-образование"), geo:L("Україна","Украина"), site:"english.example/trial",
      product:L("Курс розмовної англійської, 3 місяці","Курс разговорного английского, 3 месяца"), sale:"call",
@@ -76,7 +77,7 @@ const obFresh = () => ({step:0, q:0, conn:{}, tab:"files", files:null, seg:false
 function obCalc(d){ const rv = d.budget / (d.share/100), pay = rv / d.check, book = pay / (d.b2p/100), leads = book / (d.l2b/100); return {rev:rv, pay, book, leads, cap:d.l2b/100*d.b2p/100*d.check*d.share/100, roas:100/d.share}; }
 function obCalcHTML(d){ const c = obCalc(d);
   return `<div class="kpis">${[[L("Виручка з реклами","Выручка с рекламы"),money(c.rev)],[L("Оплат на місяць","Оплат в месяц"),num(c.pay)],[lite()?L("Заявок потрібно","Заявок нужно"):L("Лідів потрібно","Лидов нужно"),num(c.leads)],[lite()?L("Заявка не дорожче","Заявка не дороже"):L("Стеля ціни ліда","Потолок цены лида"),"$"+dec(c.cap)],[lite()?L("Повернення з $1","Возврат с $1"):"ROAS",lite()?"$"+dec(c.roas):dec(c.roas)]].map(k=>`<div class="kpi"><span class="tag">${k[0]}</span><strong>${k[1]}</strong></div>`).join("")}</div>`; }
-const inp = (k, label, w) => `<div class="field${w?" w":""}"><label for="ob-${k}">${label}</label><input id="ob-${k}" data-ob="${k}" value="${S.ob.d[k]}"></div>`;
+const inp = (k, label, w) => `<div class="field${w?" w":""}"><label for="ob-${k}">${label}</label><input id="ob-${k}" data-ob="${k}" value="${String(S.ob.d[k]).replace(/"/g,"&quot;")}"></div>`;
 const SALE = () => [["web",L("Вебінар → бронь → оплата","Вебинар → бронь → оплата")],["call",L("Заявка → дзвінок → оплата","Заявка → звонок → оплата")],["site",L("Оплата одразу на сайті","Оплата сразу на сайте")]];
 const OBCONN = () => [["meta","Meta Ads",L("кабінет, піксель, сторінка","кабинет, пиксель, страница"),1],["tt","TikTok Ads",L("рекламний кабінет","рекламный кабинет"),1],["gg","Google Ads",L("рекламний кабінет","рекламный кабинет"),1],
   ["crm",L("Продажі: CRM або таблиця","Продажи: CRM или таблица"),L("щоб рахувати до оплати, а не до заявки","чтобы считать до оплаты, а не до заявки"),0],["drive",L("Папка з роликами","Папка с роликами"),"Google Drive / Dropbox",1],["tg","Telegram",L("куди бот пише і де його питають","куда бот пишет и где его спрашивают"),1]];
@@ -109,13 +110,13 @@ function modalOnboard(){
       ${inp("worked",L("Що вже спрацьовувало в рекламі","Что уже срабатывало в рекламе"),1)}${inp("ban",L("Що не можна обіцяти й казати","Что нельзя обещать и говорить"),1)}${inp("tone",L("Тон","Тон"),1)}</div>
       <p class="sub">${L("Це те, чого бот не побачить у кабінеті. З анамнезу беруться тексти, перевірка роликів перед запуском і подія, до якої рахуємо результат.","Это то, чего бот не увидит в кабинете. Из анамнеза берутся тексты, проверка роликов перед запуском и событие, до которого считаем результат.")}</p>`,
     () => lite() ? obQuiz() : obTable(),
-    () => audBlock(o, "ob"),
+    () => own() ? ownAudStep(o) : audBlock(o, "ob"),
     () => { const c = obCalc(d), n = Object.values(o.conn).filter(Boolean).length;
-      return `<dl class="kv"><dt>${L("Проєкт","Проект")}</dt><dd><b>${d.name}</b> · ${d.niche} · ${d.geo}</dd><dt>${L("Продаж","Продажа")}</dt><dd>${SALE().find(x=>x[0]===d.sale)[1]}</dd>
+      return `<dl class="kv"><dt>${L("Проєкт","Проект")}</dt><dd><b>${esc(d.name)}</b> · ${esc(d.niche)} · ${esc(d.geo)}</dd><dt>${L("Продаж","Продажа")}</dt><dd>${SALE().find(x=>x[0]===d.sale)[1]}</dd>
         <dt>${L("Акаунти","Аккаунты")}</dt><dd>${n} ${L("із 6 підключено або в роботі","из 6 подключено или в работе")}</dd>
         <dt>${L("Цілі місяця","Цели месяца")}</dt><dd class="mono">${money(d.budget)} → ${num(c.leads)} ${L("лідів","лидов")} → ${num(c.pay)} ${L("оплат","оплат")} → ${money(c.rev)}</dd>
         <dt>${L("Стеля ціни ліда","Потолок цены лида")}</dt><dd class="mono">$${dec(c.cap)}</dd>
-        <dt>${L("Аудиторія","Аудитория")}</dt><dd>${o.seg?SEGEN().map(x=>x[0]).join(" · "):L("сегменти не виділено — можна додати пізніше","сегменты не выделены — можно добавить позже")}</dd></dl>
+        <dt>${L("Аудиторія","Аудитория")}</dt><dd>${own()&&o.segsOwn.length?o.segsOwn.map(x=>esc(x.name)).join(" · "):o.seg?SEGEN().map(x=>x[0]).join(" · "):L("сегменти не виділено — можна додати пізніше","сегменты не выделены — можно добавить позже")}</dd></dl>
       <div class="panel vf"><span class="tag">${L("Що буде далі","Что будет дальше")}</span><ol class="nx"><li>${L("Інтегратор перевірить доступи й події пікселя.","Интегратор проверит доступы и события пикселя.")}</li><li>${L("Ви створюєте першу воронку: офер, ціна, лендинг.","Вы создаёте первую воронку: оффер, цена, лендинг.")}</li><li>${L("Бот збирає кампанії вимкненими. Вмикаєте ви.","Бот собирает кампании выключенными. Включаете вы.")}</li></ol></div>`; }][s]();
   const lastQ = s === 3 && lite() && o.q < 4;
   return `<div class="ob">
@@ -267,4 +268,4 @@ document.addEventListener("input", e => { const t = e.target;
   if ("nf" in t.dataset) { const c = $("nf-calc"); if (c) c.innerHTML = nfCalc(nfv("nf-price")||CHECK, nfv("nf-pay")||1, nfv("nf-l2b")||1, nfv("nf-b2p")||1); } });
 document.addEventListener("change", e => { const t = e.target; if (!t.dataset.tg) return; const [id, k] = t.dataset.tg.split("."), n = pnum(t.value), f = S.funnels.find(x=>x.id===id); if (f && n > 0) { f.tg[k] = n; renderView(); } });
 try { const t = localStorage.getItem("rakurs_tier"); if (t === "lite" || t === "pro") S.tier = t; } catch (e) {}
-render();
+/* первый render() — в конце ws.js */
