@@ -463,3 +463,12 @@ input[type=checkbox][aria-invalid="true"]{outline:2px solid var(--play);outline-
 #fact .kpi strong{font-size:20px;overflow-wrap:anywhere}
 @media (max-width:1100px){ .kpis--6{grid-template-columns:repeat(3,minmax(0,1fr))} }
 @media (max-width:760px){ .kpis--5,.kpis--6{grid-template-columns:repeat(2,minmax(0,1fr))} }
+/* команда на телефоне: строка таблицы становится карточкой, кнопки не уезжают за край */
+@media (max-width:760px){
+  table.tm thead{display:none}
+  table.tm,table.tm tbody{display:block;min-width:0}
+  table.tm tr{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;padding:12px;border-bottom:1px solid var(--line)}
+  table.tm td{display:block;padding:0;border:0;white-space:normal}
+  table.tm td:first-child,table.tm td:nth-child(4){flex:1 0 100%}
+  table.tm td.n{flex:1 0 100%;display:flex;gap:8px;justify-content:flex-start;text-align:left}
+}
