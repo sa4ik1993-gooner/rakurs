@@ -152,9 +152,24 @@ function segAdder(pre, act, niche){ return `${segTpl(pre, niche)}<div class="for
     <div class="field"><label for="${pre}-p">${L("Що болить, чому купує","Что болит, почему покупает")}</label><input id="${pre}-p" placeholder="${L("подія або причина","событие или причина")}"></div>
     <div class="field w"><label for="${pre}-s">${L("Що казати в рекламі","Что говорить в рекламе")}</label><input id="${pre}-s" placeholder="${L("головна думка для цього сегмента","главная мысль для этого сегмента")}"></div>
     <div class="row w"><button class="btn btn--sm" data-act="${act}">${L("Додати сегмент","Добавить сегмент")}</button></div></div>`; }
+const fileLabel = n => typeof n === "string" ? esc(n) : n.p ? `<button type="button" class="lnk" data-act="fileOpen" data-p="${esc(n.p)}">${esc(n.n)}</button> <small class="sub">${fileSize(n.s || 0)}</small>` : esc(n.n);
+/* принимает выбранные файлы: с сервером — загружает и хранит путь, без него — только название */
+async function fileIntake(key, files){
+  const kb = key.startsWith("kb."), h = kb ? kbHolder(W.cur ? "p" : "co") : null, f = key === "f.crs" ? F() : null, scope = W.cur || "co";
+  let list = null; if (!kb && !f) { list = wget(key); if (!Array.isArray(list)) { wset(key, []); list = wget(key); } }
+  const res = []; if (CLOUD) { toast(L("Завантажуємо файли: ","Загружаем файлы: ") + files.length + "…"); for (const x of files) res.push(await cloudUpload(x, scope)); }
+  files.forEach((x, i) => { const r = res[i] || {}, n = x.name, path = r.path || "";
+    if (kb) h.kb.push({id:uid(), type:key.slice(3), title:n.replace(/\.[a-z0-9]{2,5}$/i,""), src:n, note:"", path, size:path ? x.size : 0});
+    else if (f) f.crs.push({id:uid(), name:n, slug:slug(n) || "creative_" + (f.crs.length+1), type:/\.(png|jpe?g|webp|gif)$/i.test(n)?"img":"video", hook:"", seg:"", text:"", path, size:path ? x.size : 0});
+    else list.push(path ? {n, p:path, s:x.size} : n); });
+  save(); render();
+  if (CLOUD) { const ok = res.filter(r => r && r.path).length, big = res.filter(r => r && r.err === "big").length, nb = res.some(r => r && r.err === "nobucket"), bad = res.filter(r => r && r.err === "fail").length;
+    toast(nb ? L("Сховище файлів ще не ввімкнено на сервері: збережено лише назви","Хранилище файлов ещё не включено на сервере: сохранены только названия")
+      : [ok ? L("Завантажено: ","Загружено: ") + ok : "", big ? L("більші за 50 MB, збережено лише назву: ","больше 50 MB, сохранено только название: ") + big : "", bad ? L("не вдалося завантажити: ","не удалось загрузить: ") + bad : ""].filter(Boolean).join(" · ")); }
+}
 function filesBox(path, hint){ const a = wget(path) || [];
   return `<label class="drop"><input type="file" multiple hidden data-wf="${path}"><b>${L("Додати файли","Добавить файлы")}</b><span class="sub">${hint}</span></label>
-    ${a.length?`<div class="chipset">${a.map((n,i)=>`<span class="chip">${esc(n)} <button type="button" class="chipx" data-act="wsDelFile" data-k="${path}" data-id="${i}" aria-label="delete">×</button></span>`).join("")}</div>`:""}`; }
+    ${a.length?`<div class="chipset">${a.map((n,i)=>`<span class="chip">${fileLabel(n)} <button type="button" class="chipx" data-act="wsDelFile" data-k="${path}" data-id="${i}" aria-label="delete">×</button></span>`).join("")}</div>`:""}`; }
 /* тип, где живёт (co — компания, p — проект, both), название, что класть, что бот берёт */
 const KBT = () => [
   ["story","co",L("Історія компанії та засновник","История компании и основатель"),L("звідки компанія, чому їй вірять","откуда компания, почему ей верят"),L("сюжети роликів, перший кадр «від першої особи»","сюжеты роликов, первый кадр «от первого лица»")],
@@ -173,7 +188,7 @@ function brandPanel(sc, extra){ const b = kbHolder(sc).brand;
     ${fld(sc+".brand.colors",L("Кольори бренду","Цвета бренда"),{ph:"#1E5A4E, #D93A20, #F2C230"})}${fld(sc+".brand.fonts",L("Шрифти","Шрифты"),{ph:"Unbounded, Golos Text"})}
     ${fld(sc+".brand.voice",L("Голос бренду: якими словами говоримо","Голос бренда: какими словами говорим"),{w:1,ph:L("на «ви», без сленгу, коротко","на «вы», без сленга, коротко")})}</div>
     ${swatches(b.colors)}${filesBox(sc+".brand.files", L("Логотип, брендбук, шаблони обкладинок","Логотип, брендбук, шаблоны обложек"))}</div>`; }
-const kbItem = (i, right) => `<div class="item"><div class="row sp"><b>${esc(i.title)}</b>${right}</div>${i.src?`<span class="mono sub">${esc(i.src)}</span>`:""}${i.note?`<span class="sub">${esc(i.note)}</span>`:""}</div>`;
+const kbItem = (i, right) => `<div class="item"><div class="row sp"><b>${esc(i.title)}</b>${right}</div>${i.src?(i.path?`<span class="mono"><button type="button" class="lnk" data-act="fileOpen" data-p="${esc(i.path)}">${esc(i.src)}</button> <small class="sub">${fileSize(i.size || 0)}</small></span>`:`<span class="mono sub">${esc(i.src)}</span>`):""}${i.note?`<span class="sub">${esc(i.note)}</span>`:""}</div>`;
 function kbCols(sc){ const h = kbHolder(sc);
   return `<div class="cols">${KBT().filter(k=>k[1]===sc||k[1]==="both").map(k=>{ const items = h.kb.filter(i=>i.type===k[0]); return `<div class="panel"><span class="tag">${k[2]} · ${items.length}</span><p class="sub">${k[3]}</p>
     ${items.map(i=>kbItem(i, del("wsDelKb", i.id))).join("")}
@@ -275,7 +290,7 @@ function vFunnel(f, p){
     cr: () => { const segs = fSegs(f,p);
       return `<div class="panel"><span class="tag">${L("Креативи й тексти","Креативы и тексты")} · ${f.crs.length}</span>
         ${f.crs.length?`<div class="tw tw--in"><table><thead><tr><th>${L("Назва в UTM","Название в UTM")}</th><th>${L("Тип","Тип")}</th><th>${L("Перший кадр або думка","Первый кадр или мысль")}</th><th>${L("Сегмент","Сегмент")}</th><th>${L("Текст","Текст")}</th><th></th></tr></thead><tbody>
-          ${f.crs.map(c=>`<tr><td class="mono"><b>${esc(c.slug)}</b>${c.name&&c.name!==c.slug?`<small class="pl">${esc(c.name)}</small>`:""}</td><td>${c.type==="img"?L("статика","статика"):L("відео","видео")}</td><td>${esc(c.hook)}</td><td>${esc((segs.find(s=>s.id===c.seg)||{}).name || "—")}</td><td class="sub">${esc(c.text)}</td><td class="n">${del("wsDelCr", c.id)}</td></tr>`).join("")}</tbody></table></div>`
+          ${f.crs.map(c=>`<tr><td class="mono"><b>${esc(c.slug)}</b>${c.name&&c.name!==c.slug?`<small class="pl">${c.path?`<button type="button" class="lnk" data-act="fileOpen" data-p="${esc(c.path)}">${esc(c.name)}</button>`:esc(c.name)}</small>`:""}</td><td>${c.type==="img"?L("статика","статика"):L("відео","видео")}</td><td>${esc(c.hook)}</td><td>${esc((segs.find(s=>s.id===c.seg)||{}).name || "—")}</td><td class="sub">${esc(c.text)}</td><td class="n">${del("wsDelCr", c.id)}</td></tr>`).join("")}</tbody></table></div>`
           : empty(L("Креативів ще немає","Креативов ещё нет"), L("Для тесту гіпотез потрібно щонайменше три: різні перші кадри або різні сегменти.","Для теста гипотез нужно минимум три: разные первые кадры или разные сегменты."))}
         <div class="form adder"><div class="field"><label for="cr-n">${L("Назва","Название")}</label><input id="cr-n" placeholder="priglos_v1"></div>
           <div class="field"><label for="cr-t">${L("Тип","Тип")}</label><select id="cr-t"><option value="video">${L("Відео","Видео")}</option><option value="img">${L("Статика","Статика")}</option></select></div>
@@ -397,8 +412,9 @@ Object.assign(ACT, {
   wsAddSeg(){ const n = val("sg-n"); if (!need(n, L("Опишіть сегмент","Опишите сегмент"))) return false; P().segs.push({id:uid(), name:n, pain:val("sg-p"), say:val("sg-s")}); save(); },
   wsDelSeg(d){ const p = P(); p.segs = p.segs.filter(s=>s.id!==d.id); p.funnels.forEach(f=>{ f.aud.off = f.aud.off.filter(x=>x!==d.id); }); save(); },
   wsAddKb(d){ const t = val("kb-"+d.id+"-t"); if (!need(t, L("Дайте матеріалу назву","Дайте материалу название"))) return false; kbHolder(W.cur ? "p" : "co").kb.push({id:uid(), type:d.id, title:t, src:val("kb-"+d.id+"-s"), note:val("kb-"+d.id+"-n")}); save(); },
-  wsDelKb(d){ const h = kbHolder(W.cur ? "p" : "co"); h.kb = h.kb.filter(i=>i.id!==d.id); if (!W.cur) W.projs.forEach(p=>{ p.kbOff = p.kbOff.filter(x=>x!==d.id); }); save(); },
-  wsDelFile(d){ const a = wget(d.k); a.splice(+d.id, 1); save(); },
+  wsDelKb(d){ const h = kbHolder(W.cur ? "p" : "co"), x = h.kb.find(i=>i.id===d.id); if (x && x.path) cloudFileDel(x.path); h.kb = h.kb.filter(i=>i.id!==d.id); if (!W.cur) W.projs.forEach(p=>{ p.kbOff = p.kbOff.filter(x=>x!==d.id); }); save(); },
+  wsDelFile(d){ const a = wget(d.k), x = a[+d.id]; if (x && x.p) cloudFileDel(x.p); a.splice(+d.id, 1); save(); },
+  fileOpen(d){ cloudFileOpen(d.p); return false; },
   wsConn(d){ const p = P(); p.conn[d.id] = p.conn[d.id] ? 0 : 3; save(); },
   wsOpenF(d){ W.fun = d.id; W.ftab = "an"; save(); },
   wsBackF(){ W.fun = null; W.tab = "funnels"; save(); },
@@ -411,7 +427,7 @@ Object.assign(ACT, {
   wsDelLand(d){ const f = F(); f.lands = f.lands.filter(l=>l.id!==d.id); save(); },
   wsCopy(d){ const l = F().lands.find(x=>x.id===d.id), t = "https://" + l.url + (l.url.includes("?")?"&":"?") + UTM; (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(()=>toast(L("Посилання скопійовано","Ссылка скопирована")), ()=>toast(L("Виділіть посилання й скопіюйте вручну","Выделите ссылку и скопируйте вручную"))); return false; },
   wsAddCr(){ const n = val("cr-n"), h = val("cr-h"); if (!need(n || h, L("Дайте креативу назву або опишіть перший кадр","Дайте креативу название или опишите первый кадр"))) return false; const f = F(); f.crs.push({id:uid(), name:n, slug:slug(n) || "creative_" + (f.crs.length+1), type:$("cr-t").value, hook:h, seg:$("cr-s").value, text:val("cr-x")}); save(); },
-  wsDelCr(d){ const f = F(); f.crs = f.crs.filter(c=>c.id!==d.id); save(); },
+  wsDelCr(d){ const f = F(), x = f.crs.find(c=>c.id===d.id); if (x && x.path) cloudFileDel(x.path); f.crs = f.crs.filter(c=>c.id!==d.id); save(); },
   wsWipe(){ if (!W.wipe) { W.wipe = true; later(()=>{ if (W.wipe) { W.wipe = false; render(); } }, 4000); return; } if (CLOUD) { W.wipe = false; cloudDeleteCo(); return false; } try { if (W.user) localStorage.removeItem(accKey(W.user.id)); } catch (e) {} W = blankW(); AU = auFresh(); save(); toast(L("Акаунт і дані видалено","Аккаунт и данные удалены")); },
   obSegAdd(){ const n = val("os-n"); if (!need(n, L("Опишіть сегмент","Опишите сегмент"))) return false; S.ob.segsOwn.push({id:uid(), name:n, pain:val("os-p"), say:val("os-s")}); },
   obSegDel(d){ S.ob.segsOwn = S.ob.segsOwn.filter(s=>s.id!==d.id); },
@@ -437,11 +453,7 @@ document.addEventListener("change", e => { const t = e.target; if (!own()) retur
   if (t.dataset.wimp) { const f = t.files[0]; if (!f) return; const r = new FileReader();
     r.onload = () => { try { const d = JSON.parse(r.result); if (!d || !d.co || !Array.isArray(d.projs)) throw 0; W = Object.assign(blankW(), d, {user:W.user, mode:"own", cur:null, fun:null, ctab:"projects", wipe:false}); norm(); save(); render(); toast(L("Дані відновлено з копії","Данные восстановлены из копии")); } catch (x) { toast(L("Це не файл копії кабінету","Это не файл копии кабинета")); } };
     r.readAsText(f); return; }
-  if (t.dataset.wf) { const names = [...t.files].map(f=>f.name); if (!names.length) return;
-    if (t.dataset.wf.startsWith("kb.")) { const h = kbHolder(W.cur ? "p" : "co"), ty = t.dataset.wf.slice(3); names.forEach(n => h.kb.push({id:uid(), type:ty, title:n.replace(/\.[a-z0-9]{2,5}$/i,""), src:n, note:""})); save(); renderView(); renderShell(); return; }
-    if (t.dataset.wf === "f.crs") { const f = F(); names.forEach(n => f.crs.push({id:uid(), name:n, slug:slug(n) || "creative_" + (f.crs.length+1), type:/\.(png|jpe?g|webp|gif)$/i.test(n)?"img":"video", hook:"", seg:"", text:""})); save(); }
-    else { const a = wget(t.dataset.wf); if (Array.isArray(a)) a.push(...names); else wset(t.dataset.wf, names); save(); }
-    renderView(); return; }
+  if (t.dataset.wf) { const files = [...t.files]; if (files.length) fileIntake(t.dataset.wf, files); return; }
   if (t.dataset.w) { renderShell(); if (/^(p\.name|f\.name|co\.name|p\.brand\.|co\.brand\.colors|p\.tg\.|f\.tg\.)/.test(t.dataset.w)) renderView(); } });
 document.addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && e.target.matches("a[role=button][data-act]")) { e.preventDefault(); e.target.click(); } });
 render();

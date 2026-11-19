@@ -134,6 +134,23 @@ async function cloudSwitch(id){ try { CL.state = "load"; cloudBadge(); await clo
 async function cloudDeleteCo(){ const r = await sb.from("companies").delete().eq("id", W.co.id); if (r.error) return cErr(r.error, L("Не вдалося видалити","Не удалось удалить"));
   CL.cos = CL.cos.filter(c => c.id !== W.co.id); W.co = null; W.projs = []; W.cur = W.fun = null; try { localStorage.removeItem("rakurs_co"); } catch (e) {}
   if (CL.cos[0]) await cloudOpen(CL.cos[0].id); else cloudSnap(); render(); toast(L("Компанію видалено","Компания удалена")); }
+/* файлы: хранилище на сервере, папка компании → проекта. В данных кабинета остаётся только путь к файлу. */
+const FILE_MAX = 50 * 1024 * 1024;
+const fileSize = n => n > 1048576 ? dec(n / 1048576, 1) + " MB" : Math.max(1, Math.round(n / 1024)) + " KB";
+async function cloudUpload(file, scope){
+  if (!CLOUD || !sb || !W.co || !W.co.id) return null;
+  if (file.size > FILE_MAX) return {err:"big"};
+  try { const ext = (/\.[a-z0-9]{1,6}$/i.exec(file.name) || [""])[0].toLowerCase(), path = W.co.id + "/" + (scope || "co") + "/" + uid() + "-" + (slug(file.name.replace(/\.[^.]+$/, "")) || "file") + ext;
+    const r = await sb.storage.from("files").upload(path, file, {contentType:file.type || undefined, upsert:false});
+    if (r.error) return {err:/bucket|not found|does not exist/i.test(r.error.message) ? "nobucket" : "fail", msg:r.error.message};
+    return {path, size:file.size}; }
+  catch (e) { return {err:"fail", msg:e && e.message}; }
+}
+function cloudFileDel(path){ try { if (CLOUD && sb && path) Promise.resolve(sb.storage.from("files").remove([path])).then(() => {}, () => {}); } catch (e) {} }
+/* открыть файл: временная ссылка на 5 минут. Окно открываем сразу по нажатию, иначе браузер его заблокирует. */
+function cloudFileOpen(path){ if (!CLOUD || !sb || !path) return; const w = window.open("", "_blank");
+  Promise.resolve(sb.storage.from("files").createSignedUrl(path, 300)).then(r => { const u = r && r.data && r.data.signedUrl; if (u && w) w.location = u; else { if (w) w.close(); toast(L("Не вдалося відкрити файл","Не удалось открыть файл")); } }, () => { if (w) w.close(); toast(L("Не вдалося відкрити файл","Не удалось открыть файл")); }); }
+
 /* команда */
 async function cloudMembers(){ const m = await sb.from("members").select("*").eq("company_id", W.co.id).order("created_at"); if (!m.error) CL.members = m.data || []; }
 async function cloudAddMember(email, role, proj){
