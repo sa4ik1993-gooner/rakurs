@@ -155,6 +155,6 @@ function cloudFileOpen(path){ if (!CLOUD || !sb || !path) return; const w = wind
 async function cloudMembers(){ const m = await sb.from("members").select("*").eq("company_id", W.co.id).order("created_at"); if (!m.error) CL.members = m.data || []; }
 async function cloudAddMember(email, role, proj){
   const r = await sb.from("members").insert({company_id:W.co.id, email, role, project_ids: proj ? [proj] : null}); if (r.error) { toast(/duplicate|unique/i.test(r.error.message) ? L("Ця людина вже в команді","Этот человек уже в команде") : L("Не вдалося додати: ","Не удалось добавить: ") + r.error.message); return; }
-  await cloudMembers(); render(); toast(L("Доступ надано. Надішліть людині посилання на кабінет","Доступ выдан. Отправьте человеку ссылку на кабинет"));
+  await cloudMembers(); render(); toast(L("Доступ надано. Натисніть «Скопіювати запрошення» біля людини й надішліть їй текст","Доступ выдан. Нажмите «Скопировать приглашение» рядом с человеком и отправьте ему текст"));
 }
 async function cloudDelMember(id){ const r = await sb.from("members").delete().eq("id", id); if (r.error) return cErr(r.error, L("Не вдалося прибрати","Не удалось убрать")); await cloudMembers(); render(); toast(L("Доступ закрито","Доступ закрыт")); }
