@@ -7,6 +7,8 @@ const CL = {ready:false, state:"idle", cos:[], members:[], role:null, known:{}, 
 const ROLES = () => ({owner:L("Власник","Собственник"), lead:L("Керівник лідгену","Руководитель лидгена"), targetolog:L("Таргетолог","Таргетолог")});
 const canAdmin = () => !CLOUD || CL.role === "owner" || CL.role === "lead";
 const isOwner = () => !CLOUD || CL.role === "owner";
+const TG = () => CLOUD && !!RK.tg;
+const TGMAIL = /@telegram\.local$/;
 const pid = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : uid();
 const cErr = (e, t) => { console.error(e); CL.state = "err"; cloudBadge(); toast(t + (e && e.message ? ": " + e.message : "")); };
 const cloudLabel = () => ({idle:L("сервер підключено","сервер подключён"), load:L("завантаження…","загрузка…"), dirty:L("зберігаємо…","сохраняем…"), saved:L("збережено","сохранено"), err:L("помилка збереження","ошибка сохранения")}[CL.state]);
@@ -18,7 +20,7 @@ function loadLib(){ return window.supabase ? Promise.resolve() : new Promise((ok
 async function cloudBoot(){
   if (!CLOUD) return;
   CL.state = "load"; const h0 = location.hash;
-  try { await loadLib(); sb = window.supabase.createClient(RK.url, RK.key);
+  try { await loadLib(); tgLib(); sb = window.supabase.createClient(RK.url, RK.key);
     const r = await sb.auth.getSession(); CL.state = "idle";
     if (/access_token=|error=|error_code=/.test(location.hash)) try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
     if (r.data && r.data.session) await cloudSigned(r.data.session.user, /access_token=/.test(h0));
@@ -36,8 +38,10 @@ async function cloudSigned(user, hello){
   CL.entering = false; render();
 }
 async function cloudEnter(user){
-  W.user = {via:"email", id:String(user.email).toLowerCase(), uid:user.id};
+  const em = String(user.email).toLowerCase(), viaTg = TGMAIL.test(em), md = user.user_metadata || {};
+  W.user = {via: viaTg ? "tg" : "email", id:em, uid:user.id, name: viaTg ? (md.tg_username || md.name || "Telegram") : em};
   await sb.rpc("claim_membership");
+  CL.tg = null; if (TG()) { const t = await sb.from("tg_accounts").select("username,name").maybeSingle(); if (!t.error && t.data) { CL.tg = t.data; if (viaTg) W.user.name = t.data.username || t.data.name || W.user.name; } }
   const r = await sb.from("companies").select("*").order("created_at"); if (r.error) throw r.error;
   CL.cos = r.data || [];
   let want = null; try { want = localStorage.getItem("rakurs_co"); } catch (e) {}
@@ -76,6 +80,34 @@ async function cloudSync(){
   } catch (e) { cErr(e, L("Не вдалося зберегти","Не удалось сохранить")); }
   CL.busy = false; if (CL.again) cloudQueue();
 }
+/* вход через Telegram: окно Telegram отдаёт подписанный токен, серверная функция проверяет его и выдаёт пропуск */
+function tgLib(){ if (!TG() || document.getElementById("tg-lib")) return; const s = document.createElement("script"); s.id = "tg-lib"; s.async = true; s.src = "https://oauth.telegram.org/js/telegram-login.js?6"; document.head.appendChild(s); }
+const tgErr = (d) => ({bad_token:L("Telegram не підтвердив вхід. Спробуйте ще раз","Telegram не подтвердил вход. Попробуйте ещё раз"), expired:L("Підтвердження застаріло. Спробуйте ще раз","Подтверждение устарело. Попробуйте ещё раз"),
+  taken:L("Цей Telegram уже використовується як окремий акаунт","Этот Telegram уже используется как отдельный аккаунт"), has_other:L("До цього акаунта вже прив’язано інший Telegram","К этому аккаунту уже привязан другой Telegram"),
+  not_signed_in:L("Спершу увійдіть у кабінет","Сначала войдите в кабинет")}[d.error] || L("Не вдалося увійти через Telegram","Не удалось войти через Telegram") + ": " + (d.detail || d.error));
+function cloudTg(link){
+  if (!TG()) return;
+  if (!window.Telegram || !Telegram.Login) { tgLib(); toast(L("Telegram ще завантажується. Спробуйте за кілька секунд","Telegram ещё загружается. Попробуйте через пару секунд")); return; }
+  if (CL.tgBusy) return;
+  try { Telegram.Login.auth({client_id:String(RK.tg), scope:["profile","write"], lang:lang}, r => cloudTgDone(r, link)); }
+  catch (e) { console.error(e); toast(L("Не вдалося відкрити вікно Telegram","Не удалось открыть окно Telegram")); }
+}
+async function cloudTgDone(r, link){
+  if (!r || r.error) { if (r && r.error !== "popup_closed") toast(L("Telegram не підтвердив вхід","Telegram не подтвердил вход") + ": " + r.error); return; }
+  CL.tgBusy = true;
+  try {
+    const f = await sb.functions.invoke("tg-login", {body:{id_token:r.id_token, link:!!link}});
+    if (f.error || !f.data) throw f.error || new Error("empty");
+    const d = f.data;
+    if (!d.ok) { toast(tgErr(d)); return; }
+    if (d.linked) { CL.tg = {username:d.username, name:d.name}; if (W.co && W.co.id) await cloudOpen(W.co.id); render(); toast(L("Telegram прив’язано. Тепер можна входити через нього","Telegram привязан. Теперь можно входить через него")); return; }
+    let v = await sb.auth.verifyOtp({token_hash:d.token_hash, type:"email"});
+    if (v.error) v = await sb.auth.verifyOtp({token_hash:d.token_hash, type:"magiclink"});
+    if (v.error || !v.data || !v.data.user) { toast(L("Не вдалося відкрити сесію","Не удалось открыть сессию") + (v.error ? ": " + v.error.message : "")); return; }
+    await cloudSigned(v.data.user, true);
+  } catch (e) { console.error(e); toast(L("Не вдалося увійти через Telegram","Не удалось войти через Telegram") + (e && e.message ? ": " + e.message : "")); }
+  finally { CL.tgBusy = false; }
+}
 /* вход */
 async function cloudSendCode(mail){
   const r = await sb.auth.signInWithOtp({email:mail, options:{shouldCreateUser:!AU.login, emailRedirectTo:location.origin + location.pathname}});
@@ -87,7 +119,7 @@ async function cloudVerify(code){
   if (r.error || !r.data || !r.data.user) { toast(L("Код не підійшов або застарів","Код не подошёл или устарел")); return; }
   await cloudSigned(r.data.user, true);
 }
-async function cloudLogout(){ try { await sb.auth.signOut(); } catch (e) {} W = blankW(); AU = auFresh(); AU.login = true; CL.cos = []; CL.members = []; CL.role = null; cloudSnap(); render(); toast(L("Ви вийшли","Вы вышли")); }
+async function cloudLogout(){ try { await sb.auth.signOut(); } catch (e) {} W = blankW(); AU = auFresh(); AU.login = true; CL.cos = []; CL.members = []; CL.role = null; CL.tg = null; cloudSnap(); render(); toast(L("Ви вийшли","Вы вышли")); }
 async function cloudCreateCo(name, kind){
   const r = await sb.from("companies").insert({name, kind}).select().single(); if (r.error) return cErr(r.error, L("Не вдалося створити компанію","Не удалось создать компанию"));
   CL.cos.push(r.data); try { await cloudOpen(r.data.id); CL.state = "saved"; } catch (e) { return cErr(e, L("Компанію створено, але вона не відкрилася","Компания создана, но не открылась")); } render();
