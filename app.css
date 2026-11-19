@@ -475,3 +475,4 @@ input[type=checkbox][aria-invalid="true"]{outline:2px solid var(--play);outline-
 /* числа в таблицах не переносятся: узкая таблица листается вбок */
 #fact td.n,#fact th.n,#ch-plan td.n,#ch-plan th.n{white-space:nowrap}
 #fact td:first-child{min-width:120px}
+.empty .row{margin-top:8px}
