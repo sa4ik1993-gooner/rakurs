@@ -367,25 +367,35 @@ const authGate = id => { const has = !!accGet(id);
   if (!AU.login && has) { AU.login = true; toast(L("Такий акаунт уже є — входимо","Такой аккаунт уже есть — входим")); }
   return true; };
 const val = id => { const e = $(id); return e ? e.value.trim() : ""; };
-const need = (v, t) => { if (!v) { toast(t); return false; } return true; };
+/* Ошибка показывается у самого поля: красная рамка, текст под полем, фокус в поле. Пропадает, как только человек начал исправлять.
+   Если поля с таким id на экране нет, остаётся всплывающее сообщение. */
+function fieldErr(id, t){ const e = id && document.getElementById(id); if (!e) { toast(t); return; }
+  const box = e.closest(".field") || e.closest(".chk") || e.parentNode; fieldOk(e);
+  e.setAttribute("aria-invalid", "true"); const m = document.createElement("span"); m.className = "ferr"; m.setAttribute("role", "alert"); m.id = id + "-err"; m.textContent = t; e.setAttribute("aria-describedby", m.id);
+  if (box.classList && box.classList.contains("chk")) box.insertAdjacentElement("afterend", m); else box.appendChild(m);
+  try { e.focus({preventScroll:true}); e.scrollIntoView({block:"nearest"}); } catch (x) {} }
+function fieldOk(e){ if (!e || !e.getAttribute || !e.getAttribute("aria-invalid")) return; e.removeAttribute("aria-invalid"); const m = document.getElementById(e.id + "-err"); if (m) m.remove(); e.removeAttribute("aria-describedby"); }
+document.addEventListener("input", e => fieldOk(e.target));
+document.addEventListener("change", e => fieldOk(e.target));
+const need = (v, t, id) => { if (!v) { fieldErr(id, t); return false; } return true; };
 const _mod = ACT.modal, _cp = ACT.createProject, _cf = ACT.createFunnel, _oc = ACT.obConn, _on = ACT.obNav;
 Object.assign(ACT, {
   wsAuthVia(d){ AU.via = d.v; AU.step = 0; AU.id = ""; },
   wsAuthMode(){ AU.login = !AU.login; AU.step = 0; },
   wsAuthBack(){ AU.step = 0; },
   wsAuthResend(){ if (CLOUD && AU.id) cloudSendCode(AU.id); return false; },
-  wsAuthSend(){ const m = val("au-mail").toLowerCase(); if (!need(/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(m), L("Перевірте адресу пошти","Проверьте адрес почты"))) return false;
-    if (CLOUD) { if (!AU.login && !need($("au-ok").checked, L("Потрібна згода з умовами","Нужно согласие с условиями"))) return false; cloudSendCode(m); return false; }
-    if (!authGate(m)) return false; if (!AU.login && !need($("au-ok").checked, L("Потрібна згода з умовами","Нужно согласие с условиями"))) return false; AU.id = m; AU.step = 1; },
-  wsAuthCode(){ if (CLOUD) { const c = val("au-code"); if (!need(/^\d{6,8}$/.test(c), L("Введіть код із листа","Введите код из письма"))) return false; cloudVerify(c); return false; }
-    if (!need(/^\d{6}$/.test(val("au-code")), L("Код — шість цифр","Код — шесть цифр"))) return false; authDone("email", AU.id); },
-  wsAuthTg(){ if (CLOUD) return false; const u = val("au-tg").replace(/^@+/, ""); if (!need(/^[A-Za-z0-9_]{4,32}$/.test(u), L("Нік: латиниця, цифри й _, від 4 символів","Ник: латиница, цифры и _, от 4 символов"))) return false;
-    if (!authGate("@" + u)) return false; if (!AU.login && !need($("au-ok").checked, L("Потрібна згода з умовами","Нужно согласие с условиями"))) return false; AU.id = "@" + u; AU.step = 1; },
+  wsAuthSend(){ const m = val("au-mail").toLowerCase(); if (!need(/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(m), L("Перевірте адресу пошти","Проверьте адрес почты"), "au-mail")) return false;
+    if (CLOUD) { if (!AU.login && !need($("au-ok").checked, L("Потрібна згода з умовами","Нужно согласие с условиями"), "au-ok")) return false; cloudSendCode(m); return false; }
+    if (!authGate(m)) return false; if (!AU.login && !need($("au-ok").checked, L("Потрібна згода з умовами","Нужно согласие с условиями"), "au-ok")) return false; AU.id = m; AU.step = 1; },
+  wsAuthCode(){ if (CLOUD) { const c = val("au-code"); if (!need(/^\d{6,8}$/.test(c), L("Введіть код із листа","Введите код из письма"), "au-code")) return false; cloudVerify(c); return false; }
+    if (!need(/^\d{6}$/.test(val("au-code")), L("Код — шість цифр","Код — шесть цифр"), "au-code")) return false; authDone("email", AU.id); },
+  wsAuthTg(){ if (CLOUD) return false; const u = val("au-tg").replace(/^@+/, ""); if (!need(/^[A-Za-z0-9_]{4,32}$/.test(u), L("Нік: латиниця, цифри й _, від 4 символів","Ник: латиница, цифры и _, от 4 символов"), "au-tg")) return false;
+    if (!authGate("@" + u)) return false; if (!AU.login && !need($("au-ok").checked, L("Потрібна згода з умовами","Нужно согласие с условиями"), "au-ok")) return false; AU.id = "@" + u; AU.step = 1; },
   wsAuthTgOk(){ authDone("tg", AU.id); },
   wsLogout(){ if (CLOUD) { cloudLogout(); return false; } save(); W = blankW(); AU = auFresh(); AU.login = true; try { localStorage.setItem("rakurs_ws", JSON.stringify(W)); } catch (e) {} toast(L("Ви вийшли. Дані збережено в акаунті","Вы вышли. Данные сохранены в аккаунте")); },
   wsTgLogin(){ cloudTg(false); return false; },
   wsTgLink(){ cloudTg(true); return false; },
-  wsAddMember(){ const m = val("tm-mail").toLowerCase().replace(/^https?:\/\/t\.me\//, "@"); if (!need(/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(m) || (TG() && /^@[a-z0-9_]{4,32}$/.test(m)), TG()?L("Вкажіть пошту або нік у Telegram, наприклад @username","Укажите почту или ник в Telegram, например @username"):L("Перевірте адресу пошти","Проверьте адрес почты"))) return false; cloudAddMember(m, $("tm-role").value, $("tm-proj").value); return false; },
+  wsAddMember(){ const m = val("tm-mail").toLowerCase().replace(/^https?:\/\/t\.me\//, "@"); if (!need(/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(m) || (TG() && /^@[a-z0-9_]{4,32}$/.test(m)), TG()?L("Вкажіть пошту або нік у Telegram, наприклад @username","Укажите почту или ник в Telegram, например @username"):L("Перевірте адресу пошти","Проверьте адрес почты"), "tm-mail")) return false; cloudAddMember(m, $("tm-role").value, $("tm-proj").value); return false; },
   wsDelMember(d){ cloudDelMember(d.id); return false; },
   wsSwitchCo(d){ cloudSwitch(d.id); return false; },
   /* готовый текст приглашения: кто, куда, с какой ролью и как войти */
@@ -402,7 +412,7 @@ Object.assign(ACT, {
   wsExport(){ const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(Object.assign({}, W, {wipe:false}), null, 1)], {type:"application/json"})); a.download = "rakurs_" + slug(W.co.name) + ".json"; document.body.appendChild(a); a.click(); a.remove(); toast(L("Якщо файл не завантажився, скористайтесь «Скопіювати копію»","Если файл не скачался, воспользуйтесь «Скопировать копию»")); return false; },
   wsCopyAll(){ (navigator.clipboard ? navigator.clipboard.writeText(JSON.stringify(W)) : Promise.reject()).then(()=>toast(L("Копію скопійовано в буфер","Копия скопирована в буфер")), ()=>toast(L("Браузер не дав скопіювати — завантажте файл","Браузер не дал скопировать — скачайте файл"))); return false; },
   wsKind(d){ W.kind = d.v; const n = val("co-name"); renderView(); const e = $("co-name"); if (e) e.value = n; return false; },
-  wsCo(){ const n = val("co-name"); if (!need(n, L("Введіть назву компанії","Введите название компании"))) return false; if (CLOUD) { cloudCreateCo(n, W.kind || "own"); return false; } W.co = {name:n, kind:W.kind || "own"}; norm(); save(); },
+  wsCo(){ const n = val("co-name"); if (!need(n, L("Введіть назву компанії","Введите название компании"), "co-name")) return false; if (CLOUD) { cloudCreateCo(n, W.kind || "own"); return false; } W.co = {name:n, kind:W.kind || "own"}; norm(); save(); },
   wsSample(){ W.mode = "sample"; save(); location.hash = "today"; lastRoute = null; },
   wsOwn(){ W.mode = "own"; S.cr = S.launch = S.modal = null; S.asst.open = false; save(); ownKey = ""; },
   wsBackP(){ W.cur = null; W.fun = null; W.ctab = "map"; save(); },
@@ -418,9 +428,9 @@ Object.assign(ACT, {
   wsDelPath(d){ const x = saleOwn().find(y => y.id === d.id); if (!x) return false;
     W.projs.forEach(p => p.funnels.forEach(f => { if (f.sale === x.id) f.saleName = x.name; }));   /* воронки сохраняют название и свои шаги */
     W.co.paths = W.co.paths.filter(y => y.id !== x.id); save(); toast(L("Шлях видалено. Воронки, що його використовували, зберегли свої кроки","Путь удалён. Воронки, которые его использовали, сохранили свои шаги")); },
-  wsAddSeg(){ const n = val("sg-n"); if (!need(n, L("Опишіть сегмент","Опишите сегмент"))) return false; P().segs.push({id:uid(), name:n, pain:val("sg-p"), say:val("sg-s")}); save(); },
+  wsAddSeg(){ const n = val("sg-n"); if (!need(n, L("Опишіть сегмент","Опишите сегмент"), "sg-n")) return false; P().segs.push({id:uid(), name:n, pain:val("sg-p"), say:val("sg-s")}); save(); },
   wsDelSeg(d){ const p = P(); p.segs = p.segs.filter(s=>s.id!==d.id); p.funnels.forEach(f=>{ f.aud.off = f.aud.off.filter(x=>x!==d.id); }); save(); },
-  wsAddKb(d){ const t = val("kb-"+d.id+"-t"); if (!need(t, L("Дайте матеріалу назву","Дайте материалу название"))) return false; kbHolder(W.cur ? "p" : "co").kb.push({id:uid(), type:d.id, title:t, src:val("kb-"+d.id+"-s"), note:val("kb-"+d.id+"-n")}); save(); },
+  wsAddKb(d){ const t = val("kb-"+d.id+"-t"); if (!need(t, L("Дайте матеріалу назву","Дайте материалу название"), "kb-"+d.id+"-t")) return false; kbHolder(W.cur ? "p" : "co").kb.push({id:uid(), type:d.id, title:t, src:val("kb-"+d.id+"-s"), note:val("kb-"+d.id+"-n")}); save(); },
   wsDelKb(d){ const h = kbHolder(W.cur ? "p" : "co"), x = h.kb.find(i=>i.id===d.id); if (x && x.path) cloudFileDel(x.path); h.kb = h.kb.filter(i=>i.id!==d.id); if (!W.cur) W.projs.forEach(p=>{ p.kbOff = p.kbOff.filter(x=>x!==d.id); }); save(); },
   wsDelFile(d){ const a = wget(d.k), x = a[+d.id]; if (x && x.p) cloudFileDel(x.p); a.splice(+d.id, 1); save(); },
   fileOpen(d){ cloudFileOpen(d.p); return false; },
@@ -430,23 +440,23 @@ Object.assign(ACT, {
   wsFtab(d){ W.ftab = d.v; save(); },
   wsDelF(d){ const p = P(); p.funnels = p.funnels.filter(f=>f.id!==d.id); save(); toast(L("Воронку видалено","Воронка удалена")); },
   wsSegT(d){ const f = F(), i = f.aud.off.indexOf(d.id); if (i < 0) f.aud.off.push(d.id); else f.aud.off.splice(i, 1); save(); },
-  wsAddFSeg(){ const n = val("fs-n"); if (!need(n, L("Опишіть сегмент","Опишите сегмент"))) return false; F().aud.add.push({id:uid(), name:n, pain:val("fs-p"), say:val("fs-s")}); save(); },
+  wsAddFSeg(){ const n = val("fs-n"); if (!need(n, L("Опишіть сегмент","Опишите сегмент"), "fs-n")) return false; F().aud.add.push({id:uid(), name:n, pain:val("fs-p"), say:val("fs-s")}); save(); },
   wsDelFSeg(d){ const f = F(); f.aud.add = f.aud.add.filter(s=>s.id!==d.id); save(); },
-  wsAddLand(){ const u = val("ld-u"); if (!need(u, L("Вкажіть адресу сторінки","Укажите адрес страницы"))) return false; F().lands.push({id:uid(), url:u.replace(/^https?:\/\//,""), note:val("ld-n")}); save(); },
+  wsAddLand(){ const u = val("ld-u"); if (!need(u, L("Вкажіть адресу сторінки","Укажите адрес страницы"), "ld-u")) return false; F().lands.push({id:uid(), url:u.replace(/^https?:\/\//,""), note:val("ld-n")}); save(); },
   wsDelLand(d){ const f = F(); f.lands = f.lands.filter(l=>l.id!==d.id); save(); },
   wsCopy(d){ const l = F().lands.find(x=>x.id===d.id), t = "https://" + l.url + (l.url.includes("?")?"&":"?") + UTM; (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(()=>toast(L("Посилання скопійовано","Ссылка скопирована")), ()=>toast(L("Виділіть посилання й скопіюйте вручну","Выделите ссылку и скопируйте вручную"))); return false; },
-  wsAddCr(){ const n = val("cr-n"), h = val("cr-h"); if (!need(n || h, L("Дайте креативу назву або опишіть перший кадр","Дайте креативу название или опишите первый кадр"))) return false; const f = F(); f.crs.push({id:uid(), name:n, slug:slug(n) || "creative_" + (f.crs.length+1), type:$("cr-t").value, hook:h, seg:$("cr-s").value, text:val("cr-x")}); save(); },
+  wsAddCr(){ const n = val("cr-n"), h = val("cr-h"); if (!need(n || h, L("Дайте креативу назву або опишіть перший кадр","Дайте креативу название или опишите первый кадр"), "cr-n")) return false; const f = F(); f.crs.push({id:uid(), name:n, slug:slug(n) || "creative_" + (f.crs.length+1), type:$("cr-t").value, hook:h, seg:$("cr-s").value, text:val("cr-x")}); save(); },
   wsDelCr(d){ const f = F(), x = f.crs.find(c=>c.id===d.id); if (x && x.path) cloudFileDel(x.path); f.crs = f.crs.filter(c=>c.id!==d.id); save(); },
   wsWipe(){ if (!W.wipe) { W.wipe = true; later(()=>{ if (W.wipe) { W.wipe = false; render(); } }, 4000); return; } if (CLOUD) { W.wipe = false; cloudDeleteCo(); return false; } try { if (W.user) localStorage.removeItem(accKey(W.user.id)); } catch (e) {} W = blankW(); AU = auFresh(); save(); toast(L("Акаунт і дані видалено","Аккаунт и данные удалены")); },
-  obSegAdd(){ const n = val("os-n"); if (!need(n, L("Опишіть сегмент","Опишите сегмент"))) return false; S.ob.segsOwn.push({id:uid(), name:n, pain:val("os-p"), say:val("os-s")}); },
+  obSegAdd(){ const n = val("os-n"); if (!need(n, L("Опишіть сегмент","Опишите сегмент"), "os-n")) return false; S.ob.segsOwn.push({id:uid(), name:n, pain:val("os-p"), say:val("os-s")}); },
   obSegDel(d){ S.ob.segsOwn = S.ob.segsOwn.filter(s=>s.id!==d.id); },
   obConn(d){ if (own()) { S.ob.conn[d.id] = 3; return; } return _oc(d); },
-  obNav(d){ if (own() && S.ob.step === 0 && +d.v > 0 && !String(S.ob.d.name).trim()) { toast(L("Введіть назву проєкту","Введите название проекта")); return false; } return _on(d); },
+  obNav(d){ if (own() && S.ob.step === 0 && +d.v > 0 && !String(S.ob.d.name).trim()) { fieldErr("ob-name", L("Введіть назву проєкту","Введите название проекта")); return false; } return _on(d); },
   createProject(){ if (!own()) return _cp(); const o = S.ob, d = o.d;
     const p = {id:pid(), name:String(d.name).trim(), niche:d.niche, geo:d.geo, product:d.product, desc:"", worked:d.worked, ban:d.ban, tone:d.tone,
       tg:{budget:d.budget, check:d.check, share:d.share, l2b:d.l2b, b2p:d.b2p}, segs:o.segsOwn, audText:"", audFiles:[], brand:Object.assign(blankBrand(), {own:false}), kb:[], kbOff:[], conn:Object.assign(W.user && W.user.via === "tg" ? {tg:3} : {}, o.conn), funnels:[]};
     W.projs.push(p); W.cur = p.id; W.fun = null; W.tab = p.segs.length ? "kb" : "aud"; S.modal = null; S.ob = null; save(); toast(L("Проєкт створено. Далі — база знань і воронки","Проект создан. Дальше — база знаний и воронки")); },
-  createFunnel(){ if (!own()) return _cf(); const p = P(), n = val("nf-name"); if (!need(n, L("Дайте воронці назву","Дайте воронке название"))) return false;
+  createFunnel(){ if (!own()) return _cf(); const p = P(), n = val("nf-name"); if (!need(n, L("Дайте воронці назву","Дайте воронке название"), "nf-name")) return false;
     const check = nfv("nf-price") || p.tg.check, u = val("nf-url").replace(/^https?:\/\//,""), first = !p.funnels.length;
     const sp = $("nf-sale").value === "+" ? pathRead("nf") : (saleGet($("nf-sale").value) || saleGet("web")); if (!sp) return false;
     const f = {id:uid(), name:n, goal:$("nf-goal").value, sale:sp.id, saleName:sp.name, mode:"btn", an:{offer:val("nf-offer"), promo:"", until:"", path:sp.steps, event:L("оплати","оплаты"), diff:"", obj:""},

@@ -49,7 +49,7 @@ function pathAdd(name, steps){ const x = {id:"c_" + uid(), name, steps};
   if (canAdmin() && W.co) { W.co.paths = W.co.paths || []; W.co.paths.push(x); }
   if (CLOUD) cloudLibAdd("sale_path", x); return x; }
 function pathRead(pre){ const n = (document.getElementById(pre + "-pname") || {}).value || "", st = stepsNorm((document.getElementById(pre + "-psteps") || {}).value);
-  if (!n.trim() || st.split(" → ").length < 2) { toast(L("Назвіть шлях і перелічіть хоча б два кроки","Назовите путь и перечислите хотя бы два шага")); return null; }
+  if (!n.trim() || st.split(" → ").length < 2) { fieldErr(pre + (n.trim() ? "-psteps" : "-pname"), n.trim() ? L("Перелічіть хоча б два кроки через кому","Перечислите хотя бы два шага через запятую") : L("Назвіть шлях","Назовите путь")); return null; }
   return pathAdd(n.trim(), st); }
 const plural = (n, a, b, c) => { const m = n % 100, k = n % 10; return n + " " + (m > 10 && m < 20 ? c : k === 1 ? a : k > 1 && k < 5 ? b : c); };
 

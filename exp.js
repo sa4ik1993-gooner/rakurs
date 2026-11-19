@@ -31,7 +31,7 @@ function vExp(p){ const ex = p.exp || [], cnt = k => ex.filter(e => k === "run" 
       ${ex.map((e, i) => [e, i]).reverse().map(x => exRow(x[0], x[1], p)).join("")}`
     : empty(L("Тестів ще немає","Тестов ещё нет"), L("Запишіть першу гіпотезу — навіть якщо запуск іще попереду.","Запишите первую гипотезу — даже если запуск ещё впереди."))}`; }
 Object.assign(ACT, {
-  exAdd(){ const p = P(), h = val("ex-h"); if (!need(h, L("Сформулюйте гіпотезу одним реченням","Сформулируйте гипотезу одним предложением"))) return false;
+  exAdd(){ const p = P(), h = val("ex-h"); if (!need(h, L("Сформулюйте гіпотезу одним реченням","Сформулируйте гипотезу одним предложением"), "ex-h")) return false;
     p.exp = p.exp || []; p.exp.push({id:uid(), at:new Date().toISOString().slice(0, 10), h, f:$("ex-f").value, ch:$("ex-ch").value, seg:$("ex-seg").value, st:$("ex-st").value, spend:0, leads:0, book:0, pay:0, v:"", out:""}); save(); toast(L("Тест записано","Тест записан")); },
   exDel(d){ const p = P(); p.exp = (p.exp || []).filter(e => e.id !== d.id); save(); },
   exV(d){ const e = P().exp[+d.i]; if (!e) return false; e.v = e.v === d.v ? "" : d.v; if (e.v && e.st !== "done") e.st = "done"; save(); },

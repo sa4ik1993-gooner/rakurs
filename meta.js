@@ -97,7 +97,7 @@ Object.assign(ACT, {
   mtStep(d){ MT.step = +d.v; MT.err = ""; },
   mtDone(d){ const p = mtP(); if (!p) return false; mtMeta(p).done[d.k] = true; if (!p.conn.meta) p.conn.meta = 3; MT.step = Math.min(MT.step + 1, mtSteps().length - 1); save(); },
   mtAgain(){ mtReset(); },
-  mtCheck(){ const t = (document.getElementById("mt-token") || {}).value || ""; if (t.trim().length < 20) { MT.err = L("Вставте ключ повністю","Вставьте ключ целиком"); return; }
+  mtCheck(){ const t = (document.getElementById("mt-token") || {}).value || ""; if (t.trim().length < 20) { fieldErr("mt-token", L("Вставте ключ повністю","Вставьте ключ целиком")); return false; }
     MT.token = t.trim(); MT.busy = true; MT.err = "";
     mtCall({action:"check", token:MT.token}).then(d => { MT.busy = false; if (!d.ok) { MT.err = mtErr(d); MT.token = ""; } else { MT.seen = d.seen; if (d.seen.accounts.length === 1) { MT.pick.account = d.seen.accounts[0].id; mtPixels(); } if (d.seen.pages.length === 1) MT.pick.page = d.seen.pages[0].id; } render(); }); },
   mtSave(){ const p = mtP(); if (!p || !MT.pick.account) return false; MT.busy = true; MT.err = "";
