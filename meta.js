@@ -1,0 +1,97 @@
+/* Подключение Meta Ads по шагам, без посредников: компания в Meta → рекламный аккаунт → страница → пиксель →
+   системный пользователь и ключ доступа → проверка и привязка к проекту.
+   Ключ вводит человек; он уходит на сервер и там остаётся, в данные проекта и в браузер не сохраняется.
+   Подключается перед ws.js. */
+const MT = {open:null, step:0, token:"", seen:null, busy:false, pick:{account:"", page:"", pixel:""}, ins:null, err:""};
+const mtReset = () => { MT.token = ""; MT.seen = null; MT.busy = false; MT.pick = {account:"", page:"", pixel:""}; MT.err = ""; };
+const MT_NEED = ["ads_read"], MT_NICE = ["ads_management","business_management","pages_show_list","pages_read_engagement"];
+const mtSteps = () => [
+  {k:"bm", t:L("Компанія в Meta","Компания в Meta"), why:L("Усе підключається через бізнес-портфоліо (Business Manager): воно володіє кабінетом, сторінкою й пікселем і роздає доступи.","Всё подключается через бизнес-портфолио (Business Manager): оно владеет кабинетом, страницей и пикселем и раздаёт доступы."),
+    how:[L("Відкрийте налаштування компанії в Meta.","Откройте настройки компании в Meta."), L("Якщо портфоліо ще немає — створіть: назва компанії, ваше ім’я, робоча пошта.","Если портфолио ещё нет — создайте: название компании, ваше имя, рабочая почта."), L("Перевірте, що ви в ньому адміністратор: Користувачі → Люди.","Проверьте, что вы в нём администратор: Пользователи → Люди.")], url:"https://business.facebook.com/settings", go:L("Відкрити налаштування компанії","Открыть настройки компании")},
+  {k:"acc", t:L("Рекламний акаунт","Рекламный аккаунт"), why:L("З нього бот читає витрати й результати, а пізніше збирає в ньому кампанії.","Из него бот читает расход и результаты, а позже собирает в нём кампании."),
+    how:[L("У налаштуваннях компанії: Акаунти → Рекламні акаунти → Додати.","В настройках компании: Аккаунты → Рекламные аккаунты → Добавить."), L("Свій акаунт — «Заявити права»; акаунт клієнта — «Запросити доступ»; немає — «Створити».","Свой аккаунт — «Заявить права»; аккаунт клиента — «Запросить доступ»; нет — «Создать»."), L("Запам’ятайте номер акаунта: він знадобиться на останньому кроці.","Запомните номер аккаунта: он понадобится на последнем шаге.")], url:"https://business.facebook.com/settings", go:L("Відкрити налаштування компанії","Открыть настройки компании")},
+  {k:"page", t:L("Сторінка (фан-пейдж)","Страница (фан-пейдж)"), why:L("Реклама показується від імені сторінки. Без неї оголошення не створити.","Реклама показывается от имени страницы. Без неё объявление не создать."),
+    how:[L("У налаштуваннях компанії: Акаунти → Сторінки → Додати.","В настройках компании: Аккаунты → Страницы → Добавить."), L("Якщо є Instagram — додайте його там само: Акаунти → Акаунти Instagram.","Если есть Instagram — добавьте его там же: Аккаунты → Аккаунты Instagram.")], url:"https://business.facebook.com/settings", go:L("Відкрити налаштування компанії","Открыть настройки компании")},
+  {k:"px", t:L("Піксель (набір даних)","Пиксель (набор данных)"), why:L("Передає в Meta події із сайту: заявку, бронь, оплату. Без нього рахуємо тільки кліки.","Передаёт в Meta события с сайта: заявку, бронь, оплату. Без него считаем только клики."),
+    how:[L("У налаштуваннях компанії: Джерела даних → Набори даних → Додати.","В настройках компании: Источники данных → Наборы данных → Добавить."), L("Прив’яжіть набір даних до рекламного акаунта з кроку 2.","Привяжите набор данных к рекламному аккаунту из шага 2."), L("Крок можна пропустити й повернутися пізніше, якщо сайту ще немає.","Шаг можно пропустить и вернуться позже, если сайта ещё нет.")], url:"https://business.facebook.com/settings", go:L("Відкрити налаштування компанії","Открыть настройки компании"), opt:1},
+  {k:"su", t:L("Ключ доступу","Ключ доступа"), why:L("Ключ видає «системний користувач» вашої компанії. Він не прив’язаний до особистого профілю, не протухає й відкликається однією кнопкою.","Ключ выдаёт «системный пользователь» вашей компании. Он не привязан к личному профилю, не протухает и отзывается одной кнопкой."),
+    how:[L("Створіть застосунок: на сторінці застосунків Meta → Створити → тип «Бізнес» → прив’яжіть до свого портфоліо.","Создайте приложение: на странице приложений Meta → Создать → тип «Бизнес» → привяжите к своему портфолио."), L("У налаштуваннях компанії: Користувачі → Системні користувачі → Додати, роль «Адміністратор».","В настройках компании: Пользователи → Системные пользователи → Добавить, роль «Администратор»."), L("Натисніть «Призначити об’єкти» й видайте йому рекламний акаунт, сторінку та піксель.","Нажмите «Назначить объекты» и выдайте ему рекламный аккаунт, страницу и пиксель."), L("Натисніть «Згенерувати токен»: оберіть застосунок, термін «Ніколи», права ads_read. Для збирання кампаній пізніше додайте ads_management, business_management, pages_show_list, pages_read_engagement.","Нажмите «Сгенерировать токен»: выберите приложение, срок «Никогда», права ads_read. Для сборки кампаний позже добавьте ads_management, business_management, pages_show_list, pages_read_engagement."), L("Скопіюйте ключ. Meta показує його один раз.","Скопируйте ключ. Meta показывает его один раз.")], url:"https://developers.facebook.com/apps", go:L("Відкрити застосунки Meta","Открыть приложения Meta"), url2:"https://business.facebook.com/settings", go2:L("Налаштування компанії","Настройки компании")},
+  {k:"link", t:L("Перевірка й прив’язка","Проверка и привязка"), why:L("Вставте ключ — покажемо, що він бачить, і ви оберете акаунт, сторінку та піксель для цього проєкту.","Вставьте ключ — покажем, что он видит, и вы выберете аккаунт, страницу и пиксель для этого проекта.")}];
+const mtP = () => W.projs.find(x => x.id === MT.open);
+const mtMeta = p => { p.meta = p.meta || {done:{}, conn:null}; p.meta.done = p.meta.done || {}; return p.meta; };
+const mtErr = d => ({not_signed_in:L("Спершу увійдіть у кабінет","Сначала войдите в кабинет"), denied:L("Підключати кабінети може власник або керівник","Подключать кабинеты может собственник или руководитель"), no_token:L("Вставте ключ доступу","Вставьте ключ доступа"),
+  no_account:L("Оберіть рекламний акаунт зі списку","Выберите рекламный аккаунт из списка"), no_project:L("Проєкт ще не збережено на сервері. Зачекайте кілька секунд і повторіть","Проект ещё не сохранён на сервере. Подождите пару секунд и повторите"), not_connected:L("Кабінет не підключено","Кабинет не подключён"),
+  meta:L("Meta відхилила запит: ","Meta отклонила запрос: ") + (d.detail || "")}[d.error] || L("Не вдалося: ","Не удалось: ") + (d.detail || d.error));
+async function mtCall(body){
+  if (!CLOUD || !sb) return {ok:false, error:"offline", detail:L("працює тільки із сервером","работает только с сервером")};
+  try { const f = await sb.functions.invoke("meta", {body}); if (f.error || !f.data) return {ok:false, error:"net", detail:(f.error && f.error.message) || "empty"}; return f.data; }
+  catch (e) { return {ok:false, error:"net", detail:e && e.message}; }
+}
+const mtSel = (id, label, rows, cur, none) => `<div class="field"><label for="${id}">${label}</label><select id="${id}" data-mt="${id.slice(3)}"><option value="">${none}</option>${rows.map(r => `<option value="${esc(r.id)}"${r.id === cur ? " selected" : ""}>${esc(r.name || r.id)}${r.tail ? " · " + esc(r.tail) : ""}</option>`).join("")}</select></div>`;
+function mtLink(p){
+  if (!CLOUD) return `<p class="sub proto">${L("Прототип: перевірка ключа працює лише після входу на сервер.","Прототип: проверка ключа работает только после входа на сервер.")}</p>`;
+  if (!canAdmin()) return `<p class="sub">${L("Підключає кабінет власник або керівник лідогенерації.","Подключает кабинет собственник или руководитель лидогенерации.")}</p>`;
+  const s = MT.seen;
+  if (!s) return `<div class="field"><label for="mt-token">${L("Ключ доступу системного користувача","Ключ доступа системного пользователя")}</label><input id="mt-token" type="password" autocomplete="off" spellcheck="false" placeholder="EAAB…"></div>
+    <p class="sub">${L("Ключ іде на сервер захищеним з’єднанням і зберігається там окремо від даних проєкту. У браузері й у файлах кабінету його немає, показати його знову неможливо — лише замінити або видалити.","Ключ уходит на сервер по защищённому соединению и хранится там отдельно от данных проекта. В браузере и в файлах кабинета его нет, показать его снова нельзя — только заменить или удалить.")}</p>
+    ${MT.err ? `<p class="mterr">${esc(MT.err)}</p>` : ""}
+    <div class="row"><button class="btn btn--solid" data-act="mtCheck"${MT.busy ? " disabled" : ""}>${MT.busy ? L("Перевіряємо…","Проверяем…") : L("Перевірити ключ","Проверить ключ")}</button></div>`;
+  const miss = MT_NEED.filter(x => !s.scopes.includes(x)), nice = MT_NICE.filter(x => !s.scopes.includes(x));
+  return `<div class="mtseen"><span class="tag">${L("Що бачить ключ","Что видит ключ")}</span>
+      <dl class="kv"><dt>${L("Чий","Чей")}</dt><dd>${esc(s.me.name)}</dd>
+        <dt>${L("Права","Права")}</dt><dd>${s.scopes.length ? s.scopes.map(x => pill(MT_NEED.includes(x) ? "good" : "mute", esc(x))).join(" ") : L("не вдалося прочитати","не удалось прочитать")}</dd>
+        <dt>${L("Рекламних акаунтів","Рекламных аккаунтов")}</dt><dd class="mono">${s.accounts.length}</dd><dt>${L("Сторінок","Страниц")}</dt><dd class="mono">${s.pages.length}</dd>${s.businesses.length ? `<dt>${L("Компанії","Компании")}</dt><dd>${esc(s.businesses.map(b => b.name).join(", "))}</dd>` : ""}</dl>
+      ${miss.length && s.scopes.length ? `<p class="mterr">${L("Немає права ","Нет права ")}${miss.join(", ")}${L(": без нього не прочитати витрати. Згенеруйте ключ заново з цим правом."," : без него не прочитать расход. Сгенерируйте ключ заново с этим правом.")}</p>` : ""}
+      ${!miss.length && nice.length ? `<p class="sub">${L("Для читання даних цього досить. Щоб бот збирав кампанії, пізніше знадобляться: ","Для чтения данных этого достаточно. Чтобы бот собирал кампании, позже понадобятся: ")}${nice.join(", ")}.</p>` : ""}</div>
+    ${s.accounts.length ? `<div class="form">${mtSel("mt-account", L("Рекламний акаунт проєкту","Рекламный аккаунт проекта"), s.accounts.map(a => ({id:a.id, name:a.name, tail:[a.id, a.currency, a.active ? "" : L("неактивний","неактивен")].filter(Boolean).join(" · ")})), MT.pick.account, L("— оберіть —","— выберите —"))}
+        ${mtSel("mt-page", L("Сторінка","Страница"), s.pages, MT.pick.page, s.pages.length ? L("— оберіть —","— выберите —") : L("ключ не бачить сторінок","ключ не видит страниц"))}
+        ${mtSel("mt-pixel", L("Піксель","Пиксель"), s.pixels || [], MT.pick.pixel, !MT.pick.account ? L("спершу оберіть акаунт","сначала выберите аккаунт") : (s.pixels || []).length ? L("— без пікселя —","— без пикселя —") : L("в акаунті немає пікселів","в аккаунте нет пикселей"))}</div>`
+      : `<p class="mterr">${L("Ключ не бачить жодного рекламного акаунта. Поверніться до кроку 5: «Призначити об’єкти» системному користувачу.","Ключ не видит ни одного рекламного аккаунта. Вернитесь к шагу 5: «Назначить объекты» системному пользователю.")}</p>`}
+    ${MT.err ? `<p class="mterr">${esc(MT.err)}</p>` : ""}
+    <div class="row"><button class="btn btn--solid" data-act="mtSave"${MT.busy || !MT.pick.account ? " disabled" : ""}>${MT.busy ? L("Зберігаємо…","Сохраняем…") : L("Підключити до проєкту","Подключить к проекту")}</button><button class="btn" data-act="mtAgain">${L("Інший ключ","Другой ключ")}</button></div>`;
+}
+/* пошаговая инструкция: слева шаги с отметками, справа текущий шаг */
+function metaGuide(p){
+  const m = mtMeta(p), st = mtSteps(), i = Math.min(MT.step, st.length - 1), s = st[i], last = i === st.length - 1;
+  return `<div class="panel vf mtg"><div class="row sp"><div><span class="tag">Meta Ads · ${L("підключення без посередників","подключение без посредников")}</span><h2>${L("Крок","Шаг")} ${i + 1} ${L("із","из")} ${st.length}. ${s.t}</h2></div><button class="x" data-act="mtClose" aria-label="close">×</button></div>
+    <div class="mtg__in"><ol class="mtg__steps">${st.map((x, n) => `<li class="${n === i ? "on" : ""}${m.done[x.k] || (x.k === "link" && m.conn) ? " ok" : ""}"><button type="button" data-act="mtStep" data-v="${n}"><i>${m.done[x.k] || (x.k === "link" && m.conn) ? "✓" : n + 1}</i><span>${x.t}${x.opt ? ` <small>${L("можна пізніше","можно позже")}</small>` : ""}</span></button></li>`).join("")}</ol>
+      <div class="mtg__body"><p>${s.why}</p>
+        ${last ? mtLink(p) : `<ol class="nx">${s.how.map(h => `<li>${h}</li>`).join("")}</ol>
+          <div class="row"><a class="btn btn--sm" href="${s.url}" target="_blank" rel="noopener">${s.go} ↗</a>${s.url2 ? `<a class="btn btn--sm" href="${s.url2}" target="_blank" rel="noopener">${s.go2} ↗</a>` : ""}</div>
+          <div class="row"><button class="btn btn--solid" data-act="mtDone" data-k="${s.k}">${m.done[s.k] ? L("Далі","Дальше") : L("Готово, далі","Готово, дальше")}</button>${s.opt ? `<button class="btn" data-act="mtStep" data-v="${i + 1}">${L("Пропустити","Пропустить")}</button>` : ""}</div>`}
+        ${i === 4 ? `<p class="sub">${L("Інші способи. Вхід через Facebook однією кнопкою з’явиться після перевірки нашого застосунку в Meta. Якщо ви працюєте з рекламою через Claude, йому окремо підключається конектор Meta Ads у налаштуваннях — платформі для аналітики ключ потрібен усе одно.","Другие способы. Вход через Facebook одной кнопкой появится после проверки нашего приложения в Meta. Если вы работаете с рекламой через Claude, ему отдельно подключается коннектор Meta Ads в настройках — платформе для аналитики ключ нужен всё равно.")}</p>` : ""}</div></div></div>`;
+}
+/* карточка Meta во вкладке «Подключения» */
+function metaCard(p){
+  const m = mtMeta(p), c = m.conn, done = mtSteps().filter(x => m.done[x.k]).length;
+  if (!c) return `<p class="sub">${L("Кабінет, піксель, сторінка — підключаються напряму, за шість кроків.","Кабинет, пиксель, страница — подключаются напрямую, за шесть шагов.")}${done ? ` ${L("Пройдено кроків: ","Пройдено шагов: ")}${done}.` : ""}</p>
+    <div class="row"><button class="btn btn--sm btn--solid" data-act="mtOpen" data-id="${p.id}">${done ? L("Продовжити підключення","Продолжить подключение") : L("Підключити за кроками","Подключить по шагам")}</button></div>`;
+  const r = MT.ins && MT.ins.p === p.id ? MT.ins : null;
+  return `<dl class="kv"><dt>${L("Акаунт","Аккаунт")}</dt><dd>${esc(c.account.name)} <span class="sub mono">${esc(c.account.id)}</span></dd><dt>${L("Сторінка","Страница")}</dt><dd>${c.page ? esc(c.page.name) : "—"}</dd><dt>${L("Піксель","Пиксель")}</dt><dd>${c.pixel ? esc(c.pixel.name) : "—"}</dd></dl>
+    <div class="row"><button class="btn btn--sm btn--solid" data-act="mtIns" data-id="${p.id}"${MT.busy ? " disabled" : ""}>${L("Перевірити дані за 7 днів","Проверить данные за 7 дней")}</button>${canAdmin() ? `<button class="btn btn--sm" data-act="mtOpen" data-id="${p.id}" data-v="5">${L("Замінити ключ","Заменить ключ")}</button><button class="btn btn--sm btn--danger" data-act="mtOff" data-id="${p.id}">${L("Відключити","Отключить")}</button>` : ""}</div>
+    ${r ? (r.err ? `<p class="mterr">${esc(r.err)}</p>` : r.rows.length ? `<div class="tw"><table><thead><tr><th>${L("Кампанія","Кампания")} · ${r.since} — ${r.until}</th><th class="n">${L("Витрати","Расход")}, ${esc(r.currency || "")}</th><th class="n">${L("Покази","Показы")}</th><th class="n">${L("Кліки","Клики")}</th><th class="n">${L("Ліди","Лиды")}</th></tr></thead><tbody>
+        ${r.rows.slice(0, 12).map(x => `<tr><td class="mono">${esc(x.name)}</td><td class="n mono">${dec(x.spend)}</td><td class="n mono">${num(x.impressions)}</td><td class="n mono">${num(x.clicks)}</td><td class="n mono">${num(x.leads)}</td></tr>`).join("")}
+        <tr class="sum"><td>${L("Разом","Итого")}${r.rows.length > 12 ? ` · ${r.rows.length} ${L("кампаній","кампаний")}` : ""}</td><td class="n mono">${dec(r.rows.reduce((a, x) => a + x.spend, 0))}</td><td class="n mono">${num(r.rows.reduce((a, x) => a + x.impressions, 0))}</td><td class="n mono">${num(r.rows.reduce((a, x) => a + x.clicks, 0))}</td><td class="n mono">${num(r.rows.reduce((a, x) => a + x.leads, 0))}</td></tr></tbody></table></div>`
+      : `<p class="sub">${L("За ці дні в акаунті не було показів.","За эти дни в аккаунте не было показов.")}</p>`) : ""}`;
+}
+Object.assign(ACT, {
+  mtOpen(d){ const p = W.projs.find(x => x.id === d.id); if (!p) return false; const m = mtMeta(p), st = mtSteps(); mtReset(); MT.open = p.id;
+    MT.step = d.v != null ? +d.v : Math.max(0, st.findIndex(x => x.k === "link" ? true : !m.done[x.k] && !x.opt)); },
+  mtClose(){ MT.open = null; mtReset(); },
+  mtStep(d){ MT.step = +d.v; MT.err = ""; },
+  mtDone(d){ const p = mtP(); if (!p) return false; mtMeta(p).done[d.k] = true; if (!p.conn.meta) p.conn.meta = 3; MT.step = Math.min(MT.step + 1, mtSteps().length - 1); save(); },
+  mtAgain(){ mtReset(); },
+  mtCheck(){ const t = (document.getElementById("mt-token") || {}).value || ""; if (t.trim().length < 20) { MT.err = L("Вставте ключ повністю","Вставьте ключ целиком"); return; }
+    MT.token = t.trim(); MT.busy = true; MT.err = "";
+    mtCall({action:"check", token:MT.token}).then(d => { MT.busy = false; if (!d.ok) { MT.err = mtErr(d); MT.token = ""; } else { MT.seen = d.seen; if (d.seen.accounts.length === 1) { MT.pick.account = d.seen.accounts[0].id; mtPixels(); } if (d.seen.pages.length === 1) MT.pick.page = d.seen.pages[0].id; } render(); }); },
+  mtSave(){ const p = mtP(); if (!p || !MT.pick.account) return false; MT.busy = true; MT.err = "";
+    mtCall({action:"save", project_id:p.id, token:MT.token, account_id:MT.pick.account, page_id:MT.pick.page, pixel_id:MT.pick.pixel}).then(d => { MT.busy = false;
+      if (!d.ok) MT.err = mtErr(d); else { const m = mtMeta(p); m.conn = d.conn; ["bm","acc","page","su"].forEach(k => { m.done[k] = true; }); if (d.conn.pixel) m.done.px = true; p.conn.meta = 1; MT.open = null; mtReset(); save(); toast(L("Meta Ads підключено","Meta Ads подключён")); }
+      render(); }); },
+  mtOff(d){ const p = W.projs.find(x => x.id === d.id); if (!p) return false; if (MT.off !== p.id) { MT.off = p.id; toast(L("Натисніть ще раз, щоб видалити ключ із сервера","Нажмите ещё раз, чтобы удалить ключ с сервера")); setTimeout(() => { MT.off = null; }, 4000); return false; }
+    MT.off = null; mtCall({action:"disconnect", project_id:p.id}).then(r => { if (!r.ok) toast(mtErr(r)); else { mtMeta(p).conn = null; p.conn.meta = 3; MT.ins = null; save(); toast(L("Ключ видалено із сервера","Ключ удалён с сервера")); } render(); }); return false; },
+  mtIns(d){ MT.busy = true; mtCall({action:"insights", project_id:d.id, days:7}).then(r => { MT.busy = false; MT.ins = r.ok ? Object.assign({p:d.id}, r) : {p:d.id, err:mtErr(r), rows:[]}; render(); }); },
+});
+function mtPixels(){ mtCall({action:"check", token:MT.token, account_id:MT.pick.account}).then(d => { if (d.ok && MT.seen) { MT.seen.pixels = d.seen.pixels; if (d.seen.pixels.length === 1) MT.pick.pixel = d.seen.pixels[0].id; render(); } }); }
+document.addEventListener("change", e => { const t = e.target; if (!t.dataset || !t.dataset.mt) return; MT.pick[t.dataset.mt] = t.value;
+  if (t.dataset.mt === "account") { MT.pick.pixel = ""; if (MT.seen) MT.seen.pixels = []; if (t.value) mtPixels(); } render(); });

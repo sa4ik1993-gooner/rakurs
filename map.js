@@ -60,7 +60,7 @@ function mapTree(){
     const pn = {k:"co/" + p.id, lv:1, t:p.name, s:[p.niche, p.geo].filter(Boolean).join(" · "), m:p.tg && p.tg.budget ? L("бюджет ","бюджет ") + money(p.tg.budget) : "", kids:[]};
     p.funnels.forEach(f => {
       const fn = {k:pn.k + "/" + f.id, lv:2, t:f.name, s:saleName(f), m:f.tg && f.tg.pay ? L("ціль: ","цель: ") + plural(f.tg.pay, L("оплата","оплата"), L("оплати","оплаты"), L("оплат","оплат")) : "", kids:[]};
-      (f.ch || []).forEach(c => { const ch = chOf(c); fn.kids.push({k:fn.k + "/" + c, lv:3, t:ch[1], s:ch[2], m:p.conn[c] ? L("кабінет відмічено","кабинет отмечен") : L("кабінет не підключено","кабинет не подключён"), warn:!p.conn[c]}); });
+      (f.ch || []).forEach(c => { const ch = chOf(c); fn.kids.push({k:fn.k + "/" + c, lv:3, t:ch[1], s:ch[2], m:p.conn[c] === 1 ? L("кабінет підключено","кабинет подключён") : p.conn[c] ? L("кабінет відмічено","кабинет отмечен") : L("кабінет не підключено","кабинет не подключён"), warn:!p.conn[c]}); });
       if ((f.ch || []).length < CHAN().length) fn.kids.push({add:"c", k:fn.k + "/+", lv:3, t:L("Канал","Канал")});
       pn.kids.push(fn);
     });
