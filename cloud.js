@@ -19,7 +19,7 @@ async function cloudBoot(){
   if (!CLOUD) return;
   CL.state = "load"; const h0 = location.hash;
   try { await loadLib(); sb = window.supabase.createClient(RK.url, RK.key);
-    const r = await sb.auth.getSession(); CL.state = "saved";
+    const r = await sb.auth.getSession(); CL.state = "idle";
     if (/access_token=|error=|error_code=/.test(location.hash)) try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
     if (r.data && r.data.session) await cloudSigned(r.data.session.user, /access_token=/.test(h0));
     else if (/error=|error_code=/.test(h0)) setTimeout(() => toast(L("Посилання з листа застаріло або вже використане. Запросіть новий лист","Ссылка из письма устарела или уже использована. Запросите новое письмо")), 300);
