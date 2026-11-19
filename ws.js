@@ -22,13 +22,13 @@ const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&":"&amp;
 const TRL = {а:"a",б:"b",в:"v",г:"g",ґ:"g",д:"d",е:"e",ё:"e",є:"ye",ж:"zh",з:"z",и:"i",і:"i",ї:"yi",й:"y",к:"k",л:"l",м:"m",н:"n",о:"o",п:"p",р:"r",с:"s",т:"t",у:"u",ф:"f",х:"kh",ц:"ts",ч:"ch",ш:"sh",щ:"sch",ъ:"",ы:"y",ь:"",э:"e",ю:"yu",я:"ya"};
 const slug = s => String(s || "").toLowerCase().replace(/\.[a-z0-9]{2,4}$/,"").split("").map(c => TRL[c] !== undefined ? TRL[c] : c).join("").replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 28);
 const GEO = {ukraina:"UA",ukrayina:"UA",polsha:"PL",polscha:"PL",kazakhstan:"KZ",germaniya:"DE",nimechchina:"DE",ssha:"US",usa:"US",evropa:"EU",yevropa:"EU",moldova:"MD",litva:"LT",latviya:"LV",estoniya:"EE",chekhiya:"CZ",ispaniya:"ES",italiya:"IT",izrail:"IL",kanada:"CA"};
-const geoCode = g => { const w = slug(String(g||"").split(/[,;\/]/)[0]); return GEO[w] || (w ? w.slice(0,2).toUpperCase() : ""); };
+const geoCode = g => { const first = String(g||"").split(/[,;\/]/)[0], hit = geoFind(first); if (hit) return hit[0]; const w = slug(first); return GEO[w] || (w ? w.slice(0,2).toUpperCase() : ""); };
 const UTM = "utm_source={{site_source_name}}&utm_medium=paid&utm_campaign={{campaign.name}}&utm_content={{ad.name}}&utm_term={{adset.name}}";
 const root = k => ({co:W.co, p:P(), f:F()}[k]);
 const wget = path => path.split(".").reduce((o,k,i)=> i ? (o == null ? "" : o[k]) : root(k), null);
 function wset(path, v){ const ks = path.split("."), last = ks.pop(); let o = root(ks[0]); for (let i = 1; i < ks.length; i++) { if (o[ks[i]] == null) o[ks[i]] = {}; o = o[ks[i]]; } o[last] = v; save(); }
 const fld = (path, label, o = {}) => { const id = "w-" + path.replace(/\./g,"-"), v = esc(wget(path));
-  return `<div class="field${o.w?" w":""}"><label for="${id}">${label}</label>${o.area ? `<textarea id="${id}" data-w="${path}" rows="${o.area}" placeholder="${esc(o.ph||"")}">${v}</textarea>` : `<input id="${id}" data-w="${path}" value="${v}" placeholder="${esc(o.ph||"")}"${o.num?' inputmode="decimal"':""}>`}</div>`; };
+  return `<div class="field${o.w?" w":""}"><label for="${id}">${label}</label>${o.area ? `<textarea id="${id}" data-w="${path}" rows="${o.area}" placeholder="${esc(o.ph||"")}">${v}</textarea>` : sgWrap(/^(p|co)\./.test(path) ? path.split(".").pop() : "", `<input id="${id}" data-w="${path}" value="${v}" placeholder="${esc(o.ph||"")}"${o.num?' inputmode="decimal"':""}>`, "w:" + path, id, wget(path))}</div>`; };
 const optsW = (path, list) => `<div class="opts">${list.map(x=>`<button type="button" class="opt" data-act="wsSet" data-k="${path}" data-v="${x[0]}" aria-pressed="${wget(path)===x[0]}">${x[1]}</button>`).join("")}</div>`;
 const stepper = (steps, cur, act) => `<ol class="obst obst--nav" style="grid-template-columns:repeat(${steps.length},minmax(0,1fr))">${steps.map((s,i)=>`<li class="${s[2]?"ok":""}${s[0]===cur?" on":""}"><button type="button" data-act="${act}" data-v="${s[0]}"><i>${i+1}${s[2]?" ✓":""}</i><span>${s[1]}</span></button></li>`).join("")}</ol>`;
 const empty = (t, s) => `<div class="empty"><b>${t}</b><span class="sub">${s}</span></div>`;
