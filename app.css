@@ -446,3 +446,7 @@ a.btn{text-decoration:none}
 .fxlost{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:12px}
 .fxlost select{min-height:36px;padding:4px 8px;border:1.5px solid var(--line);border-radius:2px;background:var(--bg);max-width:260px}
 #fact .seg button{padding:5px 9px;font-size:12.5px}
+tr.fxset td{background:var(--bg);font-size:12.5px}
+tr.fxset td:first-child{padding-left:28px}
+.fxtw{display:inline-block;width:12px;color:var(--muted)}
+#fact tr[data-act]{cursor:pointer}
