@@ -6,12 +6,14 @@ const FACT = {};   /* по проекту: {days, rows, at, synced, loading, syn
 const fxOf = p => (FACT[p.id] = FACT[p.id] || {days:7, rows:null, at:0, synced:null, loading:false, syncing:false, err:"", tried:false});
 const fxM = n => { const t = (+n || 0).toFixed(2).split("."); return num(+t[0]) + "," + t[1]; };
 const fxDay = d => d.toISOString().slice(0, 10);
+/* сколько дней охватывает выбранный период; «m» — календарный месяц с первого числа по сегодня */
+const fxSpan = x => x.days === "m" ? new Date().getDate() : x.days;
 const fxWhen = t => { if (!t) return L("ще не оновлювалося","ещё не обновлялось"); const m = Math.round((Date.now() - new Date(t).getTime()) / 60000); return m < 2 ? L("щойно","только что") : m < 90 ? m + L(" хв тому"," мин назад") : m < 36 * 60 ? Math.round(m / 60) + L(" год тому"," ч назад") : Math.round(m / 1440) + L(" дн. тому"," дн. назад"); };
 const fxErr = d => /ad_summary|ad_metrics|schema cache|does not exist|PGRST/i.test(String(d)) ? L("Аналітику на сервері ще не ввімкнено: потрібно запустити schema_metrics.sql.","Аналитика на сервере ещё не включена: нужно запустить schema_metrics.sql.") : L("Не вдалося отримати дані: ","Не удалось получить данные: ") + d;
 /* читает сводку за период */
 async function fxLoad(p){ const x = fxOf(p); if (!CLOUD || !sb || x.loading) return; x.loading = true; x.err = "";
-  try { const r = await sb.rpc("ad_summary", {p:p.id, d1:fxDay(new Date(Date.now() - (x.days - 1) * 86400000)), d2:fxDay(new Date())});
-    const d1 = fxDay(new Date(Date.now() - (x.days - 1) * 86400000)), d2 = fxDay(new Date()); x.sales = null;
+  try { const r = await sb.rpc("ad_summary", {p:p.id, d1:fxDay(new Date(Date.now() - (fxSpan(x) - 1) * 86400000)), d2:fxDay(new Date())});
+    const d1 = fxDay(new Date(Date.now() - (fxSpan(x) - 1) * 86400000)), d2 = fxDay(new Date()); x.sales = null;
     try { const sr = await sb.rpc("sales_summary", {p:p.id, d1, d2}); if (!sr.error) x.sales = (sr.data || []).map(o => ({kind:o.kind, k:fxKey(o.utm_campaign), n:fxKey(o.utm_content), cur:o.currency || "", ev:+o.events || 0, amt:+o.amount || 0})); } catch (e) {}
     x.coh = null; x.lag = null; try { const cr = await sb.rpc("sales_cohorts", {p:p.id, d1:fxDay(new Date(Date.now() - 60 * 86400000)), d2}); if (!cr.error) x.coh = cr.data || [];
       const lr = await sb.rpc("sales_lag", {p:p.id}); if (!lr.error) x.lag = lr.data || []; } catch (e) {}
@@ -22,10 +24,10 @@ async function fxLoad(p){ const x = fxOf(p); if (!CLOUD || !sb || x.loading) ret
   x.loading = false; render(); }
 /* тянет свежую статистику из Meta на сервер, затем перечитывает сводку */
 async function fxSync(p, manual){ const x = fxOf(p); if (x.syncing) return; x.syncing = true; x.err = ""; if (manual) render();
-  const d = await mtCall({action:"sync", project_id:p.id, days:Math.max(7, x.days)});
+  const d = await mtCall({action:"sync", project_id:p.id, days:Math.max(7, fxSpan(x) + 1)});
   x.syncing = false;
   if (!d.ok) { x.err = d.error === "meta" || d.error === "not_connected" ? mtErr(d) : fxErr(d.detail || d.error); if (d.error === "meta") mtHealth(p, false); render(); return; }
-  x.synced = d.synced_at; x.cover = Math.max(x.cover || 0, Math.max(7, x.days)); if (manual) toast(L("Дані оновлено: кампаній ","Данные обновлены: кампаний ") + d.campaigns + (d.unmatched ? L(", без воронки ",", без воронки ") + d.unmatched : ""));
+  x.synced = d.synced_at; x.cover = Math.max(x.cover || 0, Math.max(7, fxSpan(x))); if (manual) toast(L("Дані оновлено: кампаній ","Данные обновлены: кампаний ") + d.campaigns + (d.unmatched ? L(", без воронки ",", без воронки ") + d.unmatched : ""));
   await fxLoad(p); }
 /* первый показ за сессию: узнаём, когда обновлялось, и решаем — обновить или просто прочитать */
 function fxStart(p){ const x = fxOf(p); if (x.tried || !CLOUD || !sb || !p.meta || !p.meta.conn) return; x.tried = true; x.loading = true;
@@ -72,6 +74,20 @@ function fxAdsets(x, camp){ const sets = (x.sets || []).filter(s => s.cid === ca
   return sets.map((s, i) => { const last = i === sets.length - 1, k = tot > 0 ? s.spend / tot : 1 / sets.length;
     const b = last ? book : Math.min(book, Math.round((camp.book || 0) * k)), pp = last ? pay : Math.min(pay, Math.round((camp.pay || 0) * k)), r = last ? rev : (camp.rev || 0) * k;
     book -= b; pay -= pp; rev -= r; return Object.assign({}, s, {book:b, pay:pp, rev:r}); }); }
+/* План-факт календарного месяца: факт с первого числа против плана на сегодня (план месяца × доля прошедших дней)
+   и прогноз по темпу. Цели берутся из проекта или из воронки. */
+function fxPlan(p, f, tot, hs, noRate, notUsd){
+  const now = new Date(), dom = now.getDate(), dim = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate(), k = dom / dim;
+  const t = f ? fT(f, p) : pT(p), plan = {spend: f ? t.bud : p.tg.budget, leads:t.leads, pay:t.pay, rev:t.rev};
+  const lamp = (fact, pl) => { const r = pl > 0 ? fact / pl : 0; return pill(r >= 0.95 ? "good" : r >= 0.8 ? "warn" : "crit", Math.round(r * 100) + "%"); };
+  const pace = (fact, pl) => { const r = pl > 0 ? fact / pl : 0; return pill(r > 1.15 ? "crit" : r < 0.85 ? "warn" : "good", Math.round(r * 100) + "% · " + (r > 1.15 ? L("перевитрата","перерасход") : r < 0.85 ? L("недовитрата","недорасход") : L("у плані","в плане"))); };
+  const row = (name, fact, pl, fmt, mark) => `<tr><td><b>${name}</b></td><td class="n mono">${fmt(fact)}</td><td class="n mono">${fmt(pl * k)}</td><td class="n">${mark(fact, pl * k)}</td><td class="n mono">${fmt(pl)}</td><td class="n mono">${fmt(fact / k)}</td></tr>`;
+  const usd = n => "$" + num(n);
+  return `<span class="tag">${L("План-факт місяця","План-факт месяца")} · ${L("день","день")} ${dom} ${L("із","из")} ${dim}</span>
+    <div class="tw"><table><thead><tr><th></th><th class="n">${L("Факт","Факт")}</th><th class="n">${L("План на сьогодні","План на сегодня")}</th><th class="n">${L("Виконання","Выполнение")}</th><th class="n">${L("План місяця","План месяца")}</th><th class="n">${L("Прогноз за темпом","Прогноз по темпу")}</th></tr></thead><tbody>
+      ${row(L("Витрати","Расход"), tot.spend, plan.spend, usd, pace)}${row(L("Ліди","Лиды"), tot.leads, plan.leads, num, lamp)}
+      ${hs ? row(L("Оплати","Оплаты"), tot.pay, plan.pay, num, lamp) + (noRate ? "" : row(L("Виручка","Выручка"), tot.rev, plan.rev, usd, lamp)) : ""}</tbody></table></div>
+    <p class="sub">${L("План на сьогодні — це план місяця, помножений на частку днів, що минули. Прогноз — факт, продовжений тим самим темпом до кінця місяця.","План на сегодня — это план месяца, умноженный на долю прошедших дней. Прогноз — факт, продолженный тем же темпом до конца месяца.")}${hs ? L(" Оплати рахуються за вебінарами цього місяця й ще дозрівають, тому їхній прогноз занижений."," Оплаты считаются по вебинарам этого месяца и ещё дозревают, поэтому их прогноз занижен.") : L(" Оплати й виручка з’являться після завантаження файлів продажів."," Оплаты и выручка появятся после загрузки файлов продаж.")}${notUsd ? L(" Витрати показано у валюті кабінету, план — у доларах."," Расход показан в валюте кабинета, план — в долларах.") : ""}</p>`; }
 /* продажи по кампаниям: брони, оплаты и выручка в долларах; что не совпало ни с одной кампанией кабинета — отдельно */
 function fxSales(p, x, rows){ const by = {}, other = {book:0, pay:0, rev:0}, names = new Set(rows.map(r => fxKey(r.name))); let noRate = false;
   (x.sales || []).forEach(s => { const rate = s.cur === "USD" || !s.cur ? 1 : (p.fx || {})[s.cur]; if (!rate && s.kind === "payment" && s.amt) noRate = true;
@@ -86,7 +102,7 @@ function factPanel(p, f){
   const x = fxOf(p); fxStart(p);
   const cur = (p.meta.conn.account || {}).currency || "", notUsd = cur && cur !== "USD";
   const bar = `<div class="row sp"><span class="tag">${L("Факт реклами","Факт рекламы")} · Meta Ads</span><span class="row"><span class="sub mono">${x.syncing ? L("оновлюємо…","обновляем…") : fxWhen(x.synced)}</span>
-      <span class="seg" role="group">${[7, 14, 30].map(n => `<button type="button" data-act="fxDays" data-id="${p.id}" data-v="${n}" aria-pressed="${x.days === n}">${n} ${L("дн.","дн.")}</button>`).join("")}</span>
+      <span class="seg" role="group">${[7, 14, 30].map(n => `<button type="button" data-act="fxDays" data-id="${p.id}" data-v="${n}" aria-pressed="${x.days === n}">${n} ${L("дн.","дн.")}</button>`).join("")}<button type="button" data-act="fxDays" data-id="${p.id}" data-v="m" aria-pressed="${x.days === "m"}">${L("місяць","месяц")}</button></span>
       <button class="btn btn--sm" data-act="fxSyncNow" data-id="${p.id}"${x.syncing ? " disabled" : ""}>${L("Оновити дані","Обновить данные")}</button></span></div>`;
   if (x.err) return `<div class="panel" id="fact">${bar}<p class="mterr">${esc(x.err)}</p></div>`;
   if (!x.rows) return `<div class="panel" id="fact">${bar}<p class="sub">${L("Завантажуємо…","Загружаем…")}</p></div>`;
@@ -115,6 +131,7 @@ function factPanel(p, f){
         ${cr.list.slice(0, 30).map(c => `<tr><td class="mono">${esc(c.name)}${c.vers.size > 1 ? ` <span class="sub">${L("версій: ","версий: ")}${c.vers.size}</span>` : ""}</td>${td(c, cap)}</tr>`).join("")}
         ${hs && (cr.lost.book || cr.lost.pay) ? `<tr><td><b>${L("Без мітки креативу","Без метки креатива")}</b></td><td colspan="5"></td><td class="n mono">${num(cr.lost.book)}</td><td class="n mono">${num(cr.lost.pay)}</td><td class="n mono">${sl.noRate ? "—" : num(cr.lost.rev)}</td></tr>` : ""}</tbody></table></div>
       <p class="sub">${L("Версії одного ролика зведено до базової назви. Продаж належить ролику лише всередині своєї кампанії; якщо мітка порожня або не збігається з жодним оголошенням — рядок «Без мітки креативу».","Версии одного ролика сведены к базовому названию. Продажа относится к ролику только внутри своей кампании; если метка пустая или не совпадает ни с одним объявлением — строка «Без метки креатива».")}</p>`; }
+  if (x.days === "m") body = fxPlan(p, f, tot, hs, sl.noRate, notUsd) + body;
   if (!f) body += fxCohorts(p, x);
   return `<div class="panel" id="fact">${bar}${kpi}${notUsd ? `<p class="sub">${L("Валюта кабінету — ","Валюта кабинета — ")}${esc(cur)}${L(", а стелю задано в доларах: порівняння ціни ліда умовне.",", а потолок задан в долларах: сравнение цены лида условное.")}</p>` : ""}${body}
     ${hs ? `<p class="sub">${L("Броні й оплати беруться із завантажених файлів і рахуються за датою вебінару в цьому періоді; до кампанії прив’язуються за точним збігом назви з міткою utm_campaign.","Брони и оплаты берутся из загруженных файлов и считаются по дате вебинара в этом периоде; к кампании привязываются по точному совпадению названия с меткой utm_campaign.")}${!f && (sl.other.book || sl.other.pay) ? ` ${L("Поза кампаніями цього кабінету: броней ","Вне кампаний этого кабинета: броней ")}${num(sl.other.book)}, ${L("оплат ","оплат ")}${num(sl.other.pay)}.` : ""}${sl.noRate ? ` ${L("Виручку не показано: задайте курс у блоці продажів.","Выручка не показана: задайте курс в блоке продаж.")}` : ""}</p>`
@@ -122,7 +139,7 @@ function factPanel(p, f){
 }
 Object.assign(ACT, {
   fxOpen(d){ const p = W.projs.find(q => q.id === d.id); if (!p) return false; const x = fxOf(p); x.open = x.open === d.c ? null : d.c; },
-  fxDays(d){ const p = W.projs.find(x => x.id === d.id); if (!p) return false; const x = fxOf(p); x.days = +d.v; x.rows = null; if (+d.v > (x.cover || 7)) fxSync(p, false); else fxLoad(p); },
+  fxDays(d){ const p = W.projs.find(x => x.id === d.id); if (!p) return false; const x = fxOf(p); x.days = d.v === "m" ? "m" : +d.v; x.rows = null; if (fxSpan(x) > (x.cover || 7)) fxSync(p, false); else fxLoad(p); },
   fxSyncNow(d){ const p = W.projs.find(x => x.id === d.id); if (p) fxSync(p, true); return false; },
 });
 document.addEventListener("change", e => { const t = e.target; if (!t.dataset || !t.dataset.fxmap) return; const p = P(); if (!p) return;
