@@ -82,6 +82,39 @@ function metaGuide(p){
           <div class="row"><button class="btn btn--solid" data-act="mtDone" data-k="${s.k}">${m.done[s.k] ? L("Далі","Дальше") : L("Готово, далі","Готово, дальше")}</button>${s.opt ? `<button class="btn" data-act="mtStep" data-v="${i + 1}">${L("Пропустити","Пропустить")}</button>` : ""}</div>`}
         ${i === 4 ? `<p class="sub">${L("Інші способи. Вхід через Facebook однією кнопкою з’явиться після перевірки нашого застосунку в Meta. Якщо ви працюєте з рекламою через Claude, йому окремо підключається конектор Meta Ads у налаштуваннях — платформі для аналітики ключ потрібен усе одно.","Другие способы. Вход через Facebook одной кнопкой появится после проверки нашего приложения в Meta. Если вы работаете с рекламой через Claude, ему отдельно подключается коннектор Meta Ads в настройках — платформе для аналитики ключ нужен всё равно.")}</p>` : ""}</div></div></div>`;
 }
+/* Накопление: вся реклама проекта по дням и объявлениям лежит в базе на сервере (ad_metrics), тексты объявлений — в ad_texts.
+   Свежие дни дочитывает обычная загрузка; прошлые месяцы — кнопка «Загрузить историю», отрезками по 14 дней на аккаунт. */
+const MH = {cov:{}, run:null};
+const mhDay = d => d.toISOString().slice(0, 10), mhDm = s => String(s || "").slice(8, 10) + "." + String(s || "").slice(5, 7) + "." + String(s || "").slice(2, 4);
+function mhCover(p, force){ if (!CLOUD || !sb || !p) return; const c = MH.cov[p.id]; if (c && !force && Date.now() - c.at < 5 * 60000) return; MH.cov[p.id] = {at:Date.now(), rows:c ? c.rows : null, err:""};
+  Promise.resolve(sb.rpc("ad_coverage", {p:p.id})).then(r => { MH.cov[p.id] = {at:Date.now(), rows:r.error ? null : (r.data || []), err:r.error ? r.error.message : ""}; render(); }, () => {}); }
+function mtHistBox(p, c){ mhCover(p); const cov = MH.cov[p.id] || {}, accs = bdAccs(c), run = MH.run && MH.run.p === p.id ? MH.run : null, name = id => { const a = accs.find(x => x.id === id); return a ? (a.name || a.id) : id ? id : L("без акаунта (старі рядки)","без аккаунта (старые строки)"); };
+  const rows = cov.rows || [];
+  return `<div class="mthist"><span class="tag">${L("Накопичено в базі","Накоплено в базе")}</span>
+    ${cov.err ? `<p class="sub">${L("Облік накопиченого ще не ввімкнено: у Supabase треба виконати файл schema_history.sql.","Учёт накопленного ещё не включён: в Supabase нужно выполнить файл schema_history.sql.")}</p>`
+      : rows.length ? `<div class="tw tw--in"><table><thead><tr><th>${L("Акаунт","Аккаунт")}</th><th>${L("Період","Период")}</th><th class="n">${L("Днів","Дней")}</th><th class="n">${L("Оголошень","Объявлений")}</th><th class="n">${L("Витрати","Расход")}</th></tr></thead><tbody>${rows.map(x => `<tr><td>${esc(name(x.account_id))}</td><td class="mono">${mhDm(x.first_day)} — ${mhDm(x.last_day)}</td><td class="n mono">${num(+x.days)}</td><td class="n mono">${num(+x.ads)}</td><td class="n mono">${num(+x.spend)}</td></tr>`).join("")}</tbody></table></div>`
+      : `<p class="sub">${cov.rows ? L("Поки нічого: дані з’являться після першого завантаження.","Пока ничего: данные появятся после первой загрузки.") : L("Перевіряємо…","Проверяем…")}</p>`}
+    <p class="sub">${L("Уся реклама проєкту складається в базу по днях і оголошеннях разом із текстами оголошень. Звіти й розбори беруть цифри звідси, а не щоразу з Meta.","Вся реклама проекта складывается в базу по дням и объявлениям вместе с текстами объявлений. Отчёты и разборы берут цифры отсюда, а не каждый раз из Meta.")}</p>
+    ${run ? `<p class="sub" role="status">${run.err ? "" : esc(run.label)} · ${run.done} / ${run.total}${run.rows ? " · " + num(run.rows) + L(" рядків"," строк") : ""}</p>${run.err ? `<p class="mterr">${esc(run.err)}</p>` : ""}` : ""}
+    <div class="row">${run && run.busy ? `<button class="btn btn--sm" data-act="mhStop">${L("Зупинити","Остановить")}</button>`
+      : `<select id="mh-months" aria-label="${L("Глибина історії","Глубина истории")}">${[[3,L("3 місяці","3 месяца")],[6,L("6 місяців","6 месяцев")],[12,L("12 місяців","12 месяцев")],[24,L("24 місяці","24 месяца")]].map(o => `<option value="${o[0]}"${o[0] === 6 ? " selected" : ""}>${o[1]}</option>`).join("")}</select>
+        <button class="btn btn--sm" data-act="mhRun" data-id="${p.id}">${run && run.err ? L("Продовжити завантаження","Продолжить загрузку") : L("Завантажити історію","Загрузить историю")}</button>`}</div></div>`; }
+async function mhLoop(p){ const run = MH.run; if (!run) return;
+  while (run.i < run.steps.length && run.busy) { const s = run.steps[run.i]; run.label = s.name + ": " + mhDm(s.since) + " — " + mhDm(s.until); render();
+    const r = await mtCall({action:"history", project_id:p.id, account_id:s.id, since:s.since, until:s.until});
+    if (!r.ok) { run.err = r.error === "action" ? mtErr({error:"old_fn"}) : mtErr(r); run.busy = false; break; }
+    if (r.basic) { run.err = L("Історію не збережено повністю: у Supabase треба виконати файл schema_history.sql (номер акаунта, реєстрації, тексти оголошень).","История сохранена не полностью: в Supabase нужно выполнить файл schema_history.sql (номер аккаунта, регистрации, тексты объявлений)."); run.busy = false; break; }
+    run.rows += r.rows || 0; run.i++; run.done = run.i; }
+  if (run.i >= run.steps.length) { run.busy = false; run.label = L("Історію завантажено","История загружена"); toast(run.label); }
+  mhCover(p, true); render(); }
+Object.assign(ACT, {
+  mhRun(d){ const p = W.projs.find(x => x.id === d.id), c = bdConn(p); if (!p || !c) return false;
+    if (MH.run && MH.run.p === p.id && MH.run.err && MH.run.i < MH.run.steps.length) { MH.run.err = ""; MH.run.busy = true; mhLoop(p); return; }
+    const months = +((document.getElementById("mh-months") || {}).value || 6), steps = [], end = new Date();
+    for (const a of bdAccs(c)) for (let k = 0; k < Math.ceil(months * 30.5 / 14); k++) { const u = new Date(end.getTime() - k * 14 * 86400000), s = new Date(u.getTime() - 13 * 86400000); steps.push({id:a.id, name:a.name || a.id, since:mhDay(s), until:mhDay(u)}); }
+    MH.run = {p:p.id, steps, i:0, done:0, total:steps.length, rows:0, busy:true, err:"", label:""}; mhLoop(p); },
+  mhStop(){ if (MH.run) { MH.run.busy = false; MH.run.err = L("Зупинено. Уже завантажене збережено.","Остановлено. Уже загруженное сохранено."); } },
+});
 /* карточка Meta во вкладке «Подключения» */
 function metaCard(p){
   const m = mtMeta(p), c = m.conn, done = mtSteps().filter(x => m.done[x.k]).length;
@@ -90,6 +123,7 @@ function metaCard(p){
   const r = MT.ins && MT.ins.p === p.id ? MT.ins : null, hi = mtHealthInfo(m.health); mtHealth(p);
   return `${m.health && m.health.state !== "ok" ? `<div class="mthealth">${pill(hi[1], hi[0])}<span class="sub">${hi[2]}</span></div>` : ""}<dl class="kv"><dt>${bdAccs(c).length > 1 ? L("Акаунти","Аккаунты") + " · " + bdAccs(c).length : L("Акаунт","Аккаунт")}</dt><dd>${bdAccs(c).map(a => `${esc(a.name || a.id)} <span class="sub mono">${esc(a.id)}</span>`).join("<br>")}</dd><dt>${bdPages(c).length > 1 ? L("Сторінки","Страницы") : L("Сторінка","Страница")}</dt><dd>${bdPages(c).length ? bdPages(c).map(a => esc(a.name)).join(", ") : "—"}</dd><dt>${L("Піксель","Пиксель")}</dt><dd>${c.pixel ? esc(c.pixel.name) : L("підтягується сам з останньої кампанії акаунта","подтягивается сам из последней кампании аккаунта")}</dd></dl>
     <div class="row"><button class="btn btn--sm btn--solid" data-act="mtIns" data-id="${p.id}"${MT.busy ? " disabled" : ""}>${L("Перевірити дані за 7 днів","Проверить данные за 7 дней")}</button><button class="btn btn--sm" data-act="mtHealthNow" data-id="${p.id}">${L("Перевірити підключення","Проверить подключение")}</button>${canAdmin() ? `<button class="btn btn--sm" data-act="mtOpen" data-id="${p.id}" data-v="5">${L("Замінити ключ","Заменить ключ")}</button><button class="btn btn--sm btn--danger" data-act="mtOff" data-id="${p.id}">${L("Відключити","Отключить")}</button>` : ""}</div>
+    ${mtHistBox(p, c)}
     ${r ? (r.err ? `<p class="mterr">${esc(r.err)}</p>` : r.rows.length ? `<div class="tw"><table><thead><tr><th>${L("Кампанія","Кампания")} · ${r.since} — ${r.until}</th><th class="n">${L("Витрати","Расход")}, ${esc(r.currency || "")}</th><th class="n">${L("Покази","Показы")}</th><th class="n">${L("Кліки","Клики")}</th><th class="n">${L("Ліди","Лиды")}</th></tr></thead><tbody>
         ${r.rows.slice(0, 12).map(x => `<tr><td class="mono">${esc(x.name)}</td><td class="n mono">${dec(x.spend)}</td><td class="n mono">${num(x.impressions)}</td><td class="n mono">${num(x.clicks)}</td><td class="n mono">${num(x.leads)}</td></tr>`).join("")}
         <tr class="sum"><td>${L("Разом","Итого")}${r.rows.length > 12 ? ` · ${r.rows.length} ${L("кампаній","кампаний")}` : ""}</td><td class="n mono">${dec(r.rows.reduce((a, x) => a + x.spend, 0))}</td><td class="n mono">${num(r.rows.reduce((a, x) => a + x.impressions, 0))}</td><td class="n mono">${num(r.rows.reduce((a, x) => a + x.clicks, 0))}</td><td class="n mono">${num(r.rows.reduce((a, x) => a + x.leads, 0))}</td></tr></tbody></table></div>`
