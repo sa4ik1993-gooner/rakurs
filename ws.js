@@ -323,7 +323,8 @@ function vFunnel(f, p){
   ${stepper(ch, t, "wsFtab")}${body}
   <div class="panel vf"><div class="row sp"><span class="tag">${L("Готовність до запуску","Готовность к запуску")} · ${ready.filter(r=>r[1]).length} / ${ready.length}</span></div>
     <ul class="steps">${ready.map(r=>`<li class="${r[1]?"ok":""}">${r[0]}</li>`).join("")}</ul>
-    <p class="sub">${L("Назва кампанії буде такою: ","Название кампании будет таким: ")}<span class="mono">${esc(camp)}</span>. ${L("Кампанія збирається вимкненою, вмикає людина.","Кампания собирается выключенной, включает человек.")}</p></div>`;
+    <p class="sub">${L("Назва кампанії буде такою: ","Название кампании будет таким: ")}<span class="mono">${esc(camp)}</span>. ${L("Кампанія збирається вимкненою, вмикає людина.","Кампания собирается выключенной, включает человек.")}</p></div>
+  ${bdPanel(f, p)}`;
 }
 function modalFunnelOwn(){ const p = P();
   return `<div class="ob"><div class="row sp"><div><span class="tag">${esc(p.name)}</span><h1>${L("Нова воронка","Новая воронка")}</h1></div><button class="x" data-act="closeOverlay" aria-label="${L("Закрити","Закрыть")}">×</button></div>

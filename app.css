@@ -533,3 +533,9 @@ h1[tabindex="-1"]:focus,h2[tabindex="-1"]:focus,#view[tabindex="-1"]:focus,.moda
 /* источники данных: карточка правила */
 .srule{background:var(--bg);gap:12px}
 #sources textarea{width:100%;font:400 13px/1.5 var(--f-mono)}
+#bd input[type=checkbox]{width:auto;height:auto;min-height:0;margin:0}
+#bd .field label.bdck{text-transform:none;letter-spacing:0;font-size:inherit;font-family:inherit;gap:8px;align-items:center;cursor:pointer}
+#bd .item.off{opacity:.6}
+#bd .item .form{margin-top:8px}
+#bd .field{min-width:0}
+#bd .sub,#bd .mono{overflow-wrap:anywhere}

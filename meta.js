@@ -15,7 +15,7 @@ const mtSteps = () => [
   {k:"px", t:L("Піксель (набір даних)","Пиксель (набор данных)"), why:L("Передає в Meta події із сайту: заявку, бронь, оплату. Без нього рахуємо тільки кліки.","Передаёт в Meta события с сайта: заявку, бронь, оплату. Без него считаем только клики."),
     how:[L("У налаштуваннях компанії: Джерела даних → Набори даних → Додати.","В настройках компании: Источники данных → Наборы данных → Добавить."), L("Прив’яжіть набір даних до рекламного акаунта з кроку 2.","Привяжите набор данных к рекламному аккаунту из шага 2."), L("Крок можна пропустити й повернутися пізніше, якщо сайту ще немає.","Шаг можно пропустить и вернуться позже, если сайта ещё нет.")], url:"https://business.facebook.com/settings", go:L("Відкрити налаштування компанії","Открыть настройки компании"), opt:1},
   {k:"su", t:L("Ключ доступу","Ключ доступа"), why:L("Ключ видає «системний користувач» вашої компанії. Він не прив’язаний до особистого профілю, діє безстроково й відкликається однією кнопкою.","Ключ выдаёт «системный пользователь» вашей компании. Он не привязан к личному профилю, действует бессрочно и отзывается одной кнопкой."),
-    how:[L("Створіть застосунок: на сторінці застосунків Meta → Створити → тип «Бізнес» → прив’яжіть до свого портфоліо.","Создайте приложение: на странице приложений Meta → Создать → тип «Бизнес» → привяжите к своему портфолио."), L("У налаштуваннях компанії: Користувачі → Системні користувачі → Додати, роль «Адміністратор».","В настройках компании: Пользователи → Системные пользователи → Добавить, роль «Администратор»."), L("Натисніть «Призначити об’єкти» й видайте йому рекламний акаунт, сторінку та піксель.","Нажмите «Назначить объекты» и выдайте ему рекламный аккаунт, страницу и пиксель."), L("Натисніть «Згенерувати токен»: оберіть застосунок, термін «Ніколи», права ads_read. Для збирання кампаній пізніше додайте ads_management, business_management, pages_show_list, pages_read_engagement.","Нажмите «Сгенерировать токен»: выберите приложение, срок «Никогда», права ads_read. Для сборки кампаний позже добавьте ads_management, business_management, pages_show_list, pages_read_engagement."), L("Скопіюйте ключ. Meta показує його один раз.","Скопируйте ключ. Meta показывает его один раз.")], url:"https://developers.facebook.com/apps", go:L("Відкрити застосунки Meta","Открыть приложения Meta"), url2:"https://business.facebook.com/settings", go2:L("Налаштування компанії","Настройки компании")},
+    how:[L("Створіть застосунок: на сторінці застосунків Meta → Створити → тип «Бізнес» → прив’яжіть до свого портфоліо.","Создайте приложение: на странице приложений Meta → Создать → тип «Бизнес» → привяжите к своему портфолио."), L("У налаштуваннях компанії: Користувачі → Системні користувачі → Додати, роль «Адміністратор».","В настройках компании: Пользователи → Системные пользователи → Добавить, роль «Администратор»."), L("Натисніть «Призначити об’єкти» й видайте йому рекламний акаунт, сторінку та піксель.","Нажмите «Назначить объекты» и выдайте ему рекламный аккаунт, страницу и пиксель."), L("Натисніть «Згенерувати токен»: оберіть застосунок, термін «Ніколи», права ads_read і ads_management (читання й збирання кампаній), а також business_management, pages_show_list, pages_read_engagement, pages_manage_ads.","Нажмите «Сгенерировать токен»: выберите приложение, срок «Никогда», права ads_read и ads_management (чтение и сборка кампаний), а также business_management, pages_show_list, pages_read_engagement, pages_manage_ads."), L("Скопіюйте ключ. Meta показує його один раз.","Скопируйте ключ. Meta показывает его один раз.")], url:"https://developers.facebook.com/apps", go:L("Відкрити застосунки Meta","Открыть приложения Meta"), url2:"https://business.facebook.com/settings", go2:L("Налаштування компанії","Настройки компании")},
   {k:"link", t:L("Перевірка й прив’язка","Проверка и привязка"), why:L("Вставте ключ — покажемо, що він бачить, і ви оберете акаунт, сторінку та піксель для цього проєкту.","Вставьте ключ — покажем, что он видит, и вы выберете аккаунт, страницу и пиксель для этого проекта.")}];
 /* здоровье подключения: что не так и что с этим делать */
 const mtHealthInfo = h => ({
@@ -154,3 +154,136 @@ Object.assign(ACT, {
   gdStep(d){ MT.gs = +d.v; },
   gdDone(d){ const p = MT.g && W.projs.find(x => x.id === MT.g.p); if (!p) return false; gdState(p, MT.g.prov).done[d.k] = true; if (!p.conn[MT.g.prov]) p.conn[MT.g.prov] = 3; MT.gs = Math.min((MT.gs || 0) + 1, GUIDES()[MT.g.prov].steps.length); save(); },
 });
+
+/* Сборка кампании в Meta из воронки. Обычный код, без ИИ: форма → функция meta по шагам → кампания, группа, объявления.
+   Всё создаётся выключенным (PAUSED) со стартом на следующий день в 00:40 по Киеву; включает человек в Ads Manager.
+   Номера созданного хранятся в BD.run: если шаг упал, «Продолжить» начинает с него, уже созданное не дублируется. */
+const BD = {open:null, form:null, run:null, busy:false, err:"", step:"", files:{}};
+const BD_EVENTS = () => [["lead",L("Лід (Lead) — заявка на сайті","Лид (Lead) — заявка на сайте")],["reg",L("Реєстрація (CompleteRegistration)","Регистрация (CompleteRegistration)")],["buy",L("Покупка (Purchase)","Покупка (Purchase)")],["lpv",L("Перегляди сторінки — без пікселя","Просмотры страницы — без пикселя")]];
+const BD_CTA = [["LEARN_MORE","Learn more"],["SIGN_UP","Sign up"],["REGISTER_NOW","Register now"],["APPLY_NOW","Apply now"],["GET_OFFER","Get offer"],["SUBSCRIBE","Subscribe"],["CONTACT_US","Contact us"],["SHOP_NOW","Shop now"],["WATCH_MORE","Watch more"]];
+const bdLatin = s => String(s || "").split("").map(c => { const l = c.toLowerCase(); return TRL[l] !== undefined ? (c === l ? TRL[l] : TRL[l].charAt(0).toUpperCase() + TRL[l].slice(1)) : c; }).join("").replace(/[^A-Za-z0-9_.\-]+/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "").slice(0, 120);
+/* Завтра 00:40 по Киеву → момент времени. Смещение Киева берём из часов браузера, поэтому летнее время учтено само. */
+function bdKyivOffset(ms){ const p = {}; new Intl.DateTimeFormat("en-GB", {timeZone:"Europe/Kyiv", hourCycle:"h23", year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit"}).formatToParts(new Date(ms)).forEach(x => p[x.type] = x.value);
+  return Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute) - Math.floor(ms / 60000) * 60000; }
+const bdKyivToUtc = (date, time) => { const [y, m, d] = date.split("-").map(Number), [hh, mm] = time.split(":").map(Number), guess = Date.UTC(y, m - 1, d, hh, mm); return guess - bdKyivOffset(guess - bdKyivOffset(guess)); };
+function bdTomorrow(){ const p = {}; new Intl.DateTimeFormat("en-GB", {timeZone:"Europe/Kyiv", year:"numeric", month:"2-digit", day:"2-digit"}).formatToParts(new Date(Date.now() + 86400000)).forEach(x => p[x.type] = x.value); return `${p.year}-${p.month}-${p.day}`; }
+const bdUrl = u => { u = String(u || "").trim(); return !u ? "" : /^https?:\/\//i.test(u) ? u : "https://" + u; };
+const bdConn = p => p && p.meta && p.meta.conn;
+const bdCanWrite = c => !c || !c.scopes || !c.scopes.length || c.scopes.includes("ads_management");
+function bdName(f, p, date){ const dm = date ? date.slice(8, 10) + "." + date.slice(5, 7) : ""; return bdLatin([slug(p.name), geoCode(p.geo), slug(f.name), f.goal === "form" ? "Form" : "Site", dm, "ABO"].filter(Boolean).join("_")); }
+function bdInit(f, p){ const date = bdTomorrow(), g = geoCode(p.geo), daily = Math.round(fT(f, p).bud / 30);
+  BD.form = {name:bdName(f, p, date), event:"lead", budget:daily >= 5 ? daily : 20, link:bdUrl((f.lands[0] || {}).url), countries:/^[A-Z]{2}$/.test(g) && g !== "EU" ? g : "UA", advantage:true, age_min:25, age_max:55, gender:"",
+    adset:"", date, time:"00:40", headline:"", description:"", cta:"LEARN_MORE",
+    ads:(f.crs.length ? f.crs : []).map(c => ({id:c.id, on:true, name:bdLatin(c.slug || c.name), text:c.text || "", type:c.type === "img" ? "img" : "video", path:c.path || "", fname:c.name || ""}))};
+  BD.run = null; BD.err = ""; BD.step = ""; BD.files = {}; }
+const bdAdset = F0 => F0.adset || bdLatin(F0.countries.replace(/[^A-Za-z]+/g, "-") + "_" + (F0.advantage ? "AdvPlus" : F0.age_min + "-" + F0.age_max + (F0.gender ? "_" + F0.gender.toUpperCase() : "")));
+function bdCheck(F0, c){ const e = [];
+  if (!bdLatin(F0.name)) e.push(L("назва кампанії","название кампании"));
+  if (!(+F0.budget >= 1)) e.push(L("бюджет на день","бюджет в день"));
+  if (!/^https?:\/\/[^\s.]+\.[^\s]+/.test(bdUrl(F0.link))) e.push(L("посилання на лендинг","ссылка на лендинг"));
+  if (!F0.countries.split(/[,\s]+/).some(x => /^[A-Za-z]{2}$/.test(x))) e.push(L("країни (коди з двох літер: UA, PL)","страны (коды из двух букв: UA, PL)"));
+  if (bdKyivToUtc(F0.date, F0.time) < Date.now() + 10 * 60000) e.push(L("старт — щонайменше за 10 хвилин від зараз","старт — минимум через 10 минут от сейчас"));
+  const on = F0.ads.filter(a => a.on); if (!on.length) e.push(L("хоча б одне оголошення","хотя бы одно объявление"));
+  on.forEach(a => { if (!BD.files[a.id] && !a.path) e.push(L("файл для ","файл для ") + (a.name || "—")); if (!a.text.trim()) e.push(L("текст для ","текст для ") + (a.name || "—")); });
+  if (c && !c.page) e.push(L("сторінка в підключенні Meta","страница в подключении Meta"));
+  if (c && F0.event !== "lpv" && !c.pixel) e.push(L("піксель у підключенні Meta (або ціль «Перегляди сторінки»)","пиксель в подключении Meta (или цель «Просмотры страницы»)"));
+  return e; }
+const bdAdsLink = (c, id) => `https://adsmanager.facebook.com/adsmanager/manage/campaigns?act=${encodeURIComponent(c.account.id)}&selected_campaign_ids=${encodeURIComponent(id)}`;
+
+function bdPanel(f, p){
+  const c = bdConn(p), list = (f.builds || []).slice(0, 5);
+  const hist = list.length ? `<div class="tw tw--in"><table><thead><tr><th>${L("Зібрано","Собрано")}</th><th>${L("Кампанія","Кампания")}</th><th class="n">${L("Оголошень","Объявлений")}</th><th></th></tr></thead><tbody>${list.map(b => `<tr><td class="mono">${esc(b.at.slice(0, 16).replace("T", " "))}</td><td class="mono">${esc(b.name)}</td><td class="n mono">${b.ads.length}</td><td class="n">${c ? `<a class="lnk" href="${bdAdsLink(c, b.campaign_id)}" target="_blank" rel="noopener">Ads Manager ↗</a>` : ""}</td></tr>`).join("")}</tbody></table></div>` : "";
+  let body;
+  if (!CLOUD) body = `<p class="sub proto">${L("Прототип: збирання кампанії працює після входу на сервер і підключення Meta.","Прототип: сборка кампании работает после входа на сервер и подключения Meta.")}</p>`;
+  else if (!c) body = `<p class="sub">${L("Спершу підключіть рекламний кабінет Meta в проєкті.","Сначала подключите рекламный кабинет Meta в проекте.")}</p><div class="row"><button class="btn btn--sm" data-act="wsBackF">${L("До проєкту","К проекту")}</button></div>`;
+  else if (!bdCanWrite(c)) body = `<p class="mterr">${L("Ключ підключення має тільки право на читання. Щоб збирати кампанії, згенеруйте ключ у системного користувача з правами ads_read і ads_management та замініть його в «Підключеннях» проєкту.","У ключа подключения только право на чтение. Чтобы собирать кампании, сгенерируйте ключ у системного пользователя с правами ads_read и ads_management и замените его в «Подключениях» проекта.")}</p>`;
+  else if (BD.open !== f.id) body = `<div class="row"><button class="btn btn--solid" data-act="bdOpen" data-id="${f.id}">${L("Зібрати кампанію в Meta","Собрать кампанию в Meta")}</button></div>`;
+  else body = bdForm(f, p, c);
+  return `<div class="panel" id="bd"><span class="tag">${L("Кампанія в Meta","Кампания в Meta")}</span>${body}${hist}</div>`;
+}
+function bdForm(f, p, c){ const F0 = BD.form, cur = c.account.currency || "USD", R = BD.run || {}, dis = BD.busy ? " disabled" : "";
+  const inp = (k, label, o = {}) => `<div class="field${o.w ? " w" : ""}"><label for="bd-${k}">${label}</label><input id="bd-${k}" data-bd="${k}" value="${esc(F0[k])}"${o.num ? ` inputmode="decimal"` : ""}${o.type ? ` type="${o.type}"` : ""}${o.ph ? ` placeholder="${esc(o.ph)}"` : ""}${dis}>${o.hint ? `<span class="sub">${o.hint}</span>` : ""}</div>`;
+  const sel = (k, label, rows) => `<div class="field"><label for="bd-${k}">${label}</label><select id="bd-${k}" data-bd="${k}"${dis}>${rows.map(r => `<option value="${r[0]}"${String(F0[k]) === r[0] ? " selected" : ""}>${esc(r[1])}</option>`).join("")}</select></div>`;
+  const lands = f.lands.map(l => bdUrl(l.url)), errs = bdCheck(F0, c), done = id => R.ads && R.ads[id] && R.ads[id].ad_id;
+  const ads = F0.ads.map(a => { const file = BD.files[a.id];
+    return `<div class="item${a.on ? "" : " off"}"><div class="row sp"><label class="row"><input type="checkbox" data-bd="ad:${a.id}:on"${a.on ? " checked" : ""}${dis}> <b class="mono">${esc(a.name || "—")}</b></label>${done(a.id) ? pill("good", L("створено","создано")) : ""}${a.custom ? del("bdAdDel", a.id) : ""}</div>
+      ${a.on ? `<div class="form"><div class="field"><label for="bd-an-${a.id}">${L("Назва (у мітку utm_content)","Название (в метку utm_content)")}</label><input id="bd-an-${a.id}" data-bd="ad:${a.id}:name" value="${esc(a.name)}"${dis}></div>
+        <div class="field"><label>${L("Файл","Файл")}</label><label class="btn btn--sm"><input type="file" hidden accept="image/*,video/*" data-bdf="${a.id}"${dis}>${file ? esc(file.name) : a.path ? esc(a.fname) + " · " + L("замінити","заменить") : L("Обрати файл","Выбрать файл")}</label><span class="sub">${file ? (file.type.indexOf("video") === 0 ? L("відео","видео") : L("картинка","картинка")) + " · " + fileSize(file.size) : a.path ? L("візьмемо з файлів воронки","возьмём из файлов воронки") : L("картинка до 8 МБ або відео","картинка до 8 МБ или видео")}</span></div>
+        <div class="field w"><label for="bd-at-${a.id}">${L("Основний текст","Основной текст")}</label><textarea id="bd-at-${a.id}" rows="3" data-bd="ad:${a.id}:text"${dis}>${esc(a.text)}</textarea></div></div>` : ""}</div>`; }).join("");
+  const name = bdLatin(F0.name), when = new Date(bdKyivToUtc(F0.date, F0.time));
+  return `<p class="sub">${L("Усе створюється вимкненим: кампанія, група й оголошення. Увімкнете самі в Ads Manager, коли перевірите. Акаунт: ","Всё создаётся выключенным: кампания, группа и объявления. Включите сами в Ads Manager, когда проверите. Аккаунт: ")}<b>${esc(c.account.name)}</b>, ${L("сторінка","страница")}: <b>${c.page ? esc(c.page.name) : "—"}</b>, ${L("піксель","пиксель")}: <b>${c.pixel ? esc(c.pixel.name) : "—"}</b>.</p>
+    <div class="form">
+      ${inp("name", L("Назва кампанії","Название кампании"), {w:1, hint:L("Іде в мітку utm_campaign, тому тільки латиниця. Буде: ","Уходит в метку utm_campaign, поэтому только латиница. Будет: ") + `<span class="mono">${esc(name || "—")}</span>`})}
+      ${sel("event", L("Що оптимізуємо","Что оптимизируем"), BD_EVENTS())}
+      ${inp("budget", L("Бюджет на день, ","Бюджет в день, ") + esc(cur), {num:1})}
+      <div class="field w"><label for="bd-link">${L("Лендинг","Лендинг")}</label><input id="bd-link" data-bd="link" value="${esc(F0.link)}" list="bd-lands" placeholder="https://"${dis}><datalist id="bd-lands">${lands.map(u => `<option value="${esc(u)}">`).join("")}</datalist><span class="sub">${L("Мітки UTM додаються самі: ","Метки UTM добавляются сами: ")}<span class="mono">${esc(UTM)}</span></span></div>
+      ${inp("countries", L("Країни","Страны"), {ph:"UA, PL"})}
+      <div class="field"><label>${L("Аудиторія","Аудитория")}</label><label class="row bdck"><input type="checkbox" data-bd="advantage"${F0.advantage ? " checked" : ""}${dis}> ${L("Advantage+ — Meta сама шукає людей","Advantage+ — Meta сама ищет людей")}</label></div>
+      ${F0.advantage ? "" : inp("age_min", L("Вік від","Возраст от"), {num:1}) + inp("age_max", L("Вік до","Возраст до"), {num:1}) + sel("gender", L("Стать","Пол"), [["",L("усі","все")],["f",L("жінки","женщины")],["m",L("чоловіки","мужчины")]])}
+      ${inp("adset", L("Назва групи","Название группы"), {ph:bdAdset(Object.assign({}, F0, {adset:""})), hint:L("Порожньо — збереться сама; йде в utm_term.","Пусто — соберётся сама; уходит в utm_term.")})}
+      ${inp("date", L("Старт, дата (Київ)","Старт, дата (Киев)"), {type:"date"})}${inp("time", L("Час (Київ)","Время (Киев)"), {type:"time"})}
+      ${inp("headline", L("Заголовок під картинкою","Заголовок под картинкой"), {ph:L("спільний для всіх оголошень","общий для всех объявлений")})}
+      ${inp("description", L("Опис посилання","Описание ссылки"))}
+      ${sel("cta", L("Кнопка","Кнопка"), BD_CTA)}
+    </div>
+    <span class="tag">${L("Оголошення","Объявления")} · ${F0.ads.filter(a => a.on).length}</span>
+    ${ads || `<p class="sub">${L("У воронці ще немає креативів — додайте оголошення тут або на кроці «Креативи».","В воронке ещё нет креативов — добавьте объявление здесь или на шаге «Креативы».")}</p>`}
+    <div class="row"><button class="btn btn--sm" data-act="bdAdAdd"${dis}>${L("+ Оголошення","+ Объявление")}</button></div>
+    ${errs.length && !BD.busy ? `<p class="sub">${L("Ще потрібно: ","Ещё нужно: ")}${esc(errs.join(", "))}.</p>` : ""}
+    ${BD.err ? `<p class="mterr" role="alert">${esc(BD.err)}</p>` : ""}
+    ${BD.busy ? `<p class="sub" role="status">${esc(BD.step)}</p>` : ""}
+    <div class="row"><button class="btn btn--solid" data-act="bdRun"${errs.length || BD.busy ? " disabled" : ""}>${BD.busy ? L("Збираємо…","Собираем…") : R.campaign_id ? L("Продовжити збирання","Продолжить сборку") : L("Зібрати вимкненою · старт ","Собрать выключенной · старт ") + when.toLocaleString(lang === "uk" ? "uk-UA" : "ru-RU", {timeZone:"Europe/Kyiv", day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit"})}</button>
+      <button class="btn" data-act="bdClose"${dis}>${L("Скасувати","Отмена")}</button></div>`;
+}
+const bdB64 = blob => new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1] || ""); r.onerror = () => no(r.error); r.readAsDataURL(blob); });
+async function bdBlob(a){ if (BD.files[a.id]) return BD.files[a.id];
+  const r = await sb.storage.from("files").download(a.path); if (r.error || !r.data) throw new Error(L("не вдалося взяти файл ","не удалось взять файл ") + a.fname);
+  return new File([r.data], a.fname || a.name, {type:r.data.type || (a.type === "img" ? "image/jpeg" : "video/mp4")}); }
+async function bdStep(body, label){ BD.step = label; render(); const r = await mtCall(Object.assign({project_id:P().id}, body)); if (!r.ok) throw r; return r; }
+const bdWait = ms => new Promise(ok => setTimeout(ok, ms));
+async function bdMedia(a, R){ const x = R.ads[a.id] = R.ads[a.id] || {}; if (x.hash || x.picture) return x;
+  const file = await bdBlob(a), isV = (file.type || "").indexOf("video") === 0 || (!file.type && a.type === "video");
+  if (!isV) { if (file.size > 8 * 1048576) throw {error:"bad", detail:L("картинка більша за 8 МБ: ","картинка больше 8 МБ: ") + a.name};
+    x.hash = (await bdStep({action:"b_image", name:a.name, data:await bdB64(file)}, L("Завантажуємо картинку ","Загружаем картинку ") + a.name)).hash; return x; }
+  if (!x.video_id || !x.uploaded) { const s = await bdStep({action:"b_video_start", size:file.size}, L("Готуємо завантаження відео ","Готовим загрузку видео ") + a.name);
+    x.video_id = s.video_id; let st = s.start, en = s.end;
+    while (st < en) { const chunk = file.slice(st, Math.min(en, st + 4 * 1048576));
+      const r = await bdStep({action:"b_video_chunk", session:s.session, start:st, data:await bdB64(chunk)}, L("Відео ","Видео ") + a.name + ": " + Math.round(st / file.size * 100) + "%"); st = r.start; en = r.end; }
+    await bdStep({action:"b_video_finish", session:s.session, name:a.name}, L("Відео завантажено, Meta його обробляє…","Видео загружено, Meta его обрабатывает…")); x.uploaded = true; }
+  for (let i = 0; i < 36; i++) { const v = await bdStep({action:"b_video_status", video_id:x.video_id}, L("Meta обробляє відео ","Meta обрабатывает видео ") + a.name + " · " + (i * 5) + L(" с"," с"));
+    if (v.picture && (v.state === "ready" || i > 3)) { x.picture = v.picture; return x; } if (v.state === "error") throw {error:"meta", detail:L("Meta не змогла обробити відео ","Meta не смогла обработать видео ") + a.name}; await bdWait(5000); }
+  throw {error:"slow", detail:L("Meta ще обробляє відео. Зачекайте хвилину й натисніть «Продовжити збирання» — уже завантажене не повториться.","Meta ещё обрабатывает видео. Подождите минуту и нажмите «Продолжить сборку» — уже загруженное не повторится.")}; }
+async function bdRunAll(){ const f = F(), p = P(), F0 = BD.form, c = bdConn(p); if (!f || !p || !c || BD.busy) return;
+  BD.busy = true; BD.err = ""; const R = BD.run = BD.run || {ads:{}}, name = bdLatin(F0.name), adset = bdAdset(F0), start = new Date(bdKyivToUtc(F0.date, F0.time)).toISOString();
+  try {
+    if (!R.campaign_id) { const r = await bdStep({action:"b_campaign", name, event:F0.event}, L("Створюємо кампанію…","Создаём кампанию…")); R.campaign_id = r.id; R.name = r.name; }
+    if (!R.adset_id) R.adset_id = (await bdStep({action:"b_adset", campaign_id:R.campaign_id, name:adset, event:F0.event, daily_budget:+String(F0.budget).replace(",", "."), start_time:start,
+      countries:F0.countries.toUpperCase().split(/[^A-Z]+/).filter(x => x.length === 2), advantage:F0.advantage, age_min:+F0.age_min, age_max:+F0.age_max, gender:F0.gender}, L("Створюємо групу оголошень…","Создаём группу объявлений…"))).id;
+    for (const a of F0.ads.filter(x => x.on)) { const x = await bdMedia(a, R); if (x.ad_id) continue;
+      const r = await bdStep({action:"b_ad", adset_id:R.adset_id, name:a.name, text:a.text, headline:F0.headline, description:F0.description, cta:F0.cta, link:bdUrl(F0.link), url_tags:UTM,
+        image_hash:x.hash, video_id:x.picture ? x.video_id : undefined, picture:x.picture, creative_id:x.creative_id}, L("Створюємо оголошення ","Создаём объявление ") + a.name);
+      x.creative_id = r.creative_id; x.ad_id = r.id; }
+    f.builds = f.builds || []; f.builds.unshift({at:new Date().toISOString(), name:R.name || name, campaign_id:R.campaign_id, adset_id:R.adset_id, start, ads:F0.ads.filter(a => a.on).map(a => ({name:a.name, id:R.ads[a.id].ad_id}))});
+    p.campMap = p.campMap || {}; p.campMap[R.campaign_id] = f.id; /* статистика этой кампании попадёт в воронку, даже если название её не содержит */
+    BD.open = null; BD.run = null; BD.files = {}; save(); toast(L("Кампанію зібрано вимкненою. Перевірте її в Ads Manager і ввімкніть, коли будете готові.","Кампания собрана выключенной. Проверьте её в Ads Manager и включите, когда будете готовы."));
+  } catch (e) { BD.err = e && e.error ? (e.error === "slow" || e.error === "bad" && e.detail && e.detail.length > 12 ? e.detail : bdErr(e)) : L("Не вдалося: ","Не удалось: ") + (e && e.message || e);
+    if (R.campaign_id) BD.err += " " + L("Уже створене збережено: «Продовжити збирання» почне з місця зупинки.","Уже созданное сохранено: «Продолжить сборку» начнёт с места остановки."); }
+  BD.busy = false; BD.step = ""; render(); }
+const bdErr = d => ({no_pixel:L("У підключенні немає пікселя — оберіть його в «Підключеннях» або ціль «Перегляди сторінки».","В подключении нет пикселя — выберите его в «Подключениях» или цель «Просмотры страницы»."), no_page:L("У підключенні немає сторінки — оберіть її в «Підключеннях».","В подключении нет страницы — выберите её в «Подключениях»."),
+  bad:L("Перевірте поле: ","Проверьте поле: ") + ({name:L("назва кампанії","название кампании"), budget:L("бюджет","бюджет"), start:L("старт","старт"), countries:L("країни","страны"), link:L("лендинг","лендинг"), image:L("картинка","картинка"), media:L("файл оголошення","файл объявления")}[d.detail] || d.detail || "")}[d.error] || mtErr(d));
+Object.assign(ACT, {
+  bdOpen(d){ const f = F(), p = P(); if (!f || !p) return false; BD.open = f.id; bdInit(f, p); setTimeout(() => { const el = document.getElementById("bd"); if (el) el.scrollIntoView({block:"start", behavior:"smooth"}); }, 50); },
+  bdClose(){ if (BD.busy) return false; BD.open = null; BD.run = null; BD.files = {}; BD.err = ""; },
+  bdRun(){ bdRunAll(); return false; },
+  bdAdAdd(){ if (!BD.form) return false; BD.form.ads.push({id:"n" + uid(), on:true, name:"ad_" + (BD.form.ads.length + 1), text:(BD.form.ads.find(a => a.text) || {}).text || "", type:"img", path:"", fname:"", custom:true}); },
+  bdAdDel(d){ if (!BD.form) return false; BD.form.ads = BD.form.ads.filter(a => a.id !== d.id); delete BD.files[d.id]; },
+});
+document.addEventListener("input", e => { const t = e.target; if (!t.dataset || !t.dataset.bd || !BD.form) return; const k = t.dataset.bd;
+  if (k.indexOf("ad:") === 0) { const [, id, fk] = k.split(":"), a = BD.form.ads.find(x => x.id === id); if (a && fk !== "on") a[fk] = fk === "name" ? t.value : t.value; return; }
+  if (t.type !== "checkbox" && t.tagName !== "SELECT") BD.form[k] = t.value; });
+document.addEventListener("change", e => { const t = e.target; if (!t.dataset || !BD.form) return;
+  if (t.dataset.bdf) { const file = t.files && t.files[0], a = BD.form.ads.find(x => x.id === t.dataset.bdf); if (!file || !a) return; BD.files[a.id] = file; a.type = file.type.indexOf("video") === 0 ? "video" : "img";
+    if (a.custom && /^ad_\d+$/.test(a.name)) a.name = bdLatin(slug(file.name)); if (BD.run && BD.run.ads) delete BD.run.ads[a.id]; render(); return; }
+  if (!t.dataset.bd) return; const k = t.dataset.bd;
+  if (k.indexOf("ad:") === 0) { const [, id, fk] = k.split(":"), a = BD.form.ads.find(x => x.id === id); if (!a) return; if (fk === "on") a.on = t.checked; else if (fk === "name") a.name = bdLatin(t.value); else a[fk] = t.value; render(); return; }
+  BD.form[k] = t.type === "checkbox" ? t.checked : t.value; if (k === "name" || k === "adset") BD.form[k] = t.value ? t.value : ""; render(); });
