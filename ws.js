@@ -38,6 +38,15 @@ const skelCab = () => `<div class="skel" role="status"><span class="skel__note">
 /* пустое состояние: что это, зачем и одна главная кнопка (если действие есть) */
 const empty = (t, s, btn) => `<div class="empty"><b>${t}</b><span class="sub">${s}</span>${btn ? `<div class="row">${btn}</div>` : ""}</div>`;
 const del = (act, id) => `<button type="button" class="x x--sm" data-act="${act}" data-id="${id}" aria-label="delete">×</button>`;
+/* Удаление проекта и воронки — в два нажатия: первое спрашивает, второе (в течение 6 секунд) удаляет.
+   Файлы удалённого стираются из хранилища, изменение уходит на сервер сразу, без обычной паузы. */
+const DELQ = {k:"", t:0, h:0};
+const delOn = k => DELQ.k === k && Date.now() - DELQ.t < 6000;
+function delAsk(k){ if (delOn(k)) { DELQ.k = ""; clearTimeout(DELQ.h); return true; } DELQ.k = k; DELQ.t = Date.now(); clearTimeout(DELQ.h); DELQ.h = setTimeout(() => { if (DELQ.k === k) { DELQ.k = ""; render(); } }, 6000); return false; }
+const delSure = (act, id, k, text, extra = "") => `<button type="button" class="btn btn--sm${delOn(k) ? " btn--del" : ""}" data-act="${act}" data-id="${id}"${extra}>${delOn(k) ? L("Точно видалити?","Точно удалить?") : text}</button>`;
+const del2 = (act, id, k, extra = "") => delOn(k) ? delSure(act, id, k, "", extra) : `<button type="button" class="x x--sm" data-act="${act}" data-id="${id}"${extra} aria-label="${L("Видалити","Удалить")}">×</button>`;
+function storedPaths(o, out = []){ if (o && typeof o === "object") for (const [k, v] of Object.entries(o)) { if ((k === "path" || k === "p") && typeof v === "string" && W.co && W.co.id && v.indexOf(W.co.id + "/") === 0) out.push(v); else storedPaths(v, out); } return out; }
+function saveNow(){ save(); if (CLOUD && typeof cloudSync === "function") { clearTimeout(CL.timer); cloudSync(); } }
 const PATHS = () => ({web:L("реклама → лендинг → вебінар → бронь → оплата","реклама → лендинг → вебинар → бронь → оплата"),call:L("реклама → лендинг → заявка → дзвінок → оплата","реклама → лендинг → заявка → звонок → оплата"),site:L("реклама → лендинг → оплата","реклама → лендинг → оплата")});
 
 /* ---------- расчёты ---------- */
@@ -108,7 +117,7 @@ function vCompany(){
   const body = {
     map: () => vMap(),
     projects: () => `${W.projs.length ? `<div class="cols">${W.projs.map(p=>{ const ch = pChain(p), done = ch.filter(c=>c[2]).length; return `<div class="panel">
-      <div class="row sp"><h2>${esc(p.name)}</h2>${canAdmin()?del("wsDelP", p.id):""}</div><p class="sub">${esc([p.niche,p.geo].filter(Boolean).join(" · "))}</p>
+      <div class="row sp"><h2>${esc(p.name)}</h2>${canAdmin()?del2("wsDelP", p.id, "p:" + p.id):""}</div><p class="sub">${esc([p.niche,p.geo].filter(Boolean).join(" · "))}</p>
       <div class="prog"><i style="width:${done/ch.length*100}%"></i></div>
       <dl class="kv"><dt>${L("Заповнено","Заполнено")}</dt><dd class="mono">${done} / ${ch.length}</dd><dt>${L("Воронок","Воронок")}</dt><dd class="mono">${p.funnels.length}</dd><dt>${L("Сегментів ЦА","Сегментов ЦА")}</dt><dd class="mono">${p.segs.length}</dd><dt>${L("Матеріалів","Материалов")}</dt><dd class="mono">${p.kb.length} + ${kbInh(p).length} ${L("з компанії","из компании")}</dd></dl>
       <div class="row"><button class="btn btn--sm btn--solid" data-act="wsOpenP" data-id="${p.id}">${L("Відкрити","Открыть")}</button></div></div>`; }).join("")}</div>`
@@ -253,7 +262,7 @@ function vProject(p){
       ${salesPanel(p)}
       ${chSumPanel(p)}`; },
     funnels: () => `${p.funnels.length ? `<div class="row"><button class="btn btn--solid" data-act="modal" data-id="funnel">${L("Додати воронку","Добавить воронку")}</button></div>` : ""}
-      ${p.funnels.length?`<div class="cols">${p.funnels.map(f=>{ const c = fChain(f,p), done = c.filter(x=>x[2]).length, x = fT(f,p); return `<div class="panel"><div class="row sp"><h2>${esc(f.name)}</h2>${del("wsDelF", f.id)}</div><p class="sub">${esc(f.an.offer)}</p><div class="prog"><i style="width:${done/c.length*100}%"></i></div>
+      ${p.funnels.length?`<div class="cols">${p.funnels.map(f=>{ const c = fChain(f,p), done = c.filter(x=>x[2]).length, x = fT(f,p); return `<div class="panel"><div class="row sp"><h2>${esc(f.name)}</h2>${del2("wsDelF", f.id, "f:" + f.id)}</div><p class="sub">${esc(f.an.offer)}</p><div class="prog"><i style="width:${done/c.length*100}%"></i></div>
         <dl class="kv"><dt>${L("Готовність","Готовность")}</dt><dd class="mono">${done} / ${c.length}</dd><dt>${L("ЦА","ЦА")}</dt><dd class="mono">${fSegs(f,p).length} ${L("сегм.","сегм.")}</dd><dt>${L("Лендингів","Лендингов")}</dt><dd class="mono">${f.lands.length}</dd><dt>${L("Креативів","Креативов")}</dt><dd class="mono">${f.crs.length}</dd><dt>${L("План","План")}</dt><dd class="mono">${num(x.pay)} ${L("оплат","оплат")} · ${money(x.rev)}</dd></dl>
         <div class="row"><button class="btn btn--sm btn--solid" data-act="wsOpenF" data-id="${f.id}">${L("Відкрити","Открыть")}</button></div></div>`; }).join("")}</div>`
         : empty(L("Воронок ще немає","Воронок ещё нет"), L("Воронка — це один офер з ціною: вебінар, акція, лід-форма. У неї свої сайт, канали трафіку, креативи й цілі.","Воронка — это один оффер с ценой: вебинар, акция, лид-форма. У неё свои сайт, каналы трафика, креативы и цели."), `<button class="btn btn--solid" data-act="modal" data-id="funnel">${L("Додати першу воронку","Добавить первую воронку")}</button>`)}`,
@@ -443,7 +452,9 @@ Object.assign(ACT, {
   wsBackP(){ W.cur = null; W.fun = null; W.ctab = "map"; save(); },
   wsOpenP(d){ W.cur = d.id; W.fun = null; W.tab = "about"; save(); },
   wsTab(d){ W.fun = null; W.tab = d.v; save(); },
-  wsDelP(d){ if (!canAdmin()) { toast(L("Проєкти видаляє власник або керівник","Проекты удаляет собственник или руководитель")); return false; } W.projs = W.projs.filter(p=>p.id!==d.id); save(); toast(L("Проєкт видалено","Проект удалён")); },
+  wsDelP(d){ if (!canAdmin()) { toast(L("Проєкти видаляє власник або керівник","Проекты удаляет собственник или руководитель")); return false; } const dp = W.projs.find(p => p.id === d.id); if (!dp) return false;
+    if (!delAsk("p:" + d.id)) { toast(L("Натисніть ще раз, щоб видалити проєкт «","Нажмите ещё раз, чтобы удалить проект «") + dp.name + L("» з воронками, підключеннями й статистикою","» с воронками, подключениями и статистикой")); return; }
+    storedPaths(dp).forEach(cloudFileDel); W.projs = W.projs.filter(p => p.id !== d.id); if (W.cur === d.id) { W.cur = null; W.fun = null; } saveNow(); toast(L("Проєкт видалено","Проект удалён")); },
   wsSet(d){ wset(d.k, d.v); },
   wsSale(d, sp){ const f = F(); sp = sp || saleGet(d.v); if (!f || !sp) return; const known = saleAll().map(x => x.steps);
     if (!f.an.path || known.includes(f.an.path) || d.force) f.an.path = sp.steps; f.sale = sp.id; f.saleName = sp.name; save(); },
@@ -463,7 +474,9 @@ Object.assign(ACT, {
   wsOpenF(d){ W.fun = d.id; W.ftab = "an"; save(); },
   wsBackF(){ W.fun = null; W.tab = "funnels"; save(); },
   wsFtab(d){ W.ftab = d.v; save(); },
-  wsDelF(d){ const p = P(); p.funnels = p.funnels.filter(f=>f.id!==d.id); save(); toast(L("Воронку видалено","Воронка удалена")); },
+  wsDelF(d){ const p = d.p ? W.projs.find(x => x.id === d.p) : P(), df = p && p.funnels.find(f => f.id === d.id); if (!df) return false;
+    if (!delAsk("f:" + d.id)) { toast(L("Натисніть ще раз, щоб видалити воронку «","Нажмите ещё раз, чтобы удалить воронку «") + df.name + "»"); return; }
+    storedPaths(df).forEach(cloudFileDel); p.funnels = p.funnels.filter(f => f.id !== d.id); if (W.fun === d.id) W.fun = null; saveNow(); toast(L("Воронку видалено","Воронка удалена")); },
   wsSegT(d){ const f = F(), i = f.aud.off.indexOf(d.id); if (i < 0) f.aud.off.push(d.id); else f.aud.off.splice(i, 1); save(); },
   wsAddFSeg(){ const n = val("fs-n"); if (!need(n, L("Опишіть сегмент","Опишите сегмент"), "fs-n")) return false; F().aud.add.push({id:uid(), name:n, pain:val("fs-p"), say:val("fs-s")}); save(); },
   wsDelFSeg(d){ const f = F(); f.aud.add = f.aud.add.filter(s=>s.id!==d.id); save(); },

@@ -539,3 +539,4 @@ h1[tabindex="-1"]:focus,h2[tabindex="-1"]:focus,#view[tabindex="-1"]:focus,.moda
 #bd .item .form{margin-top:8px}
 #bd .field{min-width:0}
 #bd .sub,#bd .mono{overflow-wrap:anywhere}
+.btn--del,.btn--del:hover{background:var(--play);border-color:var(--play);color:#fff}
