@@ -66,7 +66,7 @@ function audBlock(o, act){
 }
 
 /* ---------- анкета нового проекта ---------- */
-const OBS = () => [L("Проєкт","Проект"),L("Акаунти","Аккаунты"),L("Правила","Правила"),L("Цифри","Цифры"),L("Аудиторія","Аудитория"),L("Підсумок","Итог")];
+const OBS = () => [L("Проєкт","Проект"),L("Підключення","Подключения"),L("Правила","Правила"),L("Цифри","Цифры"),L("Аудиторія","Аудитория"),L("Підсумок","Итог")];
 const obFresh = () => { const o = obFreshS(); if (own()) { Object.assign(o.d, {name:"", niche:"", geo:"", site:"", product:"", worked:"", ban:"", tone:""}); o.text = ""; } return o; };
 const obFreshS = () => ({step:0, q:0, conn:{}, tab:"files", files:null, seg:false, segs:SEGEN, segsOwn:[],
   text:L("Дорослі 25–45, англійська потрібна для роботи. Найчастіше приходять перед співбесідою або коли з’являються іноземні клієнти.","Взрослые 25–45, английский нужен для работы. Чаще всего приходят перед собеседованием или когда появляются иностранные клиенты."),
@@ -112,7 +112,7 @@ function modalOnboard(){
     () => own() ? ownAudStep(o) : audBlock(o, "ob"),
     () => { const c = obCalc(d), n = Object.values(o.conn).filter(Boolean).length;
       return `<dl class="kv"><dt>${L("Проєкт","Проект")}</dt><dd><b>${esc(d.name)}</b>${[d.niche, d.geo].filter(Boolean).map(x => " · " + esc(x)).join("")}</dd><dt>${L("Що продаємо","Что продаём")}</dt><dd>${esc(d.product) || "—"}</dd>
-        <dt>${L("Акаунти","Аккаунты")}</dt><dd>${n} ${L("із","из")} ${OBCONN().length} ${L("підключено або в роботі","подключено или в работе")}</dd>
+        <dt>${L("Підключення","Подключения")}</dt><dd>${n} ${L("із","из")} ${OBCONN().length} ${L("підключено або в роботі","подключено или в работе")}</dd>
         <dt>${L("Цілі місяця","Цели месяца")}</dt><dd class="mono">${money(d.budget)} → ${num(c.leads)} ${L("лідів","лидов")} → ${num(c.pay)} ${L("оплат","оплат")} → ${money(c.rev)}</dd>
         <dt>${L("Стеля ціни ліда","Потолок цены лида")}</dt><dd class="mono">$${dec(c.cap)}</dd>
         <dt>${L("Аудиторія","Аудитория")}</dt><dd>${own()&&o.segsOwn.length?o.segsOwn.map(x=>esc(x.name)).join(" · "):o.seg?SEGEN().map(x=>x[0]).join(" · "):L("сегменти не виділено — можна додати пізніше","сегменты не выделены — можно добавить позже")}</dd></dl>
@@ -203,7 +203,7 @@ function anCoh(){ const fid = S.anF, T = [0,0,0,0];
   const chk = fid === "all" ? CHECK : S.funnels.find(f=>f.id===fid).tg.check;
   const rows = COH.map(c=>{ const v = cohSum(c, fid); v.forEach((x,i)=>T[i]+=x); return [c, v]; }).filter(r=>r[1][0]>0);
   return `<div class="row"><span class="tag">${L("Воронка","Воронка")}</span><div class="seg" role="group"><button type="button" data-act="anF" data-v="all" aria-pressed="${fid==="all"}">${L("Усі","Все")}</button>${S.funnels.filter(f=>COH.some(c=>c.f[f.id])).map(f=>`<button type="button" data-act="anF" data-v="${f.id}" aria-pressed="${fid===f.id}">${fN(f)}</button>`).join("")}</div></div>
-  <div class="tw"><table><thead><tr><th>${L("Дата вебінару","Дата вебинара")}</th><th>${L("Дозрілість","Зрелость")}</th><th class="n">${L("Витрати","Расход")}</th><th class="n">${L("Ліди","Лиды")}</th><th class="n">CPL</th><th class="n">${L("Броні","Брони")}</th><th class="n">${L("Лід → бронь","Лид → бронь")}</th><th class="n">${L("Оплати","Оплаты")}</th><th class="n">${L("Бронь → оплата","Бронь → оплата")}</th><th class="n">ROAS</th></tr></thead>
+  <div class="tw"><table><thead><tr><th>${L("Дата вебінару","Дата вебинара")}</th><th>${L("Зрілість","Зрелость")}</th><th class="n">${L("Витрати","Расход")}</th><th class="n">${L("Ліди","Лиды")}</th><th class="n">CPL</th><th class="n">${L("Броні","Брони")}</th><th class="n">${L("Лід → бронь","Лид → бронь")}</th><th class="n">${L("Оплати","Оплаты")}</th><th class="n">${L("Бронь → оплата","Бронь → оплата")}</th><th class="n">ROAS</th></tr></thead>
     <tbody>${rows.map(([c,v])=>`<tr class="${c.ripe<90?"unripe":""}"><td class="mono"><b>${c.d}</b></td><td><div class="ripe"><div class="prog"><i style="width:${c.ripe}%"></i></div><span class="mono">${c.ripe}%</span></div></td><td class="n mono">${money(v[0])}</td><td class="n mono">${num(v[1])}</td><td class="n mono">$${dec(v[0]/v[1])}</td><td class="n mono">${v[2]}</td><td class="n mono">${pc(v[2]/v[1]*100)}</td><td class="n mono">${v[3]}</td><td class="n mono">${pc(v[3]/v[2]*100,0)}</td><td class="n mono"><b>${dec(v[3]*chk/v[0])}</b></td></tr>`).join("")}
     <tr class="sum"><td><b>${L("Разом","Итого")}</b></td><td></td><td class="n mono">${money(T[0])}</td><td class="n mono">${num(T[1])}</td><td class="n mono">$${dec(T[0]/T[1])}</td><td class="n mono">${T[2]}</td><td class="n mono">${pc(T[2]/T[1]*100)}</td><td class="n mono">${T[3]}</td><td class="n mono">${pc(T[3]/T[2]*100,0)}</td><td class="n mono"><b>${dec(T[3]*chk/T[0])}</b></td></tr></tbody></table></div>
   <p class="sub">${L("Когорта — усі, хто прийшов на вебінар цієї дати, з усією рекламою, яка їх привела. Жовті рядки ще дозрівають: оплати надходять до трьох тижнів, тому їхній ROAS зросте.","Когорта — все, кто пришёл на вебинар этой даты, со всей рекламой, которая их привела. Жёлтые строки ещё дозревают: оплаты поступают до трёх недель, поэтому их ROAS вырастет.")}</p>`; }
