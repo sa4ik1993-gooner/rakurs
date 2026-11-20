@@ -259,6 +259,7 @@ function vProject(p){
           : empty(L("Воронок ще немає","Воронок ещё нет"), L("Цілі воронок зведуться сюди й звіряться з ціллю проєкту.","Цели воронок сведутся сюда и сверятся с целью проекта."), `<button class="btn btn--solid" data-act="modal" data-id="funnel">${L("Додати воронку","Добавить воронку")}</button>`)}
         <p class="sub">${L("Це план. Факт — нижче, у блоці «Факт реклами».","Это план. Факт — ниже, в блоке «Факт рекламы».")}</p></div>
       ${factPanel(p)}
+      ${askPanel(p)}
       ${salesPanel(p)}
       ${chSumPanel(p)}`; },
     funnels: () => `${p.funnels.length ? `<div class="row"><button class="btn btn--solid" data-act="modal" data-id="funnel">${L("Додати воронку","Добавить воронку")}</button></div>` : ""}
@@ -333,6 +334,7 @@ function vFunnel(f, p){
   <div class="panel vf"><div class="row sp"><span class="tag">${L("Готовність до запуску","Готовность к запуску")} · ${ready.filter(r=>r[1]).length} / ${ready.length}</span></div>
     <ul class="steps">${ready.map(r=>`<li class="${r[1]?"ok":""}">${r[0]}</li>`).join("")}</ul>
     <p class="sub">${L("Назва кампанії буде такою: ","Название кампании будет таким: ")}<span class="mono">${esc(camp)}</span>. ${L("Кампанія збирається вимкненою, вмикає людина.","Кампания собирается выключенной, включает человек.")}</p></div>
+  ${askPanel(p, f)}
   ${bdPanel(f, p)}`;
 }
 function modalFunnelOwn(){ const p = P();

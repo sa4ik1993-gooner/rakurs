@@ -545,3 +545,21 @@ h1[tabindex="-1"]:focus,h2[tabindex="-1"]:focus,#view[tabindex="-1"]:focus,.moda
 .ck input{width:auto;height:auto;min-height:0;margin:3px 0 0;flex:none}
 .ck span{display:grid;gap:2px;min-width:0}
 .ck small{overflow-wrap:anywhere}
+#aq textarea{width:100%}
+.aqs{display:grid;gap:8px;margin-top:14px}
+.aqi{border:1px solid var(--line);padding:10px 12px;background:var(--surface)}
+.aqi summary{display:flex;gap:12px;justify-content:space-between;align-items:baseline;cursor:pointer;list-style:none}
+.aqi summary::-webkit-details-marker{display:none}
+.aqi summary b{min-width:0;overflow-wrap:anywhere}
+.aqi summary span{flex:none}
+.aqa{margin:10px 0 6px;min-width:0}
+.aqa p{margin:0 0 8px;line-height:1.5}
+.aqa h3{margin:12px 0 6px;font-size:1em}
+.aqa ul,.aqa ol{margin:0 0 8px;padding-left:20px;display:grid;gap:4px}
+.aqa .tw{margin:0 0 10px}
+#aq .chipset .chip{cursor:pointer;text-align:left;font:inherit;white-space:normal}
+@media (max-width:760px){.aqi summary{flex-direction:column;gap:2px}}
+#aq .chipset .chip{background:var(--surface);color:inherit}
+.aqs{grid-template-columns:minmax(0,1fr)}
+.aqi{min-width:0}
+.aqa p,.aqa li{overflow-wrap:anywhere}
