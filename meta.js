@@ -201,7 +201,7 @@ Object.assign(ACT, {
    Всё создаётся выключенным (PAUSED) со стартом на следующий день в 00:40 по Киеву; включает человек в Ads Manager.
    Номера созданного хранятся в BD.run: если шаг упал, «Продолжить» начинает с него, уже созданное не дублируется. */
 const BD = {open:null, form:null, run:null, busy:false, err:"", step:"", files:{}};
-const BD_EVENTS = () => [["lead",L("Лід (Lead) — заявка на сайті","Лид (Lead) — заявка на сайте")],["reg",L("Реєстрація (CompleteRegistration)","Регистрация (CompleteRegistration)")],["buy",L("Покупка (Purchase)","Покупка (Purchase)")],["lpv",L("Перегляди сторінки — без пікселя","Просмотры страницы — без пикселя")]];
+const BD_EVENTS = () => [["lead",L("Лід (Lead) — заявка на сайті","Лид (Lead) — заявка на сайте")],["reg",L("Реєстрація (CompleteRegistration)","Регистрация (CompleteRegistration)")],["sub",L("Підписка на сайті (Subscribe) — реєстрація на вебінар","Подписка на сайте (Subscribe) — регистрация на вебинар")],["buy",L("Покупка (Purchase)","Покупка (Purchase)")],["lpv",L("Перегляди сторінки — без пікселя","Просмотры страницы — без пикселя")]];
 const BD_CTA = [["LEARN_MORE","Learn more"],["SIGN_UP","Sign up"],["REGISTER_NOW","Register now"],["APPLY_NOW","Apply now"],["GET_OFFER","Get offer"],["SUBSCRIBE","Subscribe"],["CONTACT_US","Contact us"],["SHOP_NOW","Shop now"],["WATCH_MORE","Watch more"]];
 const bdLatin = s => String(s || "").split("").map(c => { const l = c.toLowerCase(); return TRL[l] !== undefined ? (c === l ? TRL[l] : TRL[l].charAt(0).toUpperCase() + TRL[l].slice(1)) : c; }).join("").replace(/[^A-Za-z0-9_.\-]+/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "").slice(0, 120);
 /* Завтра 00:40 по Киеву → момент времени. Смещение Киева берём из часов браузера, поэтому летнее время учтено само. */
@@ -220,7 +220,7 @@ function bdPixels(p, c){ const F0 = BD.form, id = F0.account; BD.px = BD.px || {
     BD.pxLast = BD.pxLast || {}; BD.pxLast[id] = r.ok && r.last ? r.last : null;
     if (BD.form === F0 && F0.account === id && Array.isArray(BD.px[id]) && !F0.pixelSet) { const has = x => x && BD.px[id].some(y => y.id === x), last = BD.pxLast[id];
       F0.pixel = last && has(last.id) ? last.id : main && c.pixel && has(c.pixel.id) ? c.pixel.id : (BD.px[id][0] || {}).id || "";
-      const ev = last && F0.pixel === last.id ? {LEAD:"lead", COMPLETE_REGISTRATION:"reg", PURCHASE:"buy"}[last.event] : ""; if (ev && !F0.eventSet) F0.event = ev; }
+      const ev = last && F0.pixel === last.id ? {LEAD:"lead", COMPLETE_REGISTRATION:"reg", SUBSCRIBE:"sub", PURCHASE:"buy"}[last.event] : ""; if (ev && !F0.eventSet) F0.event = ev; }
     render(); }); }
 const bdCanWrite = c => !c || !c.scopes || !c.scopes.length || c.scopes.includes("ads_management");
 /* Страна проекта, только если она точно распознана: «Весь світ» не должен превратиться в код VE (Венесуэла). */
