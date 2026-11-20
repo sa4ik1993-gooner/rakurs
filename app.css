@@ -540,3 +540,8 @@ h1[tabindex="-1"]:focus,h2[tabindex="-1"]:focus,#view[tabindex="-1"]:focus,.moda
 #bd .field{min-width:0}
 #bd .sub,#bd .mono{overflow-wrap:anywhere}
 .btn--del,.btn--del:hover{background:var(--play);border-color:var(--play);color:#fff}
+.cks{display:grid;gap:6px;max-height:320px;overflow:auto;border:1px solid var(--line,rgba(0,0,0,.15));padding:8px}
+.field label.ck,.ck{display:flex;gap:10px;align-items:flex-start;cursor:pointer;text-transform:none;letter-spacing:0;font:inherit;color:inherit}
+.ck input{width:auto;height:auto;min-height:0;margin:3px 0 0;flex:none}
+.ck span{display:grid;gap:2px;min-width:0}
+.ck small{overflow-wrap:anywhere}
