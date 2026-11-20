@@ -44,6 +44,8 @@ const aqExamples = p => { const a = ((p.meta && p.meta.conn && (p.meta.conn.acco
     a.length > 1 ? L("Порівняй усі підключені акаунти за минулий місяць: витрати, результати, ціна результату.","Сравни все подключённые аккаунты за прошлый месяц: расход, результаты, цена результата.") : L("Як змінилась ціна ліда за останні два тижні проти двох попередніх?","Как изменилась цена лида за последние две недели против двух предыдущих?"),
     L("Які кампанії варто вимкнути й чому?","Какие кампании стоит выключить и почему?")]; };
 function askPanel(p, f){
+  /* Блок выключен, пока в config.js нет ask:true. Решение Дмитрия 20.11.2026: платных запросов по API пока не делаем. */
+  if (!(window.RK && RK.ask)) return "";
   const list = (p.asks || []), conn = p.meta && p.meta.conn;
   const item = (x, open) => `<details class="aqi"${open ? " open" : ""}><summary><b>${esc(x.q)}</b><span class="sub mono">${esc(String(x.at || "").slice(0, 16).replace("T", " "))}</span></summary>
       <div class="aqa">${mdLite(x.a)}</div>
