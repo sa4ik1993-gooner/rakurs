@@ -229,7 +229,7 @@ const bdGeo = g => [...new Set(String(g || "").split(/[,;\/]/).map(bdGeo1).filte
 function bdName(f, p, date){ const dm = date ? date.slice(8, 10) + "." + date.slice(5, 7) : ""; return bdLatin([slug(p.name), bdGeo(p.geo).split(", ")[0], slug(f.name), f.goal === "form" ? "Form" : "Site", dm, "ABO"].filter(Boolean).join("_")); }
 function bdInit(f, p){ const date = bdTomorrow(), g = bdGeo(p.geo), daily = Math.round(fT(f, p).bud / 30), c = bdConn(p);
   BD.px = {};
-  BD.form = {account:(bdAccs(c)[0] || {}).id || "", page:(bdPages(c)[0] || {}).id || "", pixel:c && c.pixel ? c.pixel.id : "", name:bdName(f, p, date), event:"lead", budget:daily >= 5 ? daily : 20, link:bdUrl((f.lands[0] || {}).url), countries:g || "UA", advantage:true, age_min:25, age_max:55, gender:"",
+  BD.form = {account:(bdAccs(c)[0] || {}).id || "", page:(bdPages(c)[0] || {}).id || "", pixel:c && c.pixel ? c.pixel.id : "", name:bdName(f, p, date), event:"lead", budget:daily >= 5 ? daily : 20, link:bdUrl((f.lands[0] || {}).url), countries:g || "UA", lang:"", advantage:true, age_min:25, age_max:55, gender:"",
     adset:"", date, time:"00:40", headline:"", description:"", cta:"LEARN_MORE",
     ads:(f.crs.length ? f.crs : []).map(c => ({id:c.id, on:true, name:bdLatin(c.slug || c.name), text:c.text || "", type:c.type === "img" ? "img" : "video", path:c.path || "", fname:c.name || ""}))};
   BD.run = null; BD.err = ""; BD.step = ""; BD.files = {}; }
@@ -279,7 +279,9 @@ function bdForm(f, p, c){ const F0 = BD.form, accs = bdAccs(c), pages = bdPages(
       ${inp("budget", L("Бюджет на день, ","Бюджет в день, ") + esc(cur), {num:1})}
       <div class="field w"><label for="bd-link">${L("Лендинг","Лендинг")}</label><input id="bd-link" data-bd="link" value="${esc(F0.link)}" list="bd-lands" placeholder="https://"${dis}><datalist id="bd-lands">${lands.map(u => `<option value="${esc(u)}">`).join("")}</datalist><span class="sub">${L("Мітки UTM додаються самі: ","Метки UTM добавляются сами: ")}<span class="mono">${esc(UTM)}</span></span></div>
       ${inp("countries", L("Країни","Страны"), {ph:"UA, PL"})}
+      ${sel("lang", L("Мова користувача","Язык пользователя"), [["",L("будь-яка","любой")],["52",L("українська","украинский")]])}
       <div class="field"><label>${L("Аудиторія","Аудитория")}</label><label class="row bdck"><input type="checkbox" data-bd="advantage"${F0.advantage ? " checked" : ""}${dis}> ${L("Advantage+ — Meta сама шукає людей","Advantage+ — Meta сама ищет людей")}</label></div>
+      ${F0.lang && F0.advantage ? `<div class="field w"><span class="sub">${L("З Advantage+ Meta може показувати рекламу й поза обраною мовою. Щоб показувати тільки україномовним, вимкніть Advantage+ і задайте вік — як у ваших кампаніях: 23–55.","С Advantage+ Meta может показывать рекламу и вне выбранного языка. Чтобы показывать только украиноязычным, выключите Advantage+ и задайте возраст — как в ваших кампаниях: 23–55.")}</span></div>` : ""}
       ${F0.advantage ? "" : inp("age_min", L("Вік від","Возраст от"), {num:1}) + inp("age_max", L("Вік до","Возраст до"), {num:1}) + sel("gender", L("Стать","Пол"), [["",L("усі","все")],["f",L("жінки","женщины")],["m",L("чоловіки","мужчины")]])}
       ${inp("adset", L("Назва групи","Название группы"), {ph:bdAdset(Object.assign({}, F0, {adset:""})), hint:L("Порожньо — збереться сама; йде в utm_term.","Пусто — соберётся сама; уходит в utm_term.")})}
       ${inp("date", L("Старт, дата (Київ)","Старт, дата (Киев)"), {type:"date"})}${inp("time", L("Час (Київ)","Время (Киев)"), {type:"time"})}
@@ -321,7 +323,7 @@ async function bdRunAll(){ const f = F(), p = P(), F0 = BD.form, c = bdConn(p); 
       /* старая серверная функция не знает про выбор аккаунта и создала бы всё в основном */
       if (F0.account !== (c.account || {}).id && r.account !== F0.account) throw {error:"old_fn"}; }
     if (!R.adset_id) R.adset_id = (await bdStep({action:"b_adset", campaign_id:R.campaign_id, name:adset, event:F0.event, daily_budget:+String(F0.budget).replace(",", "."), start_time:start,
-      countries:F0.countries.toUpperCase().split(/[^A-Z]+/).filter(x => x.length === 2), advantage:F0.advantage, age_min:+F0.age_min, age_max:+F0.age_max, gender:F0.gender}, L("Створюємо групу оголошень…","Создаём группу объявлений…"))).id;
+      countries:F0.countries.toUpperCase().split(/[^A-Z]+/).filter(x => x.length === 2), locales:F0.lang ? [+F0.lang] : [], advantage:F0.advantage, age_min:+F0.age_min, age_max:+F0.age_max, gender:F0.gender}, L("Створюємо групу оголошень…","Создаём группу объявлений…"))).id;
     for (const a of F0.ads.filter(x => x.on)) { const x = await bdMedia(a, R); if (x.ad_id) continue;
       const r = await bdStep({action:"b_ad", adset_id:R.adset_id, name:a.name, text:a.text, headline:F0.headline, description:F0.description, cta:F0.cta, link:bdUrl(F0.link), url_tags:UTM,
         image_hash:x.hash, video_id:x.picture ? x.video_id : undefined, picture:x.picture, creative_id:x.creative_id}, L("Створюємо оголошення ","Создаём объявление ") + a.name);
@@ -346,7 +348,7 @@ document.addEventListener("input", e => { const t = e.target; if (!t.dataset || 
   if (t.type !== "checkbox" && t.tagName !== "SELECT") BD.form[k] = t.value; });
 document.addEventListener("change", e => { const t = e.target; if (!t.dataset || !BD.form) return;
   if (t.dataset.bdf) { const file = t.files && t.files[0], a = BD.form.ads.find(x => x.id === t.dataset.bdf); if (!file || !a) return; BD.files[a.id] = file; a.type = file.type.indexOf("video") === 0 ? "video" : "img";
-    if (a.custom && /^ad_\d+$/.test(a.name)) a.name = bdLatin(slug(file.name)); if (BD.run && BD.run.ads) delete BD.run.ads[a.id]; render(); return; }
+    if (a.custom && /^ad_\d+$/.test(a.name)) a.name = bdLatin(file.name.replace(/\.[^.]+$/, "")); if (BD.run && BD.run.ads) delete BD.run.ads[a.id]; render(); return; }
   if (!t.dataset.bd) return; const k = t.dataset.bd;
   if (k.indexOf("ad:") === 0) { const [, id, fk] = k.split(":"), a = BD.form.ads.find(x => x.id === id); if (!a) return; if (fk === "on") a.on = t.checked; else if (fk === "name") a.name = bdLatin(t.value); else a[fk] = t.value; render(); return; }
   BD.form[k] = t.type === "checkbox" ? t.checked : t.value; if (k === "name" || k === "adset") BD.form[k] = t.value ? t.value : "";
