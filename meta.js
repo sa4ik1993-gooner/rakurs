@@ -171,8 +171,9 @@ const bdUrl = u => { u = String(u || "").trim(); return !u ? "" : /^https?:\/\//
 const bdConn = p => p && p.meta && p.meta.conn;
 const bdCanWrite = c => !c || !c.scopes || !c.scopes.length || c.scopes.includes("ads_management");
 /* Страна проекта, только если она точно распознана: «Весь світ» не должен превратиться в код VE (Венесуэла). */
-const bdGeo = g => { const first = String(g || "").split(/[,;\/]/)[0], hit = geoFind(first); if (hit && /^[A-Z]{2}$/.test(hit[0]) && hit[0] !== "EU") return hit[0]; const w = GEO[slug(first)]; return w && w !== "EU" ? w : ""; };
-function bdName(f, p, date){ const dm = date ? date.slice(8, 10) + "." + date.slice(5, 7) : ""; return bdLatin([slug(p.name), bdGeo(p.geo), slug(f.name), f.goal === "form" ? "Form" : "Site", dm, "ABO"].filter(Boolean).join("_")); }
+const bdGeo1 = s => { const hit = geoFind(s), c = hit ? hit[0] : GEO[slug(s)]; return c && /^[A-Z]{2}$/.test(c) && c !== "EU" && c !== "WW" ? c : ""; };
+const bdGeo = g => [...new Set(String(g || "").split(/[,;\/]/).map(bdGeo1).filter(Boolean))].join(", ");
+function bdName(f, p, date){ const dm = date ? date.slice(8, 10) + "." + date.slice(5, 7) : ""; return bdLatin([slug(p.name), bdGeo(p.geo).split(", ")[0], slug(f.name), f.goal === "form" ? "Form" : "Site", dm, "ABO"].filter(Boolean).join("_")); }
 function bdInit(f, p){ const date = bdTomorrow(), g = bdGeo(p.geo), daily = Math.round(fT(f, p).bud / 30);
   BD.form = {name:bdName(f, p, date), event:"lead", budget:daily >= 5 ? daily : 20, link:bdUrl((f.lands[0] || {}).url), countries:g || "UA", advantage:true, age_min:25, age_max:55, gender:"",
     adset:"", date, time:"00:40", headline:"", description:"", cta:"LEARN_MORE",
