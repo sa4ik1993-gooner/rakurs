@@ -24,9 +24,17 @@ const slug = s => String(s || "").toLowerCase().replace(/\.[a-z0-9]{2,4}$/,"").s
 const GEO = {ukraina:"UA",ukrayina:"UA",polsha:"PL",polscha:"PL",kazakhstan:"KZ",germaniya:"DE",nimechchina:"DE",ssha:"US",usa:"US",evropa:"EU",yevropa:"EU",moldova:"MD",litva:"LT",latviya:"LV",estoniya:"EE",chekhiya:"CZ",ispaniya:"ES",italiya:"IT",izrail:"IL",kanada:"CA"};
 const geoCode = g => { const first = String(g||"").split(/[,;\/]/)[0], hit = geoFind(first); if (hit) return hit[0]; const w = slug(first); return GEO[w] || (w ? w.slice(0,2).toUpperCase() : ""); };
 const UTM = "utm_source={{site_source_name}}&utm_medium=paid&utm_campaign={{campaign.name}}&utm_content={{ad.name}}&utm_term={{adset.name}}";
-/* у каждого проекта свои метки: рекомендованные — только по умолчанию, свой шаблон хранится в проекте */
+/* Шаблон меток закладывается один раз и наследуется: компания → проект → воронка → запуск. Пустой уровень берёт шаблон уровня выше;
+   если не задан нигде — действуют рекомендованные. */
 const utmClean = t => String(t || "").replace(/\s+/g, "").replace(/^[?&]+/, "");
-const utmOf = p => utmClean(p && p.utm) || UTM;
+const utmOk = t => /^[^=&]+=[^&]*(&[^=&]+=[^&]*)*$/.test(utmClean(t));
+const utmLvl = (p, f) => { const hit = [["f", f && f.utm], ["p", p && p.utm], ["co", W.co && W.co.utm]].find(x => utmOk(x[1])); return hit ? {from:hit[0], v:utmClean(hit[1])} : {from:"std", v:UTM}; };
+const utmOf = (p, f) => utmLvl(p, f).v;
+function utmPanel(lvl){ const p = P(), f = F(), up = lvl === "co" ? {from:"std", v:UTM} : lvl === "p" ? utmLvl(null, null) : utmLvl(p, null), own = utmClean(wget(lvl + ".utm"));
+  const who = {std:L("рекомендований","рекомендованный"), co:L("компанії","компании"), p:L("проєкту","проекта")}[up.from];
+  return `<div class="panel"><span class="tag">${L("Мітки UTM","Метки UTM")} · ${{co:L("компанія","компания"), p:L("проєкт","проект"), f:L("воронка","воронка")}[lvl]}</span>
+    <div class="form">${fld(lvl + ".utm", {co:L("Шаблон міток для всіх проєктів компанії","Шаблон меток для всех проектов компании"), p:L("Свій шаблон міток проєкту","Свой шаблон меток проекта"), f:L("Свій шаблон міток воронки","Свой шаблон меток воронки")}[lvl], {area:2, w:1, ph:up.v})}</div>
+    <p class="sub">${own && !utmOk(own) ? `<span class="mterr">${L("Шаблон має вигляд: utm_source=…&utm_campaign=… Поки він записаний не так, діє шаблон рівнем вище.","Шаблон имеет вид: utm_source=…&utm_campaign=… Пока он записан не так, действует шаблон уровнем выше.")}</span> ` : ""}${own ? "" : L("Порожньо — діє шаблон ","Пусто — действует шаблон ") + who + `: <span class="mono">${esc(up.v)}</span>. `}${lvl === "co" ? L("Закладається один раз; проєкт, воронка й окремий запуск можуть мати свій.","Закладывается один раз; у проекта, воронки и отдельного запуска может быть свой.") : L("Заповнюйте, лише якщо тут мітки мають відрізнятися.","Заполняйте, только если здесь метки должны отличаться.")} ${L("Meta сама підставляє","Meta сама подставляет")} <span class="mono">{{campaign.name}}</span>, <span class="mono">{{adset.name}}</span>, <span class="mono">{{ad.name}}</span>, <span class="mono">{{site_source_name}}</span>, <span class="mono">{{placement}}</span>.</p></div>`; }
 const root = k => ({co:W.co, p:P(), f:F()}[k]);
 const wget = path => path.split(".").reduce((o,k,i)=> i ? (o == null ? "" : o[k]) : root(k), null);
 function wset(path, v){ const ks = path.split("."), last = ks.pop(); let o = root(ks[0]); for (let i = 1; i < ks.length; i++) { if (o[ks[i]] == null) o[ks[i]] = {}; o = o[ks[i]]; } o[last] = v; save(); }
@@ -130,6 +138,7 @@ function vCompany(){
       ${brandPanel("co")}
       <div class="panel"><span class="tag">${L("Спільні правила","Общие правила")}</span><div class="form">${fld("co.ban",L("Що не можна обіцяти й казати в жодному проєкті","Что нельзя обещать и говорить ни в одном проекте"),{w:1})}${fld("co.tone",L("Тон компанії","Тон компании"),{w:1})}</div>
         <p class="sub">${L("Додаються до правил кожного проєкту й перевіряються в кожному ролику й тексті.","Добавляются к правилам каждого проекта и проверяются в каждом ролике и тексте.")}</p></div>
+      ${utmPanel("co")}
       ${pathsPanel()}
       ${kbCols("co")}`,
     team: () => { if (!CLOUD) return `<div class="panel vf"><span class="tag">${L("Команда","Команда")}</span><p>${L("Кілька людей в одній компанії з’являться разом із сервером: кожен входить своєю поштою й бачить ті проєкти, до яких йому дали доступ.","Несколько человек в одной компании появятся вместе с сервером: каждый входит своей почтой и видит те проекты, к которым ему дали доступ.")}</p><p class="sub proto">${L("Прототип: сервер ще не підключено.","Прототип: сервер ещё не подключён.")}</p></div>`;
@@ -271,7 +280,7 @@ function vProject(p){
         <div class="row"><button class="btn btn--sm btn--solid" data-act="wsOpenF" data-id="${f.id}">${L("Відкрити","Открыть")}</button></div></div>`; }).join("")}</div>`
         : empty(L("Воронок ще немає","Воронок ещё нет"), L("Воронка — це один офер з ціною: вебінар, акція, лід-форма. У неї свої сайт, канали трафіку, креативи й цілі.","Воронка — это один оффер с ценой: вебинар, акция, лид-форма. У неё свои сайт, каналы трафика, креативы и цели."), `<button class="btn btn--solid" data-act="modal" data-id="funnel">${L("Додати першу воронку","Добавить первую воронку")}</button>`)}`,
     conn: () => `${MT.open === p.id ? metaGuide(p) : MT.g && MT.g.p === p.id ? guidePanel(p, MT.g.prov) : ""}<p class="sub">${L("Meta Ads підключається напряму, покроково. Для TikTok, Google і Telegram Ads є кроки підготовки кабінету; читання їхніх даних платформа ще не вміє.","Meta Ads подключается напрямую, по шагам. Для TikTok, Google и Telegram Ads есть шаги подготовки кабинета; читать их данные платформа пока не умеет.")}</p>
-      <div class="conn">${OBCONN().map(c=>{ const v = p.conn[c[0]]; return `<div class="panel"><div class="row sp"><h2>${c[1]}</h2>${c[0]==="meta"&&mtBroken(p)?pill("crit",L("потрібна увага","нужно внимание")):v===1?pill("good",L("підключено","подключено")):v?pill("warn",L("до підключення","к подключению")):pill("mute",L("немає","нет"))}</div>${c[0]==="meta" ? metaCard(p) : GUIDES()[c[0]] ? guideCard(p, c[0], c[2] + ".") : `<p class="sub">${c[2]}</p><div class="row"><button class="btn btn--sm" data-act="wsConn" data-id="${c[0]}">${v?L("Прибрати","Убрать"):L("Є, підключити","Есть, подключить")}</button></div>`}</div>`; }).join("")}</div>${sourcesPanel(p)}`
+      <div class="conn">${OBCONN().map(c=>{ const v = p.conn[c[0]]; return `<div class="panel"><div class="row sp"><h2>${c[1]}</h2>${c[0]==="meta"&&mtBroken(p)?pill("crit",L("потрібна увага","нужно внимание")):v===1?pill("good",L("підключено","подключено")):v?pill("warn",L("до підключення","к подключению")):pill("mute",L("немає","нет"))}</div>${c[0]==="meta" ? metaCard(p) : GUIDES()[c[0]] ? guideCard(p, c[0], c[2] + ".") : `<p class="sub">${c[2]}</p><div class="row"><button class="btn btn--sm" data-act="wsConn" data-id="${c[0]}">${v?L("Прибрати","Убрать"):L("Є, підключити","Есть, подключить")}</button></div>`}</div>`; }).join("")}</div>${sourcesPanel(p)}${utmPanel("p")}`
   }[t]();
   const next = ch.find(c=>!c[2]);
   return `<button class="back" data-act="wsBackP">← ${esc(W.co.name)}</button>
@@ -304,9 +313,10 @@ function vFunnel(f, p){
       <div class="panel">${fld("f.aud.note",L("Чим аудиторія цієї воронки відрізняється","Чем аудитория этой воронки отличается"),{area:3,ph:L("наприклад: тільки ті, хто вже був на вебінарі","например: только те, кто уже был на вебинаре")})}</div>`,
     land: () => `<div class="panel"><span class="tag">${L("Лендинги","Лендинги")} · ${f.lands.length}</span>
         ${f.lands.map(l=>`<div class="item"><div class="row sp"><b class="mono">${esc(l.url)}</b>${del("wsDelLand", l.id)}</div>${l.note?`<span class="sub">${esc(l.note)}</span>`:""}
-          <div class="utm"><code>${esc(l.url)}${l.url.includes("?")?"&":"?"}${esc(utmOf(p))}</code><button class="btn btn--sm" data-act="wsCopy" data-id="${l.id}">${L("Копіювати","Копировать")}</button></div></div>`).join("") || empty(L("Лендингів ще немає","Лендингов ещё нет"), L("Додайте сторінку, на яку веде реклама.","Добавьте страницу, на которую ведёт реклама."))}
+          <div class="utm"><code>${esc(l.url)}${l.url.includes("?")?"&":"?"}${esc(utmOf(p, f))}</code><button class="btn btn--sm" data-act="wsCopy" data-id="${l.id}">${L("Копіювати","Копировать")}</button></div></div>`).join("") || empty(L("Лендингів ще немає","Лендингов ещё нет"), L("Додайте сторінку, на яку веде реклама.","Добавьте страницу, на которую ведёт реклама."))}
         <div class="form adder"><div class="field"><label for="ld-u">URL</label><input id="ld-u" placeholder="example.com/urok"></div><div class="field"><label for="ld-n">${L("Що на сторінці, для кого","Что на странице, для кого")}</label><input id="ld-n"></div><div class="row w"><button class="btn btn--sm" data-act="wsAddLand">${L("Додати лендинг","Добавить лендинг")}</button></div></div>
-        <p class="sub">${L("Посилання для реклами збирається з єдиними мітками: назви кампанії, групи й оголошення підставляє майданчик.","Ссылка для рекламы собирается с едиными метками: названия кампании, группы и объявления подставляет площадка.")}</p></div>`,
+        <p class="sub">${L("Посилання для реклами збирається з єдиними мітками: назви кампанії, групи й оголошення підставляє майданчик.","Ссылка для рекламы собирается с едиными метками: названия кампании, группы и объявления подставляет площадка.")}</p></div>
+      ${utmPanel("f")}`,
     cr: () => { const segs = fSegs(f,p);
       return `<div class="panel"><span class="tag">${L("Креативи й тексти","Креативы и тексты")} · ${f.crs.length}</span>
         ${f.crs.length?`<div class="tw tw--in"><table><thead><tr><th>${L("Назва в UTM","Название в UTM")}</th><th>${L("Тип","Тип")}</th><th>${L("Перший кадр або думка","Первый кадр или мысль")}</th><th>${L("Сегмент","Сегмент")}</th><th>${L("Текст","Текст")}</th><th></th></tr></thead><tbody>
@@ -487,7 +497,7 @@ Object.assign(ACT, {
   wsDelFSeg(d){ const f = F(); f.aud.add = f.aud.add.filter(s=>s.id!==d.id); save(); },
   wsAddLand(){ const u = val("ld-u"); if (!need(u, L("Вкажіть адресу сторінки","Укажите адрес страницы"), "ld-u")) return false; F().lands.push({id:uid(), url:u.replace(/^https?:\/\//,""), note:val("ld-n")}); save(); },
   wsDelLand(d){ const f = F(); f.lands = f.lands.filter(l=>l.id!==d.id); save(); },
-  wsCopy(d){ const l = F().lands.find(x=>x.id===d.id), t = "https://" + l.url + (l.url.includes("?")?"&":"?") + utmOf(P()); (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(()=>toast(L("Посилання скопійовано","Ссылка скопирована")), ()=>toast(L("Виділіть посилання й скопіюйте вручну","Выделите ссылку и скопируйте вручную"))); return false; },
+  wsCopy(d){ const l = F().lands.find(x=>x.id===d.id), t = "https://" + l.url + (l.url.includes("?")?"&":"?") + utmOf(P(), F()); (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(()=>toast(L("Посилання скопійовано","Ссылка скопирована")), ()=>toast(L("Виділіть посилання й скопіюйте вручну","Выделите ссылку и скопируйте вручную"))); return false; },
   wsAddCr(){ const n = val("cr-n"), h = val("cr-h"); if (!need(n || h, L("Дайте креативу назву або опишіть перший кадр","Дайте креативу название или опишите первый кадр"), "cr-n")) return false; const f = F(); f.crs.push({id:uid(), name:n, slug:slug(n) || "creative_" + (f.crs.length+1), type:$("cr-t").value, hook:h, seg:$("cr-s").value, text:val("cr-x")}); save(); },
   wsDelCr(d){ const f = F(), x = f.crs.find(c=>c.id===d.id); if (x && x.path) cloudFileDel(x.path); f.crs = f.crs.filter(c=>c.id!==d.id); save(); },
   wsWipe(){ if (!W.wipe) { W.wipe = true; later(()=>{ if (W.wipe) { W.wipe = false; render(); } }, 4000); return; } if (CLOUD) { W.wipe = false; cloudDeleteCo(); return false; } try { if (W.user) localStorage.removeItem(accKey(W.user.id)); } catch (e) {} W = blankW(); AU = auFresh(); save(); toast(L("Акаунт і дані видалено","Аккаунт и данные удалены")); },
@@ -516,7 +526,7 @@ document.addEventListener("change", e => { const t = e.target; if (!own()) retur
     r.onload = () => { try { const d = JSON.parse(r.result); if (!d || !d.co || !Array.isArray(d.projs)) throw 0; W = Object.assign(blankW(), d, {user:W.user, mode:"own", cur:null, fun:null, ctab:"projects", wipe:false}); norm(); save(); render(); toast(L("Дані відновлено з копії","Данные восстановлены из копии")); } catch (x) { toast(L("Це не файл копії кабінету","Это не файл копии кабинета")); } };
     r.readAsText(f); return; }
   if (t.dataset.wf) { const files = [...t.files]; if (files.length) fileIntake(t.dataset.wf, files); return; }
-  if (t.dataset.w) { renderShell(); if (/^(p\.name|f\.name|co\.name|p\.brand\.|co\.brand\.colors|p\.tg\.|f\.tg\.)/.test(t.dataset.w)) renderView(); } });
+  if (t.dataset.w) { renderShell(); if (/^(p\.name|f\.name|co\.name|p\.brand\.|co\.brand\.colors|p\.tg\.|f\.tg\.|co\.utm|p\.utm|f\.utm)/.test(t.dataset.w)) renderView(); } });
 document.addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && e.target.matches("a[role=button][data-act]")) { e.preventDefault(); e.target.click(); } });
 /* ---------- клавиатура и программы чтения с экрана ----------
    Экран перерисовывается целиком, и фокус при этом пропадал: после любого нажатия человек с клавиатурой
