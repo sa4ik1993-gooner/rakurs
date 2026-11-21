@@ -229,7 +229,7 @@ const bdGeo = g => [...new Set(String(g || "").split(/[,;\/]/).map(bdGeo1).filte
 function bdName(f, p, date){ const dm = date ? date.slice(8, 10) + "." + date.slice(5, 7) : ""; return bdLatin([slug(p.name), bdGeo(p.geo).split(", ")[0], slug(f.name), f.goal === "form" ? "Form" : "Site", dm, "ABO"].filter(Boolean).join("_")); }
 function bdInit(f, p){ const date = bdTomorrow(), g = bdGeo(p.geo), daily = Math.round(fT(f, p).bud / 30), c = bdConn(p);
   BD.px = {};
-  BD.form = {account:(bdAccs(c)[0] || {}).id || "", page:(bdPages(c)[0] || {}).id || "", pixel:c && c.pixel ? c.pixel.id : "", name:bdName(f, p, date), event:"lead", budget:daily >= 5 ? daily : 20, link:bdUrl((f.lands[0] || {}).url), countries:g || "UA", lang:"", advantage:true, age_min:25, age_max:55, gender:"",
+  BD.form = {account:(bdAccs(c)[0] || {}).id || "", page:(bdPages(c)[0] || {}).id || "", pixel:c && c.pixel ? c.pixel.id : "", name:bdName(f, p, date), event:"lead", budget:daily >= 5 ? daily : 20, link:bdUrl((f.lands[0] || {}).url), utm:utmOf(p), countries:g || "UA", lang:"", advantage:true, age_min:25, age_max:55, gender:"",
     adset:"", date, time:"00:40", headline:"", description:"", cta:"LEARN_MORE",
     ads:(f.crs.length ? f.crs : []).map(c => ({id:c.id, on:true, name:bdLatin(c.slug || c.name), text:c.text || "", type:c.type === "img" ? "img" : "video", path:c.path || "", fname:c.name || ""}))};
   BD.run = null; BD.err = ""; BD.step = ""; BD.files = {}; }
@@ -238,6 +238,7 @@ function bdCheck(F0, c){ const e = [];
   if (!bdLatin(F0.name)) e.push(L("назва кампанії","название кампании"));
   if (!(+F0.budget >= 1)) e.push(L("бюджет на день","бюджет в день"));
   if (!/^https?:\/\/[^\s.]+\.[^\s]+/.test(bdUrl(F0.link))) e.push(L("посилання на лендинг","ссылка на лендинг"));
+  if (!/^[^=&]+=[^&]*(&[^=&]+=[^&]*)*$/.test(utmClean(F0.utm))) e.push(L("мітки UTM (вигляд: utm_source=…&utm_campaign=…)","метки UTM (вид: utm_source=…&utm_campaign=…)"));
   if (!F0.countries.split(/[,\s]+/).some(x => /^[A-Za-z]{2}$/.test(x))) e.push(L("країни (коди з двох літер: UA, PL)","страны (коды из двух букв: UA, PL)"));
   if (bdKyivToUtc(F0.date, F0.time) < Date.now() + 10 * 60000) e.push(L("старт — щонайменше за 10 хвилин від зараз","старт — минимум через 10 минут от сейчас"));
   const on = F0.ads.filter(a => a.on); if (!on.length) e.push(L("хоча б одне оголошення","хотя бы одно объявление"));
@@ -277,7 +278,8 @@ function bdForm(f, p, c){ const F0 = BD.form, accs = bdAccs(c), pages = bdPages(
       ${inp("name", L("Назва кампанії","Название кампании"), {w:1, hint:L("Іде в мітку utm_campaign, тому тільки латиниця. Буде: ","Уходит в метку utm_campaign, поэтому только латиница. Будет: ") + `<span class="mono">${esc(name || "—")}</span>`})}
       ${sel("event", L("Що оптимізуємо","Что оптимизируем"), BD_EVENTS())}
       ${inp("budget", L("Бюджет на день, ","Бюджет в день, ") + esc(cur), {num:1})}
-      <div class="field w"><label for="bd-link">${L("Лендинг","Лендинг")}</label><input id="bd-link" data-bd="link" value="${esc(F0.link)}" list="bd-lands" placeholder="https://"${dis}><datalist id="bd-lands">${lands.map(u => `<option value="${esc(u)}">`).join("")}</datalist><span class="sub">${L("Мітки UTM додаються самі: ","Метки UTM добавляются сами: ")}<span class="mono">${esc(UTM)}</span></span></div>
+      <div class="field w"><label for="bd-link">${L("Лендинг","Лендинг")}</label><input id="bd-link" data-bd="link" value="${esc(F0.link)}" list="bd-lands" placeholder="https://"${dis}><datalist id="bd-lands">${lands.map(u => `<option value="${esc(u)}">`).join("")}</datalist></div>
+      <div class="field w"><label for="bd-utm">${L("Мітки UTM","Метки UTM")}</label><textarea id="bd-utm" data-bd="utm" class="mono" rows="2" spellcheck="false"${dis}>${esc(F0.utm)}</textarea><span class="sub">${utmClean(F0.utm) === UTM ? L("Стоять рекомендовані. Можна змінити під свою таблицю продажів — свої мітки запам’ятаються для цього проєкту.","Стоят рекомендованные. Можно изменить под свою таблицу продаж — свои метки запомнятся для этого проекта.") : L("Свої мітки проєкту — підставлятимуться в наступні запуски. ","Свои метки проекта — будут подставляться в следующие запуски. ") + `<button class="btn btn--sm" data-act="bdUtmReset"${dis}>${L("Повернути рекомендовані","Вернуть рекомендованные")}</button>`}</span></div>
       ${inp("countries", L("Країни","Страны"), {ph:"UA, PL"})}
       ${sel("lang", L("Мова користувача","Язык пользователя"), [["",L("будь-яка","любой")],["52",L("українська","украинский")]])}
       <div class="field"><label>${L("Аудиторія","Аудитория")}</label><label class="row bdck"><input type="checkbox" data-bd="advantage"${F0.advantage ? " checked" : ""}${dis}> ${L("Advantage+ — Meta сама шукає людей","Advantage+ — Meta сама ищет людей")}</label></div>
@@ -325,7 +327,7 @@ async function bdRunAll(){ const f = F(), p = P(), F0 = BD.form, c = bdConn(p); 
     if (!R.adset_id) R.adset_id = (await bdStep({action:"b_adset", campaign_id:R.campaign_id, name:adset, event:F0.event, daily_budget:+String(F0.budget).replace(",", "."), start_time:start,
       countries:F0.countries.toUpperCase().split(/[^A-Z]+/).filter(x => x.length === 2), locales:F0.lang ? [+F0.lang] : [], advantage:F0.advantage, age_min:+F0.age_min, age_max:+F0.age_max, gender:F0.gender}, L("Створюємо групу оголошень…","Создаём группу объявлений…"))).id;
     for (const a of F0.ads.filter(x => x.on)) { const x = await bdMedia(a, R); if (x.ad_id) continue;
-      const r = await bdStep({action:"b_ad", adset_id:R.adset_id, name:a.name, text:a.text, headline:F0.headline, description:F0.description, cta:F0.cta, link:bdUrl(F0.link), url_tags:UTM,
+      const r = await bdStep({action:"b_ad", adset_id:R.adset_id, name:a.name, text:a.text, headline:F0.headline, description:F0.description, cta:F0.cta, link:bdUrl(F0.link), url_tags:utmClean(F0.utm),
         image_hash:x.hash, video_id:x.picture ? x.video_id : undefined, picture:x.picture, creative_id:x.creative_id}, L("Створюємо оголошення ","Создаём объявление ") + a.name);
       x.creative_id = r.creative_id; x.ad_id = r.id; }
     f.builds = f.builds || []; f.builds.unshift({at:new Date().toISOString(), name:R.name || name, account:F0.account, account_name:(bdAccs(c).find(a => a.id === F0.account) || {}).name || "", campaign_id:R.campaign_id, adset_id:R.adset_id, start, ads:F0.ads.filter(a => a.on).map(a => ({name:a.name, id:R.ads[a.id].ad_id}))});
@@ -340,6 +342,7 @@ Object.assign(ACT, {
   bdOpen(d){ const f = F(), p = P(); if (!f || !p) return false; BD.open = f.id; bdInit(f, p); setTimeout(() => { const el = document.getElementById("bd"); if (el) el.scrollIntoView({block:"start", behavior:"smooth"}); }, 50); },
   bdClose(){ if (BD.busy) return false; BD.open = null; BD.run = null; BD.files = {}; BD.err = ""; },
   bdRun(){ bdRunAll(); return false; },
+  bdUtmReset(){ if (!BD.form) return false; BD.form.utm = UTM; const pr = P(); if (pr) { delete pr.utm; save(); } },
   bdAdAdd(){ if (!BD.form) return false; BD.form.ads.push({id:"n" + uid(), on:true, name:"ad_" + (BD.form.ads.length + 1), text:(BD.form.ads.find(a => a.text) || {}).text || "", type:"img", path:"", fname:"", custom:true}); },
   bdAdDel(d){ if (!BD.form) return false; BD.form.ads = BD.form.ads.filter(a => a.id !== d.id); delete BD.files[d.id]; },
 });
@@ -352,4 +355,5 @@ document.addEventListener("change", e => { const t = e.target; if (!t.dataset ||
   if (!t.dataset.bd) return; const k = t.dataset.bd;
   if (k.indexOf("ad:") === 0) { const [, id, fk] = k.split(":"), a = BD.form.ads.find(x => x.id === id); if (!a) return; if (fk === "on") a.on = t.checked; else if (fk === "name") a.name = bdLatin(t.value); else a[fk] = t.value; render(); return; }
   BD.form[k] = t.type === "checkbox" ? t.checked : t.value; if (k === "name" || k === "adset") BD.form[k] = t.value ? t.value : "";
+  if (k === "utm") { const pr = P(), v = utmClean(t.value); BD.form.utm = v; if (pr) { if (v && v !== UTM) pr.utm = v; else delete pr.utm; save(); } }
   if (k === "account") { BD.form.pixel = ""; BD.form.pixelSet = false; BD.run = null; } if (k === "pixel") BD.form.pixelSet = true; if (k === "event") BD.form.eventSet = true; render(); });

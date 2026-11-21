@@ -24,6 +24,9 @@ const slug = s => String(s || "").toLowerCase().replace(/\.[a-z0-9]{2,4}$/,"").s
 const GEO = {ukraina:"UA",ukrayina:"UA",polsha:"PL",polscha:"PL",kazakhstan:"KZ",germaniya:"DE",nimechchina:"DE",ssha:"US",usa:"US",evropa:"EU",yevropa:"EU",moldova:"MD",litva:"LT",latviya:"LV",estoniya:"EE",chekhiya:"CZ",ispaniya:"ES",italiya:"IT",izrail:"IL",kanada:"CA"};
 const geoCode = g => { const first = String(g||"").split(/[,;\/]/)[0], hit = geoFind(first); if (hit) return hit[0]; const w = slug(first); return GEO[w] || (w ? w.slice(0,2).toUpperCase() : ""); };
 const UTM = "utm_source={{site_source_name}}&utm_medium=paid&utm_campaign={{campaign.name}}&utm_content={{ad.name}}&utm_term={{adset.name}}";
+/* у каждого проекта свои метки: рекомендованные — только по умолчанию, свой шаблон хранится в проекте */
+const utmClean = t => String(t || "").replace(/\s+/g, "").replace(/^[?&]+/, "");
+const utmOf = p => utmClean(p && p.utm) || UTM;
 const root = k => ({co:W.co, p:P(), f:F()}[k]);
 const wget = path => path.split(".").reduce((o,k,i)=> i ? (o == null ? "" : o[k]) : root(k), null);
 function wset(path, v){ const ks = path.split("."), last = ks.pop(); let o = root(ks[0]); for (let i = 1; i < ks.length; i++) { if (o[ks[i]] == null) o[ks[i]] = {}; o = o[ks[i]]; } o[last] = v; save(); }
@@ -301,7 +304,7 @@ function vFunnel(f, p){
       <div class="panel">${fld("f.aud.note",L("Чим аудиторія цієї воронки відрізняється","Чем аудитория этой воронки отличается"),{area:3,ph:L("наприклад: тільки ті, хто вже був на вебінарі","например: только те, кто уже был на вебинаре")})}</div>`,
     land: () => `<div class="panel"><span class="tag">${L("Лендинги","Лендинги")} · ${f.lands.length}</span>
         ${f.lands.map(l=>`<div class="item"><div class="row sp"><b class="mono">${esc(l.url)}</b>${del("wsDelLand", l.id)}</div>${l.note?`<span class="sub">${esc(l.note)}</span>`:""}
-          <div class="utm"><code>${esc(l.url)}${l.url.includes("?")?"&":"?"}${UTM}</code><button class="btn btn--sm" data-act="wsCopy" data-id="${l.id}">${L("Копіювати","Копировать")}</button></div></div>`).join("") || empty(L("Лендингів ще немає","Лендингов ещё нет"), L("Додайте сторінку, на яку веде реклама.","Добавьте страницу, на которую ведёт реклама."))}
+          <div class="utm"><code>${esc(l.url)}${l.url.includes("?")?"&":"?"}${esc(utmOf(p))}</code><button class="btn btn--sm" data-act="wsCopy" data-id="${l.id}">${L("Копіювати","Копировать")}</button></div></div>`).join("") || empty(L("Лендингів ще немає","Лендингов ещё нет"), L("Додайте сторінку, на яку веде реклама.","Добавьте страницу, на которую ведёт реклама."))}
         <div class="form adder"><div class="field"><label for="ld-u">URL</label><input id="ld-u" placeholder="example.com/urok"></div><div class="field"><label for="ld-n">${L("Що на сторінці, для кого","Что на странице, для кого")}</label><input id="ld-n"></div><div class="row w"><button class="btn btn--sm" data-act="wsAddLand">${L("Додати лендинг","Добавить лендинг")}</button></div></div>
         <p class="sub">${L("Посилання для реклами збирається з єдиними мітками: назви кампанії, групи й оголошення підставляє майданчик.","Ссылка для рекламы собирается с едиными метками: названия кампании, группы и объявления подставляет площадка.")}</p></div>`,
     cr: () => { const segs = fSegs(f,p);
@@ -484,7 +487,7 @@ Object.assign(ACT, {
   wsDelFSeg(d){ const f = F(); f.aud.add = f.aud.add.filter(s=>s.id!==d.id); save(); },
   wsAddLand(){ const u = val("ld-u"); if (!need(u, L("Вкажіть адресу сторінки","Укажите адрес страницы"), "ld-u")) return false; F().lands.push({id:uid(), url:u.replace(/^https?:\/\//,""), note:val("ld-n")}); save(); },
   wsDelLand(d){ const f = F(); f.lands = f.lands.filter(l=>l.id!==d.id); save(); },
-  wsCopy(d){ const l = F().lands.find(x=>x.id===d.id), t = "https://" + l.url + (l.url.includes("?")?"&":"?") + UTM; (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(()=>toast(L("Посилання скопійовано","Ссылка скопирована")), ()=>toast(L("Виділіть посилання й скопіюйте вручну","Выделите ссылку и скопируйте вручную"))); return false; },
+  wsCopy(d){ const l = F().lands.find(x=>x.id===d.id), t = "https://" + l.url + (l.url.includes("?")?"&":"?") + utmOf(P()); (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(()=>toast(L("Посилання скопійовано","Ссылка скопирована")), ()=>toast(L("Виділіть посилання й скопіюйте вручну","Выделите ссылку и скопируйте вручную"))); return false; },
   wsAddCr(){ const n = val("cr-n"), h = val("cr-h"); if (!need(n || h, L("Дайте креативу назву або опишіть перший кадр","Дайте креативу название или опишите первый кадр"), "cr-n")) return false; const f = F(); f.crs.push({id:uid(), name:n, slug:slug(n) || "creative_" + (f.crs.length+1), type:$("cr-t").value, hook:h, seg:$("cr-s").value, text:val("cr-x")}); save(); },
   wsDelCr(d){ const f = F(), x = f.crs.find(c=>c.id===d.id); if (x && x.path) cloudFileDel(x.path); f.crs = f.crs.filter(c=>c.id!==d.id); save(); },
   wsWipe(){ if (!W.wipe) { W.wipe = true; later(()=>{ if (W.wipe) { W.wipe = false; render(); } }, 4000); return; } if (CLOUD) { W.wipe = false; cloudDeleteCo(); return false; } try { if (W.user) localStorage.removeItem(accKey(W.user.id)); } catch (e) {} W = blankW(); AU = auFresh(); save(); toast(L("Акаунт і дані видалено","Аккаунт и данные удалены")); },

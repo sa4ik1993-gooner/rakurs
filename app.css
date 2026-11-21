@@ -565,3 +565,4 @@ h1[tabindex="-1"]:focus,h2[tabindex="-1"]:focus,#view[tabindex="-1"]:focus,.moda
 .aqa p,.aqa li{overflow-wrap:anywhere}
 .mthist{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);display:grid;gap:8px;min-width:0}
 .mthist select{width:auto}
+#bd textarea.mono{font-size:13px;line-height:1.45;word-break:break-all;resize:vertical}
