@@ -679,3 +679,11 @@ body.has-tabbar .only-m{display:flex}
 #bd .bdg__c{margin:0;font-size:15px} #bd .bdg__q{gap:8px 12px}
 
 #bd .bdtgt{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:12px 14px;background:var(--track-soft);border-left:3px solid var(--play)}
+
+/* исследование воронки */
+#rs .rsb{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;border-top:1px solid var(--line);padding-top:12px}
+#rs .rsb p{flex-basis:100%;margin:0}
+#rs .rsh,#rs .rsl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:14px}
+#rs .rsl li{display:flex;justify-content:space-between;align-items:center;gap:10px;color:var(--muted)}
+#rs .rsc dd{display:flex;flex-direction:column;gap:2px}
+#rs .rsth{font-size:12px}
