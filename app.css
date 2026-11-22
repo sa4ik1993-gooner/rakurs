@@ -691,3 +691,5 @@ body.has-tabbar .only-m{display:flex}
 /* пояснение, убранное в значок: значок справа над содержимым панели */
 .hrow{display:flex;justify-content:flex-end;margin:-4px 0 -6px}
 .hrow .hint--wide .hint__t{left:auto;right:0}
+
+.prv .tdo{display:inline-flex;gap:6px;margin-left:auto}
