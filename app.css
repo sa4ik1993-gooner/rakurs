@@ -655,3 +655,19 @@ body.has-tabbar .only-m{display:flex}
 .kv--set .seg button{white-space:nowrap}
 @media (max-width:900px){ .c2--sw{grid-template-columns:1fr} .c2--sw>.panel:first-child{order:0} }
 .c2--sw>.panel:nth-child(2) .form{grid-template-columns:1fr}
+
+/* база знаний: строки-разделы вместо колонок с формами */
+.kbl{display:flex;flex-direction:column;gap:8px}
+.kbc{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--line);padding:14px 16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.kbc.ok{border-left-color:var(--good)} .kbc.on{border-left-color:var(--play)}
+.kbc__h{display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center}
+.kbc__m{font:600 13px/1 var(--f-mono);font-style:normal;color:var(--muted);text-align:center}
+.kbc.ok .kbc__m{color:var(--good)}
+.kbc__t{min-width:0} .kbc__t h3{margin:0;font:600 17px/1.25 var(--f-body);color:var(--ink);letter-spacing:0;text-transform:none}
+.kbc__t p{margin:3px 0 0;color:var(--muted);font-size:14px;line-height:1.35}
+.kbc .adder{grid-template-columns:1fr 1fr 1fr} .kbc .adder .row{grid-column:1/-1}
+.kbm__n{font:700 34px/1 var(--f-display)} .kbm__n small{font:500 14px/1 var(--f-mono);color:var(--muted)}
+.kbm__s{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--muted)}
+.kbm__s span::before{content:"○ "} .kbm__s .ok{color:var(--ink)} .kbm__s .ok::before{content:"● ";color:var(--good)}
+@media (max-width:700px){ .kbc .adder{grid-template-columns:1fr} .kbc__h{grid-template-columns:36px 1fr auto;gap:8px} }
+.kbm .good{color:var(--good);margin:0;font-weight:600}

@@ -134,11 +134,11 @@ function vCompany(){
       <div class="row"><button class="btn btn--sm btn--solid" data-act="wsOpenP" data-id="${p.id}">${L("Відкрити","Открыть")}</button></div></div>`; }).join("")}</div>`
      : empty(L("Проєктів ще немає","Проектов ещё нет"), canAdmin() ? L("Проєкт — це окремий продукт зі своєю аудиторією, цілями й воронками. Анкета з шести кроків, пів години.","Проект — это отдельный продукт со своей аудиторией, целями и воронками. Анкета из шести шагов, полчаса.") : L("Проєкти додає власник або керівник лідогенерації. Щойно вам відкриють проєкт, він з’явиться тут.","Проекты добавляет собственник или руководитель лидогенерации. Как только вам откроют проект, он появится здесь."), canAdmin() ? `<button class="btn btn--solid" data-act="modal" data-id="project">${L("Додати проєкт","Добавить проект")}</button>` : "")}
      <div class="row"><button class="btn btn--sm" data-act="wsSample">${L("Заповнений приклад «Школа 3D»","Заполненный пример «Школа 3D»")}</button></div>`,
-    kb: () => `<p class="sub">${L("Те, що спільне для всіх проєктів компанії. Кожен проєкт бачить ці матеріали як успадковані й може вимкнути зайві.","То, что общее для всех проектов компании. Каждый проект видит эти материалы как унаследованные и может выключить лишние.")}</p>
+    kb: () => `${kbMeter()}
+      ${kbCols("co")}
       ${brandPanel("co")}
       <div class="panel"><span class="tag">${L("Спільні правила","Общие правила")}</span><div class="form">${fld("co.ban",L("Що не можна обіцяти й казати в жодному проєкті","Что нельзя обещать и говорить ни в одном проекте"),{w:1})}${fld("co.tone",L("Тон компанії","Тон компании"),{w:1})}</div>
-        <p class="sub">${L("Додаються до правил кожного проєкту й перевіряються в кожному ролику й тексті.","Добавляются к правилам каждого проекта и проверяются в каждом ролике и тексте.")}</p></div>
-      ${kbCols("co")}`,
+        <p class="sub">${L("Додаються до правил кожного проєкту й перевіряються в кожному ролику й тексті.","Добавляются к правилам каждого проекта и проверяются в каждом ролике и тексте.")}</p></div>`,
     team: () => { if (!CLOUD) return `<div class="panel vf"><span class="tag">${L("Команда","Команда")}</span><p>${L("Кілька людей в одній компанії з’являться разом із сервером: кожен входить своєю поштою й бачить ті проєкти, до яких йому дали доступ.","Несколько человек в одной компании появятся вместе с сервером: каждый входит своей почтой и видит те проекты, к которым ему дали доступ.")}</p><p class="sub proto">${L("Прототип: сервер ще не підключено.","Прототип: сервер ещё не подключён.")}</p></div>`;
       const R = ROLES(), link = location.origin + location.pathname, pn = ids => ids ? ids.map(i => (W.projs.find(p=>p.id===i)||{}).name || "—").join(", ") : L("усі проєкти","все проекты");
       return `<div class="tw"><table class="tm"><thead><tr><th>${L("Хто","Кто")}</th><th>${L("Роль","Роль")}</th><th>${L("Доступ","Доступ")}</th><th>${L("Статус","Статус")}</th><th></th></tr></thead><tbody>
@@ -219,13 +219,13 @@ function filesBox(path, hint){ const a = wget(path) || [];
     ${a.length?`<div class="chipset">${a.map((n,i)=>`<span class="chip">${fileLabel(n)} <button type="button" class="chipx" data-act="wsDelFile" data-k="${path}" data-id="${i}" aria-label="delete">×</button></span>`).join("")}</div>`:""}`; }
 /* тип, где живёт (co — компания, p — проект, both), название, что класть, что бот берёт */
 const KBT = () => [
-  ["story","co",L("Історія компанії та засновник","История компании и основатель"),L("звідки компанія, чому їй вірять","откуда компания, почему ей верят"),L("сюжети роликів, перший кадр «від першої особи»","сюжеты роликов, первый кадр «от первого лица»")],
-  ["team","co",L("Команда й експерти","Команда и эксперты"),L("хто веде, досвід, фото","кто ведёт, опыт, фото"),L("обличчя в роликах, підписи експертів","лица в роликах, подписи экспертов")],
-  ["product","p",L("Продукт і програма","Продукт и программа"),L("що всередині, для кого, який результат","что внутри, для кого, какой результат"),L("факти в текстах, перевірка обіцянок","факты в текстах, проверка обещаний")],
-  ["faq","p",L("Питання й заперечення","Вопросы и возражения"),L("що питають перед покупкою, що відповідаємо","что спрашивают перед покупкой, что отвечаем"),L("відповіді в текстах і на лендингу, ідеї гіпотез","ответы в текстах и на лендинге, идеи гипотез")],
-  ["case","both",L("Кейси та відгуки","Кейсы и отзывы"),L("результати учнів або клієнтів із цифрами","результаты учеников или клиентов с цифрами"),L("докази в оголошеннях і на лендингу","доказательства в объявлениях и на лендинге")],
-  ["video","both",L("Відео","Видео"),L("вебінари, відгуки, запис уроків, бекстейдж","вебинары, отзывы, записи уроков, бэкстейдж"),L("нарізки для креативів, цитати в тексти","нарезки для креативов, цитаты в тексты")],
-  ["doc","both",L("Документи й посилання","Документы и ссылки"),L("прайс, оферта, презентація, соцмережі","прайс, оферта, презентация, соцсети"),L("факти, реквізити, перевірка формулювань","факты, реквизиты, проверка формулировок")]];
+  ["story","co",L("Історія компанії та засновник","История компании и основатель"),L("звідки компанія, чому їй вірять","откуда компания, почему ей верят"),L("сюжети роликів, перший кадр «від першої особи»","сюжеты роликов, первый кадр «от первого лица»"),15],
+  ["team","co",L("Команда й експерти","Команда и эксперты"),L("хто веде, досвід, фото","кто ведёт, опыт, фото"),L("обличчя в роликах, підписи експертів","лица в роликах, подписи экспертов"),15],
+  ["product","p",L("Продукт і програма","Продукт и программа"),L("що всередині, для кого, який результат","что внутри, для кого, какой результат"),L("факти в текстах, перевірка обіцянок","факты в текстах, проверка обещаний"),25],
+  ["faq","p",L("Питання й заперечення","Вопросы и возражения"),L("що питають перед покупкою, що відповідаємо","что спрашивают перед покупкой, что отвечаем"),L("відповіді в текстах і на лендингу, ідеї гіпотез","ответы в текстах и на лендинге, идеи гипотез"),20],
+  ["case","both",L("Кейси та відгуки","Кейсы и отзывы"),L("результати учнів або клієнтів із цифрами","результаты учеников или клиентов с цифрами"),L("докази в оголошеннях і на лендингу","доказательства в объявлениях и на лендинге"),20],
+  ["video","both",L("Відео","Видео"),L("вебінари, відгуки, запис уроків, бекстейдж","вебинары, отзывы, записи уроков, бэкстейдж"),L("нарізки для креативів, цитати в тексти","нарезки для креативов, цитаты в тексты"),10],
+  ["doc","both",L("Документи й посилання","Документы и ссылки"),L("прайс, оферта, презентація, соцмережі","прайс, оферта, презентация, соцсети"),L("факти, реквізити, перевірка формулювань","факты, реквизиты, проверка формулировок"),10]];
 const kbHolder = sc => sc === "co" ? W.co : P();
 const kbName = t => (KBT().find(k=>k[0]===t) || [0,0,t])[2];
 const kbInh = p => W.co.kb.filter(i => !p.kbOff.includes(i.id));
@@ -236,13 +236,26 @@ function brandPanel(sc, extra){ const b = kbHolder(sc).brand;
     ${fld(sc+".brand.voice",L("Голос бренду: якими словами говоримо","Голос бренда: какими словами говорим"),{w:1,ph:L("на «ви», без сленгу, коротко","на «вы», без сленга, коротко")})}</div>
     ${swatches(b.colors)}${filesBox(sc+".brand.files", L("Логотип, брендбук, шаблони обкладинок","Логотип, брендбук, шаблоны обложек"))}</div>`; }
 const kbItem = (i, right) => `<div class="item"><div class="row sp"><b>${esc(i.title)}</b>${right}</div>${i.src?(i.path?`<span class="mono"><button type="button" class="lnk" data-act="fileOpen" data-p="${esc(i.path)}">${esc(i.src)}</button> <small class="sub">${fileSize(i.size || 0)}</small></span>`:`<span class="mono sub">${esc(i.src)}</span>`):""}${i.note?`<span class="sub">${esc(i.note)}</span>`:""}</div>`;
+let KBO = null; /* какой раздел базы раскрыт для добавления */
+/* заполненность базы компании: раздел → баллы, всего 100 */
+function kbScore(){ const co = W.co, b = co.brand, has = t => co.kb.some(i=>i.type===t);
+  const rows = [["brand",L("Айдентика","Айдентика"),20,!!(b.colors||b.fonts||b.voice||(b.files||[]).length)],["rules",L("Спільні правила","Общие правила"),10,!!(co.ban||co.tone)]]
+    .concat(KBT().filter(k=>k[1]!=="p").map(k=>[k[0],k[2],k[5],has(k[0])]));
+  return {rows, got:rows.filter(r=>r[3]).reduce((a,r)=>a+r[2],0), next:rows.filter(r=>!r[3]).sort((x,y)=>y[2]-x[2])[0]}; }
+function kbMeter(){ const m = kbScore(), n = m.next, sec = n && !["brand","rules"].includes(n[0]);
+  return `<div class="panel kbm"><div class="row sp"><b class="kbm__n">${m.got}<small> / 100</small></b>${hint(L("Що більше платформа знає про компанію, то менше вигадує: тексти, сюжети й докази беруться з ваших матеріалів. Спільне для всіх проєктів; проєкт може вимкнути зайве.","Чем больше платформа знает о компании, тем меньше придумывает: тексты, сюжеты и доказательства берутся из ваших материалов. Общее для всех проектов; проект может выключить лишнее."))}</div>
+    <div class="prog"><i style="width:${m.got}%"></i></div>
+    <div class="kbm__s">${m.rows.map(r=>`<span class="${r[3]?"ok":""}">${r[1]}</span>`).join("")}</div>
+    ${n ? `<div class="row"><span class="sub">${L("Далі:","Дальше:")}</span>${sec?`<button class="btn btn--sm btn--solid" data-act="kbOpen" data-id="${n[0]}" data-on="1">${n[1]} · +${n[2]}</button>`:`<b>${n[1]} · +${n[2]}</b>`}</div>` : `<p class="good">${L("База повна","База полная")}</p>`}</div>`; }
 function kbCols(sc){ const h = kbHolder(sc);
-  return `<div class="cols">${KBT().filter(k=>k[1]===sc||k[1]==="both").map(k=>{ const items = h.kb.filter(i=>i.type===k[0]); return `<div class="panel"><span class="tag">${k[2]} · ${items.length}</span><p class="sub">${k[3]}</p>
+  return `<div class="kbl">${KBT().filter(k=>k[1]===sc||k[1]==="both").map(k=>{ const items = h.kb.filter(i=>i.type===k[0]), on = KBO === k[0];
+    return `<div class="kbc${items.length?" ok":""}${on?" on":""}" id="kbc-${k[0]}"><div class="kbc__h"><i class="kbc__m">${items.length || (sc==="co" ? "+"+k[5] : "")}</i>
+      <div class="kbc__t"><h3>${k[2]}</h3><p>→ ${k[4]}</p></div>
+      <button type="button" class="btn btn--sm btn--ico${items.length?"":" btn--solid"}" data-act="kbOpen" data-id="${k[0]}" aria-expanded="${on}" aria-label="${L("Додати","Добавить")}" title="${L("Додати","Добавить")}">${on?"–":"+"}</button></div>
     ${items.map(i=>kbItem(i, del("wsDelKb", i.id))).join("")}
-    <div class="adder"><div class="field"><label for="kb-${k[0]}-t">${L("Назва","Название")}</label><input id="kb-${k[0]}-t"></div><div class="field"><label for="kb-${k[0]}-s">${L("Посилання","Ссылка")}</label><input id="kb-${k[0]}-s" placeholder="https://"></div>
+    ${on ? `<div class="adder"><div class="field"><label for="kb-${k[0]}-t">${L("Назва","Название")}</label><input id="kb-${k[0]}-t" placeholder="${k[3]}"></div><div class="field"><label for="kb-${k[0]}-s">${L("Посилання","Ссылка")}</label><input id="kb-${k[0]}-s" placeholder="https://"></div>
       <div class="field"><label for="kb-${k[0]}-n">${L("Що тут важливе","Что здесь важно")}</label><input id="kb-${k[0]}-n"></div>
-      <div class="row"><button class="btn btn--sm" data-act="wsAddKb" data-id="${k[0]}">${L("Додати","Добавить")}</button><label class="btn btn--sm"><input type="file" multiple hidden data-wf="kb.${k[0]}">${L("Файлами","Файлами")}</label></div></div>
-    <p class="sub mono">${L("бот бере звідси: ","бот берёт отсюда: ")}${k[4]}</p></div>`; }).join("")}</div>`; }
+      <div class="row"><button class="btn btn--sm btn--solid" data-act="wsAddKb" data-id="${k[0]}">${L("Додати","Добавить")}</button><label class="btn btn--sm"><input type="file" multiple hidden data-wf="kb.${k[0]}">${L("Файл","Файл")}</label></div></div>` : ""}</div>`; }).join("")}</div>`; }
 function kbProject(p){
   const co = W.co, inh = kbInh(p), all = p.kb.concat(inh), has = t => all.some(i=>i.type===t), b = p.brand.own ? p.brand : co.brand, bOk = !!(b.colors || b.fonts || b.voice || (b.files||[]).length);
   const gaps = [[L("Айдентика","Айдентика"),bOk,L("без неї обкладинки й тексти будуть «нічиї»","без неё обложки и тексты будут «ничьи»")],[L("Продукт і програма","Продукт и программа"),has("product")||!!p.product,L("бот не знатиме, що можна обіцяти","бот не будет знать, что можно обещать")],
@@ -481,6 +494,7 @@ Object.assign(ACT, {
   wsCtab(d){ W.cur = null; W.fun = null; W.ctab = d.v; save(); },
   wsGoCoKb(){ W.cur = null; W.fun = null; W.ctab = "kb"; save(); },
   wsBrandOwn(d){ P().brand.own = d.v === "1"; save(); },
+  kbOpen(d){ KBO = (KBO === d.id && !d.on) ? null : d.id; },
   wsKbT(d){ const p = P(), i = p.kbOff.indexOf(d.id); if (i < 0) p.kbOff.push(d.id); else p.kbOff.splice(i, 1); save(); },
   wsExport(){ const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(Object.assign({}, W, {wipe:false}), null, 1)], {type:"application/json"})); a.download = "rakurs_" + slug(W.co.name) + ".json"; document.body.appendChild(a); a.click(); a.remove(); toast(L("Якщо файл не завантажився, скористайтесь «Скопіювати копію»","Если файл не скачался, воспользуйтесь «Скопировать копию»")); return false; },
   wsCopyAll(){ (navigator.clipboard ? navigator.clipboard.writeText(JSON.stringify(W)) : Promise.reject()).then(()=>toast(L("Копію скопійовано в буфер","Копия скопирована в буфер")), ()=>toast(L("Браузер не дав скопіювати — завантажте файл","Браузер не дал скопировать — скачайте файл"))); return false; },
