@@ -574,8 +574,13 @@ h1[tabindex="-1"]:focus,h2[tabindex="-1"]:focus,#view[tabindex="-1"]:focus,.moda
 .prbar .row{flex-wrap:wrap;gap:8px 12px;align-items:center}
 .prdates label{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--muted)}
 .prdates input{font:500 13px var(--f-mono);padding:6px 8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:2px}
-.nd--l4{border-left:4px solid var(--line);min-height:52px}
-.nd--l4 b{font:600 12px/1.3 var(--f-mono)}
+.nd--l4,.nd--l5{border-left:4px solid var(--line);min-height:52px}
+.nd--l5 b{font:600 12px/1.3 var(--f-mono)}
+.ndk{display:grid;gap:2px;margin:4px 0 0}
+.ndk div{display:flex;justify-content:space-between;align-items:baseline;gap:8px;border-bottom:1px dotted var(--line);padding-bottom:1px}
+.ndk div:last-child{border-bottom:0}
+.ndk dt{font:500 11px/1.3 var(--f-body);color:var(--muted)}
+.ndk dd{margin:0;font:600 12px/1.3 var(--f-mono);color:var(--ink);white-space:nowrap}
 .nd--v-good{border-left-color:var(--good)}
 .nd--v-warn{border-left-color:var(--warn)}
 .nd--v-crit{border-left-color:var(--play)}
