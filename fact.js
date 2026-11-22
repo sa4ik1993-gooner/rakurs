@@ -34,7 +34,10 @@ function fxStart(p){ const x = fxOf(p); if (x.tried || !CLOUD || !sb || !p.meta 
   mtCall({action:"status", project_id:p.id}).then(d => { x.loading = false; x.synced = d.ok && d.conn ? d.conn.synced_at : null;
     if (!x.synced || Date.now() - new Date(x.synced).getTime() > 12 * 3600 * 1000) fxSync(p, false); else fxLoad(p); }); }
 /* кампания → воронка: ручная привязка в проекте главнее той, что определил сервер по названию */
-const fxFunnel = (p, r) => { const m = (p.campMap || {})[r.id]; return m ? (m === "-" ? "" : m) : (p.funnels.some(f => f.id === r.f) ? r.f : ""); };
+/* Если по названию воронка не нашлась, а в проекте она одна — кампания относится к ней: платформа не прячет расход из-за названия.
+   Снять можно ручной привязкой «не относится» в проекте. fxAuto — признак, что воронку поставили мы сами. */
+const fxAuto = (p, r) => !(p.campMap || {})[r.id] && !p.funnels.some(f => f.id === r.f) && p.funnels.length === 1;
+const fxFunnel = (p, r) => { const m = (p.campMap || {})[r.id]; return m ? (m === "-" ? "" : m) : (p.funnels.some(f => f.id === r.f) ? r.f : p.funnels.length === 1 ? p.funnels[0].id : ""); };
 const fxSum = rows => rows.reduce((a, r) => { a.spend += r.spend; a.imp += r.imp; a.clicks += r.clicks; a.leads += r.leads; a.book += r.book || 0; a.pay += r.pay || 0; a.rev += r.rev || 0; return a; }, {spend:0, imp:0, clicks:0, leads:0, book:0, pay:0, rev:0});
 /* название кампании и метка из таблицы приводятся к одному виду: Meta и таблицы хранят одни и те же буквы по-разному */
 const fxKey = t => String(t || "").normalize("NFC").toLowerCase().trim();
