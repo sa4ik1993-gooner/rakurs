@@ -687,3 +687,7 @@ body.has-tabbar .only-m{display:flex}
 #rs .rsl li{display:flex;justify-content:space-between;align-items:center;gap:10px;color:var(--muted)}
 #rs .rsc dd{display:flex;flex-direction:column;gap:2px}
 #rs .rsth{font-size:12px}
+
+/* пояснение, убранное в значок: значок справа над содержимым панели */
+.hrow{display:flex;justify-content:flex-end;margin:-4px 0 -6px}
+.hrow .hint--wide .hint__t{left:auto;right:0}
