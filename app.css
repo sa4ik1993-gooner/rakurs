@@ -677,3 +677,5 @@ body.has-tabbar .only-m{display:flex}
 #bd .bdg__in{flex-wrap:nowrap} #bd .bdg__in input{flex:1;min-width:0;font-size:17px;padding:14px 14px}
 #bd .bdg__got{display:flex;flex-wrap:wrap;gap:6px}
 #bd .bdg__c{margin:0;font-size:15px} #bd .bdg__q{gap:8px 12px}
+
+#bd .bdtgt{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:12px 14px;background:var(--track-soft);border-left:3px solid var(--play)}
