@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HEYROW — окупність трафіку онлайн-школи</title>
+<meta name="description" content="HEYROW зводить оплати з рекламою Meta і показує, які кампанії та креативи онлайн-школи приносять гроші, а які зливають бюджет.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800&family=Golos+Text:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#0D1424;--ink-2:#1B2438;--ink-line:#2C3650;--paper:#F2F4F8;--signal:#FF5A1F;--signal-soft:#FFE5DA;--muted:#5B6478;--line:#DDE1EA;--on-dark:#A9B2C6;--mint:#1FC28B;
+  --display:"Unbounded","Arial Black",system-ui,sans-serif;--body:"Golos Text","Segoe UI",system-ui,sans-serif;color-scheme:light}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:#fff;color:var(--ink);font:17px/1.6 var(--body)}
+h1,h2,h3{font-family:var(--display);line-height:1.12;margin:0;text-wrap:balance}
+h2{font-size:clamp(26px,4vw,38px);font-weight:700;margin-bottom:12px}
+h3{font-size:17px;font-weight:700}
+p{margin:0}
+a{color:inherit}
+.wrap{max-width:1080px;margin:0 auto;padding:0 16px}
+section{padding:72px 0}
+.eyebrow{display:inline-block;font:700 12px/1 var(--display);letter-spacing:.08em;text-transform:uppercase;color:var(--signal);margin-bottom:14px}
+.lead{font-size:19px;color:var(--muted);max-width:640px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font:600 16px/1 var(--body);text-decoration:none;border:0;border-radius:14px;padding:16px 22px;cursor:pointer;background:var(--signal);color:#fff}
+.btn:hover{filter:brightness(1.06)}
+.btn--ghost{background:transparent;color:inherit;border:1px solid currentColor}
+.dark{background:var(--ink);color:#fff}
+.dark .lead{color:var(--on-dark)}
+.grid{display:grid;gap:16px}
+.g3{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:24px}
+.dark .card{background:var(--ink-2);border-color:var(--ink-line)}
+
+/* top */
+.top{position:sticky;top:0;z-index:10;background:var(--ink);color:#fff;border-bottom:1px solid var(--ink-line)}
+.top__row{display:flex;align-items:center;gap:16px;height:64px}
+.top__logo{display:block;width:118px;height:auto}
+.lang{margin-left:auto;display:flex;gap:4px}
+.lang a{font:600 13px/1 var(--body);text-decoration:none;color:var(--on-dark);padding:8px 10px;border-radius:999px}
+.lang a[aria-current="true"]{background:var(--ink-2);color:#fff}
+.top .btn{padding:11px 16px;font-size:14px}
+
+/* hero */
+.hero{padding:64px 0 80px}
+.hero__grid{display:grid;grid-template-columns:1.15fr 1fr;gap:44px;align-items:center}
+.hero h1{font-size:clamp(28px,3.8vw,44px);font-weight:800;letter-spacing:-.02em}
+.hero h1 b{color:var(--signal);font-weight:800}
+.hero .lead{margin-top:18px}
+.hero__cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
+.hero__note{margin-top:14px;font-size:14px;color:var(--on-dark)}
+.report{background:#fff;color:var(--ink);border-radius:22px;padding:20px;box-shadow:0 24px 60px -30px rgba(0,0,0,.6)}
+.report__head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px}
+.report__head b{font:700 14px/1.2 var(--display)}
+.report__head span{font-size:12px;color:var(--muted);background:var(--paper);border-radius:999px;padding:4px 10px;white-space:nowrap}
+.report table{width:100%;border-collapse:collapse;font-size:14px}
+.report th{font-weight:600;color:var(--muted);text-align:right;padding:8px 6px;border-bottom:1px solid var(--line);font-size:12px}
+.report th:first-child,.report td:first-child{text-align:left}
+.report td{padding:10px 6px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
+.report tr:last-child td{border-bottom:0}
+.pos{color:#13805C;font-weight:600}
+.neg{color:#C2410C;font-weight:600}
+.row-mark{display:inline-block;width:8px;height:8px;margin-right:8px;background:var(--signal);vertical-align:middle}
+.report__foot{margin-top:12px;font-size:13px;color:var(--muted)}
+
+/* roles */
+.role .k{display:inline-block;font:700 12px/1 var(--display);color:#fff;background:var(--ink);border-radius:10px;padding:8px 10px;margin-bottom:14px}
+.role:first-child .k{background:var(--signal)}
+.role p{color:var(--muted);font-size:15px;margin-top:8px}
+.role q{display:block;margin-top:14px;font-size:15px;font-weight:500;color:var(--ink);border-left:3px solid var(--signal);padding-left:12px;quotes:"«" "»"}
+
+/* steps */
+.steps{counter-reset:s;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin-top:32px}
+.step{counter-increment:s}
+.step::before{content:counter(s);display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:12px;background:var(--signal);color:#fff;font:800 18px/1 var(--display);margin-bottom:16px}
+.step p{color:var(--on-dark);font-size:15px;margin-top:8px}
+
+/* inside */
+.inside{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-top:28px;padding:0;list-style:none}
+.inside li{display:flex;gap:14px;align-items:flex-start;background:var(--paper);border-radius:16px;padding:16px 18px;font-size:15px}
+.inside li::before{content:"";flex:none;width:10px;height:22px;background:var(--signal)}
+.inside b{display:block;font-size:16px}
+.inside span{color:var(--muted)}
+
+/* price */
+.price{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:center}
+.price__big{font:800 clamp(44px,7vw,72px)/1 var(--display);letter-spacing:-.02em}
+.price__big small{font:500 18px var(--body);color:var(--muted);letter-spacing:0}
+.price__cmp{margin-top:14px;font-size:18px}
+.price ul{margin:0;padding:0;list-style:none;display:grid;gap:10px}
+.price li{padding-left:22px;position:relative;font-size:15px;color:var(--muted)}
+.price li::before{content:"";position:absolute;left:0;top:9px;width:10px;height:3px;background:var(--signal)}
+
+/* faq */
+.faq{max-width:760px}
+.faq details{border-bottom:1px solid var(--line);padding:18px 0}
+.faq summary{cursor:pointer;font-weight:600;font-size:17px;list-style:none;display:flex;justify-content:space-between;gap:16px}
+.faq summary::after{content:"+";font:700 20px/1 var(--display);color:var(--signal)}
+.faq details[open] summary::after{content:"−"}
+.faq details p{margin-top:10px;color:var(--muted);font-size:15px}
+
+/* form */
+.book{display:grid;grid-template-columns:1fr 1.1fr;gap:40px;align-items:start}
+form{display:grid;grid-template-columns:1fr 1fr;gap:14px;background:var(--ink-2);border:1px solid var(--ink-line);border-radius:22px;padding:24px}
+.field{display:grid;gap:6px}
+.field--wide{grid-column:1/-1}
+label{font-size:13px;font-weight:600;color:var(--on-dark)}
+input,select{font:16px var(--body);color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:12px;padding:13px 14px;width:100%}
+input:focus,select:focus{outline:3px solid var(--signal);outline-offset:1px}
+form .btn{grid-column:1/-1;margin-top:4px}
+.err{grid-column:1/-1;color:#FF9A85;font-size:14px}
+.ok{background:var(--ink-2);border:1px solid var(--ink-line);border-radius:22px;padding:28px}
+.ok h3{font-size:22px;margin-bottom:8px}
+.ok p{color:var(--on-dark)}
+.fine{font-size:13px;color:var(--on-dark);margin-top:16px}
+
+footer{padding:28px 0;font-size:13px;color:var(--muted);border-top:1px solid var(--line)}
+footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+
+:focus-visible{outline:3px solid var(--signal);outline-offset:3px}
+@media (max-width:860px){
+  .hero__grid,.price,.book{grid-template-columns:1fr}
+  section{padding:56px 0}
+}
+@media (max-width:520px){
+  form{grid-template-columns:1fr}
+  .top .btn{display:none}
+  .report{padding:14px}
+  .report table{font-size:13px}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="heylogo" viewBox="0 25 682 296">
+    <path d="M16.9 33H77.48V228H16.9V33ZM168.74 33H229.32V228H168.74V33ZM50.96 101.9H193.18V155.46H50.96V101.9ZM428.289 109.18V151.82H283.469V109.18H428.289ZM324.809 130.5L312.589 205.9L288.929 179.64H437.389V228H252.529L267.089 130.5L252.529 33H436.089V81.36H288.929L312.589 55.1L324.809 130.5Z" fill="var(--a)"/><path d="M438.017 33H504.577L572.437 119.84H546.437L614.037 33H680.597L578.937 162.74L539.937 163.52L438.017 33Z" fill="var(--a)"/>
+    <rect x="529.277" y="132.32" width="60.58" height="47.2" fill="var(--a)"/><rect x="529.277" y="179.43" width="60.58" height="48.57" fill="var(--b)"/>
+    <rect y="283.85" width="449.6" height="11.7" fill="var(--b)"/><path d="M486.291 286.367H503.326C505.406 286.367 507.029 285.889 508.194 284.932C509.358 283.975 509.941 282.644 509.941 280.938C509.941 279.191 509.358 277.86 508.194 276.945C507.029 275.988 505.406 275.51 503.326 275.51H484.482L490.285 269.332V312.7H477.368V265.9H505.136C508.714 265.9 511.834 266.545 514.496 267.834C517.158 269.082 519.238 270.83 520.736 273.076C522.234 275.281 522.982 277.902 522.982 280.938C522.982 283.892 522.234 286.492 520.736 288.738C519.238 290.985 517.158 292.732 514.496 293.98C511.834 295.228 508.714 295.852 505.136 295.852H486.291V286.367ZM493.28 290.798H507.819L524.605 312.7H509.629L493.28 290.798ZM561.845 313.698C556.312 313.698 551.445 312.679 547.243 310.641C543.083 308.602 539.839 305.753 537.509 302.092C535.221 298.431 534.077 294.167 534.077 289.3C534.077 284.433 535.221 280.169 537.509 276.508C539.839 272.847 543.083 269.998 547.243 267.959C551.445 265.921 556.312 264.902 561.845 264.902C567.419 264.902 572.287 265.921 576.447 267.959C580.607 269.998 583.851 272.847 586.181 276.508C588.511 280.169 589.675 284.433 589.675 289.3C589.675 294.167 588.511 298.431 586.181 302.092C583.851 305.753 580.607 308.602 576.447 310.641C572.287 312.679 567.419 313.698 561.845 313.698ZM561.845 302.154C564.882 302.154 567.503 301.634 569.707 300.594C571.912 299.554 573.597 298.078 574.762 296.164C575.968 294.25 576.571 291.962 576.571 289.3C576.571 286.638 575.968 284.35 574.762 282.436C573.597 280.522 571.912 279.046 569.707 278.006C567.503 276.966 564.882 276.446 561.845 276.446C558.85 276.446 556.25 276.966 554.045 278.006C551.84 279.046 550.135 280.522 548.928 282.436C547.722 284.35 547.119 286.638 547.119 289.3C547.119 291.962 547.722 294.25 548.928 296.164C550.135 298.078 551.84 299.554 554.045 300.594C556.25 301.634 558.85 302.154 561.845 302.154ZM659.653 307.209H655.597L667.265 265.9H680.931L666.704 312.7H650.043L636.502 272.764H641.806L628.203 312.7H611.605L597.315 265.9H611.043L622.712 307.209L618.718 307.146L632.321 265.9H645.987L659.653 307.209Z" fill="var(--a)"/>
+  </symbol>
+</svg>
+
+<header class="top">
+  <div class="wrap top__row">
+    <a href="#top" aria-label="HEYROW"><svg class="top__logo" viewBox="0 25 682 296"><use href="#heylogo" style="--a:#fff;--b:var(--signal)"/></svg></a>
+    <nav class="lang" aria-label="Language">
+      <a href="?lang=uk" data-lang="uk">UA</a>
+      <a href="?lang=ru" data-lang="ru">RU</a>
+    </nav>
+    <a class="btn" href="#book" data-t="cta_short"></a>
+  </div>
+</header>
+
+<main id="top">
+
+<section class="dark hero">
+  <div class="wrap hero__grid">
+    <div>
+      <span class="eyebrow" data-t="hero_eyebrow"></span>
+      <h1 data-t="hero_h1" data-html></h1>
+      <p class="lead" data-t="hero_sub"></p>
+      <div class="hero__cta">
+        <a class="btn" href="#book" data-t="cta"></a>
+        <a class="btn btn--ghost" href="#how" data-t="cta_how"></a>
+      </div>
+      <p class="hero__note" data-t="hero_note"></p>
+    </div>
+    <div class="report" aria-label="example">
+      <div class="report__head"><b data-t="rep_title"></b><span data-t="rep_tag"></span></div>
+      <table>
+        <thead><tr><th data-t="rep_c1"></th><th data-t="rep_c2"></th><th data-t="rep_c3"></th><th data-t="rep_c4"></th></tr></thead>
+        <tbody>
+          <tr><td><span class="row-mark"></span><span data-t="rep_r1"></span></td><td>$1 240</td><td>$4 380</td><td class="pos">×3,5</td></tr>
+          <tr><td data-t="rep_r2"></td><td>$980</td><td>$2 150</td><td class="pos">×2,2</td></tr>
+          <tr><td data-t="rep_r3"></td><td>$1 100</td><td>$310</td><td class="neg">×0,3</td></tr>
+          <tr><td data-t="rep_r4"></td><td>$680</td><td>$0</td><td class="neg">×0</td></tr>
+        </tbody>
+      </table>
+      <p class="report__foot" data-t="rep_foot"></p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <span class="eyebrow" data-t="roles_eyebrow"></span>
+    <h2 data-t="roles_h2"></h2>
+    <p class="lead" data-t="roles_lead"></p>
+    <div class="grid g3" style="margin-top:32px">
+      <div class="card role"><span class="k" data-t="r1_k"></span><h3 data-t="r1_t"></h3><p data-t="r1_d"></p><q data-t="r1_q"></q></div>
+      <div class="card role"><span class="k" data-t="r2_k"></span><h3 data-t="r2_t"></h3><p data-t="r2_d"></p><q data-t="r2_q"></q></div>
+      <div class="card role"><span class="k" data-t="r3_k"></span><h3 data-t="r3_t"></h3><p data-t="r3_d"></p><q data-t="r3_q"></q></div>
+    </div>
+  </div>
+</section>
+
+<section class="dark" id="how">
+  <div class="wrap">
+    <span class="eyebrow" data-t="how_eyebrow"></span>
+    <h2 data-t="how_h2"></h2>
+    <p class="lead" data-t="how_lead"></p>
+    <div class="steps">
+      <div class="card step"><h3 data-t="s1_t"></h3><p data-t="s1_d"></p></div>
+      <div class="card step"><h3 data-t="s2_t"></h3><p data-t="s2_d"></p></div>
+      <div class="card step"><h3 data-t="s3_t"></h3><p data-t="s3_d"></p></div>
+      <div class="card step"><h3 data-t="s4_t"></h3><p data-t="s4_d"></p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <span class="eyebrow" data-t="in_eyebrow"></span>
+    <h2 data-t="in_h2"></h2>
+    <ul class="inside">
+      <li><div><b data-t="i1_t"></b><span data-t="i1_d"></span></div></li>
+      <li><div><b data-t="i2_t"></b><span data-t="i2_d"></span></div></li>
+      <li><div><b data-t="i3_t"></b><span data-t="i3_d"></span></div></li>
+      <li><div><b data-t="i4_t"></b><span data-t="i4_d"></span></div></li>
+      <li><div><b data-t="i5_t"></b><span data-t="i5_d"></span></div></li>
+      <li><div><b data-t="i6_t"></b><span data-t="i6_d"></span></div></li>
+    </ul>
+  </div>
+</section>
+
+<section style="background:var(--paper)" id="price">
+  <div class="wrap price">
+    <div>
+      <span class="eyebrow" data-t="pr_eyebrow"></span>
+      <div class="price__big"><span data-t="pr_from"></span> $69 <small data-t="pr_per"></small></div>
+      <p class="price__cmp" data-t="pr_cmp"></p>
+    </div>
+    <ul>
+      <li data-t="pr_1"></li>
+      <li data-t="pr_2"></li>
+      <li data-t="pr_3"></li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <span class="eyebrow">FAQ</span>
+    <h2 data-t="faq_h2"></h2>
+    <div class="faq">
+      <details><summary data-t="q1"></summary><p data-t="a1"></p></details>
+      <details><summary data-t="q2"></summary><p data-t="a2"></p></details>
+      <details><summary data-t="q3"></summary><p data-t="a3"></p></details>
+      <details><summary data-t="q4"></summary><p data-t="a4"></p></details>
+      <details><summary data-t="q5"></summary><p data-t="a5"></p></details>
+    </div>
+  </div>
+</section>
+
+<section class="dark" id="book">
+  <div class="wrap book">
+    <div>
+      <span class="eyebrow" data-t="bk_eyebrow"></span>
+      <h2 data-t="bk_h2"></h2>
+      <p class="lead" data-t="bk_lead"></p>
+    </div>
+    <div>
+      <form id="lead" novalidate>
+        <div class="field"><label for="f-name" data-t="f_name"></label><input id="f-name" name="name" autocomplete="name" required></div>
+        <div class="field"><label for="f-contact" data-t="f_contact"></label><input id="f-contact" name="contact" autocomplete="tel" required></div>
+        <div class="field field--wide"><label for="f-school" data-t="f_school"></label><input id="f-school" name="school"></div>
+        <div class="field"><label for="f-role" data-t="f_role"></label>
+          <select id="f-role" name="role"><option value="owner" data-t="f_role1"></option><option value="targetologist" data-t="f_role2"></option><option value="marketer" data-t="f_role3"></option><option value="other" data-t="f_role4"></option></select></div>
+        <div class="field"><label for="f-budget" data-t="f_budget"></label>
+          <select id="f-budget" name="budget"><option value="<1000" data-t="f_b1"></option><option value="1000-3000" data-t="f_b2"></option><option value="3000-10000" data-t="f_b3" selected></option><option value="10000+" data-t="f_b4"></option></select></div>
+        <p class="err" id="lead-err" hidden data-t="f_err"></p>
+        <button class="btn" type="submit" data-t="f_submit"></button>
+      </form>
+      <div class="ok" id="lead-ok" hidden>
+        <h3 data-t="ok_t"></h3>
+        <p data-t="ok_d"></p>
+        <p class="fine" id="lead-preview" hidden data-t="ok_preview"></p>
+      </div>
+      <p class="fine" data-t="f_fine"></p>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer><div class="wrap"><span>HEYROW · hey-row.com</span><span data-t="foot"></span></div></footer>
+
+<script>
+const CONFIG = {
+  formEndpoint: "",   // адрес веб-приложения Google Apps Script (см. landing-form/README.md); пусто = режим просмотра
+  metaPixelId: ""     // ID пикселя Meta; пусто = пиксель не подключается
+};
+
+const T = {
+uk:{
+title:"HEYROW — окупність трафіку онлайн-школи",
+cta_short:"Записатися на демо",cta:"Записатися на демо — 20 хв",cta_how:"Як це працює",
+hero_eyebrow:"Hey! Для онлайн-шкіл з вебінарними воронками",
+hero_h1:"Покажемо систему, як <b>підняти окупність</b> трафіку онлайн-школи",
+hero_sub:"HEYROW зводить оплати з рекламою Meta і показує, які кампанії та креативи приносять гроші, а які зливають бюджет. Для власників, таргетологів і маркетологів.",
+hero_note:"Підключаємо кабінет Meta і таблицю продажів на дзвінку. Перші цифри — наступного ранку.",
+rep_title:"Факт реклами",rep_tag:"приклад звіту",rep_c1:"Креатив",rep_c2:"Витрати",rep_c3:"Оплати",rep_c4:"Окупність",
+rep_r1:"Відгук учениці",rep_r2:"Розбір помилок",rep_r3:"Знижка 50%",rep_r4:"Тизер вебінару",
+rep_foot:"Лідів у всіх чотирьох — схожа кількість. Гроші приніс один.",
+roles_eyebrow:"Для кого",roles_h2:"Одна система — три ролі в школі",roles_lead:"Кожен бачить свої цифри, але в основі одне: скільки оплат принесла кожна кампанія і креатив.",
+r1_k:"Власник",r1_t:"Куди йде бюджет",r1_d:"Бачите, які кампанії окупаються оплатами, а які зливають гроші, — і куди перенести бюджет, щоб окупність зросла. Без звітів від підрядника.",r1_q:"500 лідів за місяць. А скільки з них заплатили?",
+r2_k:"Таргетолог",r2_t:"Доведіть результат оплатами",r2_d:"Показуєте клієнту не ціну ліда, а оплати по кожному креативу. Кампанію збираєте за три запитання замість години в Ads Manager.",r2_q:"Клієнт питає про окупність, а у вас лише ціна ліда?",
+r3_k:"Маркетолог",r3_t:"Який потік окупився",r3_d:"Оплати з таблиці самі зводяться з рекламою і розкладаються за датою вебінару. Без ручної звірки в Excel.",r3_q:"Скільки годин ви зводили оплати після минулого вебінару?",
+how_eyebrow:"Як це працює",how_h2:"Від підключення до першого звіту — одна ніч",how_lead:"Нічого не перебудовуємо у ваших воронках. Беремо рекламу і оплати, які у вас уже є.",
+s1_t:"Підключаємо Meta",s1_d:"На дзвінку підключаємо ваш рекламний кабінет. Статистика вивантажується щоночі.",
+s2_t:"Додаємо оплати",s2_d:"Завантажуємо вивантаження продажів з вашої таблиці. Мітки UTM на лендингах ставимо разом.",
+s3_t:"Зводимо оплати з рекламою",s3_d:"Кожну оплату зіставляємо з кампанією і креативом за десятьма правилами і групуємо за датою вебінару.",
+s4_t:"Бачите окупність",s4_d:"Вранці у блоці «Факт реклами» — витрати, оплати й окупність по кампаніях і креативах.",
+in_eyebrow:"Що всередині",in_h2:"Що вже працює в кабінеті",
+i1_t:"Компанія → проєкти → воронки",i1_d:"Аудиторія, лендинги з мітками UTM, креативи і цілі кожної воронки в одному місці.",
+i2_t:"Факт реклами",i2_d:"Нічне вивантаження статистики з рекламного кабінету Meta.",
+i3_t:"Продажі з таблиці",i3_d:"Зіставлення оплат з рекламою за десятьма правилами.",
+i4_t:"Когорти за датою вебінару",i4_d:"Видно, який потік окупився, навіть якщо оплати йдуть тижнями.",
+i5_t:"Запуск кампанії за три запитання",i5_d:"Решту налаштувань платформа ставить сама. Кампанія приходить вимкненою — ви перевіряєте і вмикаєте.",
+i6_t:"Команда і ролі",i6_d:"Власник, таргетолог і маркетолог — кожен зі своїм доступом. Вхід поштою або через Telegram.",
+pr_eyebrow:"Ціна",pr_from:"від",pr_per:"/ міс",
+pr_cmp:"Дешевше за місяць роботи одного таргетолога. І показує те, чого не покаже звіт підрядника: оплати по кожному креативу.",
+pr_1:"Тариф підбираємо на демо — залежить від кількості проєктів і кабінетів.",pr_2:"Рекламний бюджет ви платите Meta напряму.",pr_3:"Ваш таргетолог лишається — HEYROW показує, чи окупається його робота.",
+faq_h2:"Часті запитання",
+q1:"HEYROW замінює таргетолога?",a1:"Ні. Рекламу веде ваша людина. HEYROW показує, які кампанії й креативи приносять оплати, і допомагає швидко зібрати нову кампанію.",
+q2:"Які рекламні майданчики підключаються?",a2:"Зараз — Meta (Facebook та Instagram).",
+q3:"Звідки беруться оплати?",a3:"З вивантаження вашої таблиці продажів. Оплати зіставляються з рекламою за мітками UTM і ще дев'ятьма правилами.",
+q4:"Хто вмикає рекламу?",a4:"Ви. Платформа збирає кампанію вимкненою, ви перевіряєте її в Ads Manager і вмикаєте самі.",
+q5:"Скільки триває підключення?",a5:"Кабінет Meta і таблицю продажів підключаємо прямо на дзвінку. Перші цифри — наступного ранку.",
+bk_eyebrow:"Демо",bk_h2:"20 хвилин — і ви побачите систему на прикладі школи",bk_lead:"Покажемо кабінет, розберемо вашу воронку і скажемо, чи підійде HEYROW. Час дзвінка підтвердимо в повідомленні.",
+f_name:"Ім'я",f_contact:"Telegram або телефон",f_school:"Школа або сайт",f_role:"Ваша роль",f_role1:"Власник / продюсер",f_role2:"Таргетолог",f_role3:"Маркетолог",f_role4:"Інше",
+f_budget:"Рекламний бюджет на місяць",f_b1:"до $1 000",f_b2:"$1 000–3 000",f_b3:"$3 000–10 000",f_b4:"понад $10 000",
+f_err:"Вкажіть ім'я та контакт, щоб ми могли підтвердити час.",f_submit:"Записатися на демо",
+f_fine:"Ми напишемо лише для підтвердження дзвінка.",
+ok_t:"Hey! Заявку отримали",ok_d:"Напишемо вам протягом робочого дня, щоб підтвердити час дзвінка.",ok_preview:"Режим перегляду: заявка нікуди не надіслана.",
+foot:"Платформа реклами й аналітики для онлайн-шкіл"
+},
+ru:{
+title:"HEYROW — окупаемость трафика онлайн-школы",
+cta_short:"Записаться на демо",cta:"Записаться на демо — 20 мин",cta_how:"Как это работает",
+hero_eyebrow:"Hey! Для онлайн-школ с вебинарными воронками",
+hero_h1:"Покажем систему, как <b>поднять окупаемость</b> трафика онлайн-школы",
+hero_sub:"HEYROW сводит оплаты с рекламой Meta и показывает, какие кампании и креативы приносят деньги, а какие сливают бюджет. Для владельцев, таргетологов и маркетологов.",
+hero_note:"Подключаем кабинет Meta и таблицу продаж на созвоне. Первые цифры — на следующее утро.",
+rep_title:"Факт рекламы",rep_tag:"пример отчёта",rep_c1:"Креатив",rep_c2:"Расход",rep_c3:"Оплаты",rep_c4:"Окупаемость",
+rep_r1:"Отзыв ученицы",rep_r2:"Разбор ошибок",rep_r3:"Скидка 50%",rep_r4:"Тизер вебинара",
+rep_foot:"Лидов у всех четырёх — похожее количество. Деньги принёс один.",
+roles_eyebrow:"Для кого",roles_h2:"Одна система — три роли в школе",roles_lead:"Каждый видит свои цифры, но в основе одно: сколько оплат принесла каждая кампания и креатив.",
+r1_k:"Владелец",r1_t:"Куда уходит бюджет",r1_d:"Видите, какие кампании окупаются оплатами, а какие сливают деньги, — и куда перенести бюджет, чтобы окупаемость выросла. Без отчётов от подрядчика.",r1_q:"500 лидов за месяц. А сколько из них заплатили?",
+r2_k:"Таргетолог",r2_t:"Докажите результат оплатами",r2_d:"Показываете клиенту не цену лида, а оплаты по каждому креативу. Кампанию собираете за три вопроса вместо часа в Ads Manager.",r2_q:"Клиент спрашивает про окупаемость, а у вас только цена лида?",
+r3_k:"Маркетолог",r3_t:"Какой поток окупился",r3_d:"Оплаты из таблицы сами сводятся с рекламой и раскладываются по дате вебинара. Без ручной сверки в Excel.",r3_q:"Сколько часов вы сводили оплаты после прошлого вебинара?",
+how_eyebrow:"Как это работает",how_h2:"От подключения до первого отчёта — одна ночь",how_lead:"Ничего не перестраиваем в ваших воронках. Берём рекламу и оплаты, которые у вас уже есть.",
+s1_t:"Подключаем Meta",s1_d:"На созвоне подключаем ваш рекламный кабинет. Статистика выгружается каждую ночь.",
+s2_t:"Добавляем оплаты",s2_d:"Загружаем выгрузку продаж из вашей таблицы. Метки UTM на лендингах ставим вместе.",
+s3_t:"Сводим оплаты с рекламой",s3_d:"Каждую оплату сопоставляем с кампанией и креативом по десяти правилам и группируем по дате вебинара.",
+s4_t:"Видите окупаемость",s4_d:"Утром в блоке «Факт рекламы» — расход, оплаты и окупаемость по кампаниям и креативам.",
+in_eyebrow:"Что внутри",in_h2:"Что уже работает в кабинете",
+i1_t:"Компания → проекты → воронки",i1_d:"Аудитория, лендинги с метками UTM, креативы и цели каждой воронки в одном месте.",
+i2_t:"Факт рекламы",i2_d:"Ночная выгрузка статистики из рекламного кабинета Meta.",
+i3_t:"Продажи из таблицы",i3_d:"Сопоставление оплат с рекламой по десяти правилам.",
+i4_t:"Когорты по дате вебинара",i4_d:"Видно, какой поток окупился, даже если оплаты идут неделями.",
+i5_t:"Запуск кампании за три вопроса",i5_d:"Остальные настройки платформа ставит сама. Кампания приходит выключенной — вы проверяете и включаете.",
+i6_t:"Команда и роли",i6_d:"Владелец, таргетолог и маркетолог — каждый со своим доступом. Вход по почте или через Telegram.",
+pr_eyebrow:"Цена",pr_from:"от",pr_per:"/ мес",
+pr_cmp:"Дешевле месяца работы одного таргетолога. И показывает то, чего не покажет отчёт подрядчика: оплаты по каждому креативу.",
+pr_1:"Тариф подбираем на демо — зависит от количества проектов и кабинетов.",pr_2:"Рекламный бюджет вы платите Meta напрямую.",pr_3:"Ваш таргетолог остаётся — HEYROW показывает, окупается ли его работа.",
+faq_h2:"Частые вопросы",
+q1:"HEYROW заменяет таргетолога?",a1:"Нет. Рекламу ведёт ваш человек. HEYROW показывает, какие кампании и креативы приносят оплаты, и помогает быстро собрать новую кампанию.",
+q2:"Какие рекламные площадки подключаются?",a2:"Сейчас — Meta (Facebook и Instagram).",
+q3:"Откуда берутся оплаты?",a3:"Из выгрузки вашей таблицы продаж. Оплаты сопоставляются с рекламой по меткам UTM и ещё девяти правилам.",
+q4:"Кто включает рекламу?",a4:"Вы. Платформа собирает кампанию выключенной, вы проверяете её в Ads Manager и включаете сами.",
+q5:"Сколько длится подключение?",a5:"Кабинет Meta и таблицу продаж подключаем прямо на созвоне. Первые цифры — на следующее утро.",
+bk_eyebrow:"Демо",bk_h2:"20 минут — и вы увидите систему на примере школы",bk_lead:"Покажем кабинет, разберём вашу воронку и скажем, подойдёт ли HEYROW. Время созвона подтвердим в сообщении.",
+f_name:"Имя",f_contact:"Telegram или телефон",f_school:"Школа или сайт",f_role:"Ваша роль",f_role1:"Владелец / продюсер",f_role2:"Таргетолог",f_role3:"Маркетолог",f_role4:"Другое",
+f_budget:"Рекламный бюджет в месяц",f_b1:"до $1 000",f_b2:"$1 000–3 000",f_b3:"$3 000–10 000",f_b4:"больше $10 000",
+f_err:"Укажите имя и контакт, чтобы мы могли подтвердить время.",f_submit:"Записаться на демо",
+f_fine:"Мы напишем только чтобы подтвердить созвон.",
+ok_t:"Hey! Заявку получили",ok_d:"Напишем вам в течение рабочего дня, чтобы подтвердить время созвона.",ok_preview:"Режим просмотра: заявка никуда не отправлена.",
+foot:"Платформа рекламы и аналитики для онлайн-школ"
+}};
+
+const params = new URLSearchParams(location.search);
+const lang = params.get("lang") === "ru" ? "ru" : "uk";
+const t = T[lang];
+document.documentElement.lang = lang;
+document.title = t.title;
+document.querySelectorAll("[data-t]").forEach(el => {
+  const v = t[el.dataset.t]; if (v == null) return;
+  if (el.hasAttribute("data-html")) el.innerHTML = v; else el.textContent = v;
+});
+document.querySelectorAll(".lang a").forEach(a => {
+  a.setAttribute("aria-current", a.dataset.lang === lang ? "true" : "false");
+  const q = new URLSearchParams(location.search); q.set("lang", a.dataset.lang); a.href = "?" + q.toString();
+});
+
+if (CONFIG.metaPixelId) {
+  !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version="2.0";n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;
+  s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,"script","https://connect.facebook.net/en_US/fbevents.js");
+  window.fbq("init", CONFIG.metaPixelId); window.fbq("track", "PageView");
+}
+
+const form = document.getElementById("lead"), ok = document.getElementById("lead-ok"), err = document.getElementById("lead-err");
+form.addEventListener("submit", async e => {
+  e.preventDefault();
+  if (!form.name.value.trim() || !form.contact.value.trim()) { err.hidden = false; return; }
+  err.hidden = true;
+  const btn = form.querySelector("button"); btn.disabled = true;
+  const data = Object.fromEntries(new FormData(form));
+  ["utm_source","utm_medium","utm_campaign","utm_content","utm_term","fbclid"].forEach(k => { if (params.get(k)) data[k] = params.get(k); });
+  data.lang = lang; data.page = location.href.split("?")[0]; data.sent_at = new Date().toISOString();
+  const eventId = "lead-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
+  data.event_id = eventId;
+  if (CONFIG.formEndpoint) {
+    try { await fetch(CONFIG.formEndpoint, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(data) }); } catch (_) {}
+  }
+  if (window.fbq) window.fbq("track", "Lead", { content_name: "demo_call" }, { eventID: eventId });
+  form.hidden = true; ok.hidden = false;
+  document.getElementById("lead-preview").hidden = Boolean(CONFIG.formEndpoint);
+});
+</script>
+</body>
+</html>

@@ -695,3 +695,15 @@ body.has-tabbar .only-m{display:flex}
 .prv .tdo{display:inline-flex;gap:6px;margin-left:auto}
 
 .adl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+
+/* цели и окупаемость */
+.gel{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.gel li{padding:8px 12px;border-left:3px solid var(--line);background:var(--bg)}
+.gel li span{color:var(--muted)}
+.gel--good{border-left-color:var(--good)!important} .gel--good b{color:var(--good)}
+.gel--warn{border-left-color:var(--warn)!important;background:var(--warn-soft)!important} .gel--warn b{color:var(--warn)}
+.gel--crit{border-left-color:var(--play)!important;background:var(--crit-soft)!important} .gel--crit b{color:var(--play)}
+.ge tr[data-act]{cursor:pointer} .ge td small{display:block}
+.ge tr.ge--crit td:first-child{box-shadow:inset 3px 0 0 var(--play)} .ge tr.ge--warn td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
+.kpis--4{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:640px){ .kpis--4{grid-template-columns:repeat(2,minmax(0,1fr))} }

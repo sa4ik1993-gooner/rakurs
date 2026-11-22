@@ -193,7 +193,7 @@ const chOpts = (p, f) => `<div class="opts opts--sm">${CHAN().map(c => `<button 
 function mapInfo(){ const s = MP.sel, [, pid, fid, cid, kid] = (s || "").split("/"), p = pid && W.projs.find(x => x.id === pid), f = p && fid && p.funnels.find(x => x.id === fid);
   if (f && cid && (f.ch || []).includes(cid) && prHas(p, f, cid)) { const k2 = s.split("/")[5];
     return kid && /^a/.test(kid) ? (k2 ? prCampPanel(p, f, cid, k2) : prChanPanel(p, f, cid, prAId(kid))) : kid ? prCampPanel(p, f, cid, kid) : prChanPanel(p, f, cid); }
-  const base = mapInfo0(); return !s || !pid || (p && !fid) ? prOverview(p || null) + base : base; }
+  const base = mapInfo0(); return !s || !pid || (p && !fid) ? prOverview(p || null) + (typeof goalsBoard === "function" ? goalsBoard(p || null) : "") + base : base; }
 function mapInfo0(){
   const s = MP.sel; if (!s) return "";
   const [, pid, fid, cid] = s.split("/"), p = W.projs.find(x => x.id === pid), f = p && p.funnels.find(x => x.id === fid);
