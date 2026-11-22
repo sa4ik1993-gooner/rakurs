@@ -296,7 +296,7 @@ connections(){
   const C = [["Meta Ads",L("2 кабінети, піксель, сторінка","2 кабинета, пиксель, страница"),1],["TikTok Ads",L("1 кабінет","1 кабинет"),1],["Google Ads",L("1 кабінет, читання і запис","1 кабинет, чтение и запись"),1],
     ["Google Drive",L("папка «Креативи 3D», 38 файлів","папка «Креативы 3D», 38 файлов"),1],[L("Таблиця продажів","Таблица продаж"),L("оновлено сьогодні о 08:02","обновлено сегодня в 08:02"),1],["Telegram",L("бот @rakurs_demo_bot, 4 учасники","бот @rakurs_demo_bot, 4 участника"),1],
     ["CRM",L("щоб рахувати заперечення й оплати без таблиці","чтобы считать возражения и оплаты без таблицы"),S.conn.crm?2:0]];
-  return `<div class="head"><div><h1>${L("Підключення","Подключения")}</h1><p class="sub">${L("Підключає інтегратор Rakurs через офіційні API майданчиків. Доступ можна відкликати будь-коли.","Подключает интегратор Rakurs через официальные API площадок. Доступ можно отозвать в любой момент.")}</p></div></div>
+  return `<div class="head"><div><h1>${L("Підключення","Подключения")}</h1><p class="sub">${L("Підключає інтегратор " + BRAND.name + " через офіційні API майданчиків. Доступ можна відкликати будь-коли.","Подключает интегратор " + BRAND.name + " через официальные API площадок. Доступ можно отозвать в любой момент.")}</p></div></div>
   <div class="conn">${C.map((c,i)=>`<div class="panel"><div class="row sp"><h2>${c[0]}</h2>${c[2]===1?pill("good",L("підключено","подключено")):c[2]===2?pill("warn",L("запит надіслано","запрос отправлен")):pill("mute",L("не підключено","не подключено"))}</div><p class="sub">${c[1]}</p>${c[2]===0?`<div class="row"><button class="btn btn--sm" data-act="connect">${L("Запит інтегратору","Запрос интегратору")}</button></div>`:""}</div>`).join("")}</div>`;
 },
 journal(){
@@ -414,15 +414,15 @@ function asstHTML(){
   const body = A.chat.map((m, i) => {
     const d = sc[m.sc];
     if (m.k === "me") return `<div class="msg msg--me"><small>${L("Ви · голосове","Вы · голосовое")}</small>«${d.q.slice(0, m.n)}${m.n < d.q.length ? "" : "»"}</div>`;
-    if (m.k === "think") return `<div class="msg msg--bot"><small>Rakurs</small><span class="dots">${L("Розбираю","Разбираю")}</span></div>`;
-    if (m.k === "text") return `<div class="msg msg--bot"><small>Rakurs</small>${d.text}${d.go?`<div class="row" style="margin-top:8px"><a class="btn btn--sm" href="#${d.go[0]}" data-act="asstGo">${d.go[1]}</a></div>`:""}</div>`;
-    if (m.k === "card") return `<div class="msg msg--bot"><small>Rakurs</small><div class="card"><span class="tag">${L("Я зрозумів так","Я понял так")}</span><dl class="kv">${d.rows.map(r=>`<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join("")}</dl>${m.done?"":`<div class="row"><button class="btn btn--solid btn--sm" data-act="asstOk" data-id="${i}">${d.ok}</button><button class="btn btn--sm" data-act="asstNo" data-id="${i}">${L("Змінити","Изменить")}</button></div>`}</div></div>`;
-    if (m.k === "steps") return `<div class="msg msg--bot"><small>Rakurs</small><ol class="steps">${d.steps.map((s,j)=>`<li class="${j<m.i?"ok":j===m.i?"on":""}">${s}</li>`).join("")}</ol></div>`;
-    if (m.k === "done") return `<div class="msg msg--bot"><small>Rakurs</small>${d.done}${d.go?`<div class="row" style="margin-top:8px"><a class="btn btn--sm" href="#${d.go[0]}" data-act="asstGo">${d.go[1]}</a></div>`:""}</div>`;
-    return `<div class="msg msg--bot"><small>Rakurs</small>${L("Добре, скажіть, що змінити.","Хорошо, скажите, что изменить.")}</div>`;
+    if (m.k === "think") return `<div class="msg msg--bot"><small>${BRAND.name}</small><span class="dots">${L("Розбираю","Разбираю")}</span></div>`;
+    if (m.k === "text") return `<div class="msg msg--bot"><small>${BRAND.name}</small>${d.text}${d.go?`<div class="row" style="margin-top:8px"><a class="btn btn--sm" href="#${d.go[0]}" data-act="asstGo">${d.go[1]}</a></div>`:""}</div>`;
+    if (m.k === "card") return `<div class="msg msg--bot"><small>${BRAND.name}</small><div class="card"><span class="tag">${L("Я зрозумів так","Я понял так")}</span><dl class="kv">${d.rows.map(r=>`<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join("")}</dl>${m.done?"":`<div class="row"><button class="btn btn--solid btn--sm" data-act="asstOk" data-id="${i}">${d.ok}</button><button class="btn btn--sm" data-act="asstNo" data-id="${i}">${L("Змінити","Изменить")}</button></div>`}</div></div>`;
+    if (m.k === "steps") return `<div class="msg msg--bot"><small>${BRAND.name}</small><ol class="steps">${d.steps.map((s,j)=>`<li class="${j<m.i?"ok":j===m.i?"on":""}">${s}</li>`).join("")}</ol></div>`;
+    if (m.k === "done") return `<div class="msg msg--bot"><small>${BRAND.name}</small>${d.done}${d.go?`<div class="row" style="margin-top:8px"><a class="btn btn--sm" href="#${d.go[0]}" data-act="asstGo">${d.go[1]}</a></div>`:""}</div>`;
+    return `<div class="msg msg--bot"><small>${BRAND.name}</small>${L("Добре, скажіть, що змінити.","Хорошо, скажите, что изменить.")}</div>`;
   }).join("");
   const rec = A.phase === "rec";
-  return `<div class="asst__h"><div><span class="tag">${L("Голосове керування","Голосовое управление")}</span><h2>Rakurs</h2></div><button class="x" data-act="asstClose" aria-label="${L("Закрити","Закрыть")}">×</button></div>
+  return `<div class="asst__h"><div><span class="tag">${L("Голосове керування","Голосовое управление")}</span><h2>${BRAND.name}</h2></div><button class="x" data-act="asstClose" aria-label="${L("Закрити","Закрыть")}">×</button></div>
     <div class="asst__b" id="asst-b">${body || `<p class="sub">${L("Затисніть кнопку і скажіть, що зробити. Так само це працює в Telegram.","Зажмите кнопку и скажите, что сделать. Так же это работает в Telegram.")}</p>`}</div>
     <div class="asst__f">
       <span class="tag">${L("Спробуйте","Попробуйте")}</span>
@@ -461,7 +461,7 @@ const route = () => { const h = location.hash.replace("#",""); return V[h] && h 
 let lastRoute = null;
 function renderShell(){
   const r = route(), pend = Object.values(S.inbox).filter(v=>v===null).length;
-  $("rail").innerHTML = `<a class="logo" href="index.html"><i></i>RAKURS</a>
+  $("rail").innerHTML = `<a class="logo" href="index.html">${brandLogo("rail")}</a>
     <button type="button" class="ws" data-act="goProjects"><small>${L("Проєкт","Проект")}</small><b>${L("Школа 3D","Школа 3D")}</b></button>
     ${NAV().map(g=>`<nav class="navg"><span>${g[0]}</span>${g[1].map(n=>`<a href="#${n[0]}" ${n[0]===r?'aria-current="page"':""}>${n[1]}${n[0]==="today"&&pend?`<b>${pend}</b>`:""}</a>`).join("")}</nav>`).join("")}
     <div class="rail__foot"><button type="button" data-act="theme">${L("Тема: світла / темна","Тема: светлая / тёмная")}</button><button type="button" data-act="reset">${L("Скинути демо","Сбросить демо")}</button><a href="index.html">← ${L("На сайт","На сайт")}</a></div>`;
