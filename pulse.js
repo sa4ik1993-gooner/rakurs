@@ -10,12 +10,13 @@ const prShift = (s, n) => new Date(Date.parse(s) + n * 864e5).toISOString().slic
 const prDM = s => s.slice(8, 10) + "." + s.slice(5, 7);
 function prRange(){ const t = prToday(); let d1, d2;
   if (PR.mode === "c" && PR.d1 && PR.d2) { d1 = PR.d1 < PR.d2 ? PR.d1 : PR.d2; d2 = PR.d1 < PR.d2 ? PR.d2 : PR.d1; }
+  else if (PR.mode === "t") { d1 = d2 = t; }
   else if (PR.mode === "m") { d1 = t.slice(0, 8) + "01"; d2 = t; }
   else { const n = PR.mode === "y" || PR.mode === "c" ? 1 : +PR.mode; d2 = prShift(t, -1); d1 = prShift(t, -n); }
   const span = Math.round((Date.parse(d2) - Date.parse(d1)) / 864e5) + 1;
   return {d1, d2, span, p1:prShift(d1, -span), p2:prShift(d1, -1), key:d1 + "_" + d2}; }
-const prLabel = r => (PR.mode === "y" ? L("вчора, ","вчера, ") + prDM(r.d1) : r.span === 1 ? prDM(r.d1) : prDM(r.d1) + "–" + prDM(r.d2) + " · " + r.span + L(" дн."," дн."));
-const prShort = () => PR.mode === "y" ? L("вчора","вчера") : PR.mode === "m" ? L("місяць","месяц") : PR.mode === "c" ? L("період","период") : PR.mode + L(" дн."," дн.");
+const prLabel = r => (PR.mode === "t" ? L("сьогодні, ","сегодня, ") + prDM(r.d1) : PR.mode === "y" ? L("вчора, ","вчера, ") + prDM(r.d1) : r.span === 1 ? prDM(r.d1) : prDM(r.d1) + "–" + prDM(r.d2) + " · " + r.span + L(" дн."," дн."));
+const prShort = () => PR.mode === "t" ? L("сьогодні","сегодня") : PR.mode === "y" ? L("вчора","вчера") : PR.mode === "m" ? L("місяць","месяц") : PR.mode === "c" ? L("період","период") : PR.mode + L(" дн."," дн.");
 const prOn = p => !!(CLOUD && sb && p && p.meta && p.meta.conn);
 const prCur = p => (p.meta.conn.account || {}).currency || "";
 const prM = (v, cur) => { const s = v >= 1000 ? num(v) : fxM(v); return !cur || cur === "USD" ? "$" + s : s + " " + cur; };
@@ -102,12 +103,23 @@ function prKpis(s, v, cap, cur){ const cpl = s.leads ? s.spend / s.leads : 0, pc
 const prFresh = p => { const fx = fxOf(p); return `<span class="sub mono">${fx.syncing ? L("оновлюємо з Meta…","обновляем из Meta…") : L("дані з Meta: ","данные из Meta: ") + fxWhen(fx.synced)}</span>`; };
 const prSkel = () => `<div class="skel" role="status" aria-label="${L("Завантажуємо факт","Загружаем факт")}"><div class="kpis kpis--5">${Array(5).fill(`<div class="kpi">${sk("60%", 10)}${sk("45%", 20)}</div>`).join("")}</div>${sk("100%", 28)}${sk("100%", 28)}</div>`;
 
+/* Сегодняшние цифры из Meta. День берётся по часам кабинета (Киев), а не по UTC: иначе после полуночи до 02:00–03:00
+   сервер считал бы «сегодня» ещё вчерашним днём. Запасной путь — обычное обновление за два дня. */
+async function prSyncToday(p, manual){ const fx = fxOf(p); if (fx.syncing) return; fx.syncing = true; fx.err = ""; render();
+  const t = prToday(); let d = await mtCall({action:"history", project_id:p.id, since:t, until:t});
+  if (!d.ok && d.error !== "meta" && d.error !== "not_connected") d = await mtCall({action:"sync", project_id:p.id, days:2});
+  fx.syncing = false;
+  if (!d.ok) { fx.err = d.error === "meta" || d.error === "not_connected" ? mtErr(d) : fxErr(d.detail || d.error); if (manual) toast(fx.err); render(); return; }
+  fx.synced = d.synced_at || new Date().toISOString(); Object.keys(PD).forEach(k => { if (k.indexOf(p.id + "|") === 0) PD[k].at = 0; });
+  if (manual) toast(L("Сьогоднішні цифри оновлено","Сегодняшние цифры обновлены")); await fxLoad(p); render(); }
+
 /* ---------- переключатель периода над картой ---------- */
 function prBar(){ if (!W.projs.some(prOn)) return ""; const r = prRange();
-  const md = [["y", L("Вчора","Вчера")], ["3", "3 " + L("дн.","дн.")], ["7", "7 " + L("дн.","дн.")], ["14", "14 " + L("дн.","дн.")], ["30", "30 " + L("дн.","дн.")], ["m", L("Місяць","Месяц")], ["c", L("Свої дати","Свои даты")]];
+  const md = [["t", L("Сьогодні","Сегодня")], ["y", L("Вчора","Вчера")], ["3", "3 " + L("дн.","дн.")], ["7", "7 " + L("дн.","дн.")], ["14", "14 " + L("дн.","дн.")], ["30", "30 " + L("дн.","дн.")], ["m", L("Місяць","Месяц")], ["c", L("Свої дати","Свои даты")]];
   const busy = W.projs.some(p => prOn(p) && fxOf(p).syncing), one = W.projs.find(prOn);
   return `<div class="prbar"><div class="row sp"><div class="row"><span class="tag">${L("Період","Период")}</span><span class="seg" role="group" aria-label="${L("Період","Период")}">${md.map(m => `<button type="button" data-act="prMode" data-v="${m[0]}" aria-pressed="${String(PR.mode) === m[0]}">${m[1]}</button>`).join("")}</span></div>
-    <div class="row"><span class="mono">${prLabel(r)}</span>${hint(L("Цифри на картках і висновки — за цей період; порівняння — з таким самим періодом перед ним","Цифры на карточках и выводы — за этот период; сравнение — с таким же периодом перед ним") + " (" + (r.span === 1 ? prDM(r.p1) : prDM(r.p1) + "–" + prDM(r.p2)) + ").")}${prFresh(one)}<button class="btn btn--sm" data-act="prSync"${busy ? " disabled" : ""}>${L("Оновити з Meta","Обновить из Meta")}</button></div></div>
+    <div class="row"><span class="mono">${prLabel(r)}</span>${hint(PR.mode === "t" ? L("День ще йде: цифри — від півночі до останнього оновлення, порівняння — з усім учорашнім днем, тож витрати й ліди сьогодні майже завжди менші. Meta показує свіжі цифри із затримкою 15–30 хвилин. Ціна ліда й висновки чесні вже зараз, якщо витрачено достатньо.","День ещё идёт: цифры — от полуночи до последнего обновления, сравнение — со всем вчерашним днём, так что расход и лиды сегодня почти всегда меньше. Meta показывает свежие цифры с задержкой 15–30 минут. Цена лида и выводы честные уже сейчас, если потрачено достаточно.")
+      : L("Цифри на картках і висновки — за цей період; порівняння — з таким самим періодом перед ним","Цифры на карточках и выводы — за этот период; сравнение — с таким же периодом перед ним") + " (" + (r.span === 1 ? prDM(r.p1) : prDM(r.p1) + "–" + prDM(r.p2)) + ").")}${prFresh(one)}<button class="btn btn--sm" data-act="prSync"${busy ? " disabled" : ""}>${L("Оновити з Meta","Обновить из Meta")}</button></div></div>
     ${PR.mode === "c" ? `<div class="row prdates"><label>${L("з","с")} <input type="date" id="pr-d1" value="${PR.d1 || r.d1}" max="${prToday()}"></label><label>${L("по","по")} <input type="date" id="pr-d2" value="${PR.d2 || r.d2}" max="${prToday()}"></label><button class="btn btn--sm btn--solid" data-act="prCustom">${L("Показати","Показать")}</button></div>` : ""}</div>`; }
 
 /* ---------- аккаунты пятым уровнем, кампании шестым ---------- */
@@ -196,12 +208,13 @@ function prOverview(only){ const ps = (only ? [only] : W.projs).filter(prOn); if
     ${items ? `<ul class="prv">${items}</ul>` : `<p class="sub">${s.spend ? L("Усі кампанії в межах стелі або ще рано судити.","Все кампании в пределах потолка или ещё рано судить.") : "—"}</p>`}</div>`; }
 
 Object.assign(ACT, {
-  prMode(d){ PR.mode = d.v === "y" || d.v === "m" || d.v === "c" ? d.v : +d.v; if (d.v === "c" && !PR.d1) { PR.d2 = prShift(prToday(), -1); PR.d1 = prShift(prToday(), -7); } },
+  prMode(d){ PR.mode = d.v === "t" || d.v === "y" || d.v === "m" || d.v === "c" ? d.v : +d.v;
+    if (PR.mode === "t") W.projs.filter(prOn).forEach(p => { const fx = fxOf(p); if (!fx.synced || Date.now() - new Date(fx.synced).getTime() > 15 * 60000) prSyncToday(p, false); }); if (d.v === "c" && !PR.d1) { PR.d2 = prShift(prToday(), -1); PR.d1 = prShift(prToday(), -7); } },
   prCustom(){ const a = (document.getElementById("pr-d1") || {}).value, b = (document.getElementById("pr-d2") || {}).value;
     if (!a || !b) { toast(L("Вкажіть обидві дати","Укажите обе даты")); return false; }
     if (Math.abs(Date.parse(b) - Date.parse(a)) / 864e5 > 92) { toast(L("Період — не довше 93 днів","Период — не длиннее 93 дней")); return false; }
     PR.d1 = a; PR.d2 = b; PR.mode = "c"; },
-  prSync(){ W.projs.filter(prOn).forEach(p => fxSync(p, true)); },
+  prSync(){ W.projs.filter(prOn).forEach(p => PR.mode === "t" ? prSyncToday(p, true) : fxSync(p, true)); },
   prGo(d){ const ps = d.k.split("/"); for (let i = 2; i < ps.length; i++) MP.fold[ps.slice(0, i).join("/")] = false; MP.sel = d.k;
     setTimeout(() => { const e = document.querySelector(".map .panel"); if (e) e.scrollIntoView({block:"start", behavior:"smooth"}); }, 0); },
 });
