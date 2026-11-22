@@ -671,3 +671,9 @@ body.has-tabbar .only-m{display:flex}
 .kbm__s span::before{content:"○ "} .kbm__s .ok{color:var(--ink)} .kbm__s .ok::before{content:"● ";color:var(--good)}
 @media (max-width:700px){ .kbc .adder{grid-template-columns:1fr} .kbc__h{grid-template-columns:36px 1fr auto;gap:8px} }
 .kbm .good{color:var(--good);margin:0;font-weight:600}
+
+/* запуск: цель одной фразой */
+#bd .bdg{border-top:0;padding-top:0}
+#bd .bdg__in{flex-wrap:nowrap} #bd .bdg__in input{flex:1;min-width:0;font-size:17px;padding:14px 14px}
+#bd .bdg__got{display:flex;flex-wrap:wrap;gap:6px}
+#bd .bdg__c{margin:0;font-size:15px} #bd .bdg__q{gap:8px 12px}

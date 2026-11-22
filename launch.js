@@ -124,7 +124,7 @@ function bdInit(f, p){ const date = bdTomorrow(), c = bdConn(p), last = f.launch
     pixel:last.pixel || (c && c.pixel ? c.pixel.id : ""), pixelSet:!!last.pixel, event:last.event || "lead", eventSet:!!last.event,
     name:bdName(f, p, date), budget:last.budget || (daily >= 5 ? daily : 20), link:bdUrl((f.lands[0] || {}).url), utm:u.v,
     countries:"UA", lang:"", advantage:true, age_min:18, age_max:65, gender:"", aud:"",
-    adset:"", date, time:"00:40", text:(f.launch || {}).text || "", vark:(f.launch || {}).text ? "last" : "", textSet:false, headline:(f.launch || {}).headline || "", headSet:false, description:"", cta:last.cta || "LEARN_MORE", links:f.links || "",
+    adset:"", goal:"", chg:[], date, time:"00:40", text:(f.launch || {}).text || "", vark:(f.launch || {}).text ? "last" : "", textSet:false, headline:(f.launch || {}).headline || "", headSet:false, description:"", cta:last.cta || "LEARN_MORE", links:f.links || "",
     ads:f.crs.filter(x => x.path).map(x => ({id:x.id, on:true, name:bdLatin(x.slug || x.name), pk:bdPairKey(x.name || x.slug), type:x.type === "img" ? "img" : "video", text:x.text || "", auto:"", own:!!(x.text || "").trim(), src:{t:"store", path:x.path, fname:x.name || "", key:"s:" + x.path}, story:null, solo:false}))};
   const a = bdAuds(f, p)[0]; if (a) bdAudSet(a);
   bdTexts(p); }
@@ -224,7 +224,7 @@ function bdForm(f, p, c){ const F0 = BD.form, accs = bdAccs(c), pages = bdPages(
       <div class="field"><label for="bd-account">${L("Рекламний акаунт","Рекламный аккаунт")}</label><select id="bd-account" data-bd="account"${lock}>${accs.map(a => `<option value="${esc(a.id)}"${a.id === F0.account ? " selected" : ""}>${esc(a.name && a.name !== a.id ? a.name + " · " + a.id : a.id)}${a.currency ? " · " + esc(a.currency) : ""}</option>`).join("")}</select>${R.campaign_id ? `<span class="sub">${L("Кампанію вже створено в цьому акаунті — змінити його не можна.","Кампания уже создана в этом аккаунте — сменить его нельзя.")}</span>` : ""}</div>
       <div class="field"><label for="bd-link">${L("Лендинг","Лендинг")}</label><input id="bd-link" data-bd="link" value="${esc(F0.link)}" list="bd-lands" placeholder="https://"${dis}><datalist id="bd-lands">${lands.map(x => `<option value="${esc(x)}">`).join("")}</datalist></div>
     </div>
-    ${s1}${s2}${s3}${sum}${adv}
+    ${bdGoalBlock(f, p, cur, dis)}${s1}${s2}${s3}${sum}${adv}
     ${errs.length && !BD.busy ? `<p class="sub">${L("Ще потрібно: ","Ещё нужно: ")}${esc(errs.join(", "))}.</p>` : ""}
     ${BD.err ? `<p class="mterr" role="alert">${esc(BD.err)}</p>` : ""}
     ${BD.busy ? `<p class="sub" role="status">${esc(BD.step)}</p>` : ""}
@@ -273,7 +273,7 @@ async function bdRunAll(){ const f = F(), p = P(), F0 = BD.form, c = bdConn(p); 
         image_hash:x.hash, video_id:x.picture ? x.video_id : undefined, picture:x.picture, story_video_id:a.story && x.s_picture ? x.s_video_id : undefined, story_picture:x.s_picture, creative_id:x.creative_id}, L("Створюємо оголошення ","Создаём объявление ") + a.name);
       x.creative_id = r.creative_id; x.ad_id = r.id; if (a.story && !r.pac) R.nopac = (R.nopac || 0) + 1; }
     const note = R.nopac ? L("без версії для сторіс: ","без версии для сторис: ") + R.nopac : "";
-    f.builds = f.builds || []; f.builds.unshift({at:new Date().toISOString(), name:R.name || name, account:F0.account, account_name:(bdAccs(c).find(a => a.id === F0.account) || {}).name || "", campaign_id:R.campaign_id, adset_id:R.adset_id, start, note, ads:on.map(a => ({name:a.name, id:R.ads[a.id].ad_id}))});
+    f.builds = f.builds || []; f.builds.unshift({at:new Date().toISOString(), goal:F0.goal || "", chg:F0.chg || [], name:R.name || name, account:F0.account, account_name:(bdAccs(c).find(a => a.id === F0.account) || {}).name || "", campaign_id:R.campaign_id, adset_id:R.adset_id, start, note, ads:on.map(a => ({name:a.name, id:R.ads[a.id].ad_id}))});
     p.campMap = p.campMap || {}; p.campMap[R.campaign_id] = f.id; /* статистика этой кампании попадёт в воронку, даже если название её не содержит */
     /* следующий запуск начнётся с этих же настроек: аккаунт, цель, аудитория, бюджет, текст */
     const snap = {account:F0.account, page:F0.page, pixel:F0.pixel, event:F0.event, countries:F0.countries, lang:F0.lang, advantage:!!F0.advantage, age_min:+F0.age_min || 18, age_max:+F0.age_max || 65, gender:F0.gender, budget, cta:F0.cta};
@@ -322,3 +322,56 @@ document.addEventListener("change", e => { const t = e.target; if (!t.dataset ||
   if (k === "link") BD.form.link = bdUrl(t.value);
   render(); });
 const mediaExt = n => /\.(mp4|mov|m4v|webm)$/i.test(n || "") ? "video" : /\.(jpe?g|png|gif|webp)$/i.test(n || "") ? "img" : "";
+
+/* ── Цель запуска одной фразой. Разбор и расчёт — обычный код, без ИИ. ── */
+const bdDayAdd = (d, k) => { const [y, m, dd] = d.split("-").map(Number); return new Date(Date.UTC(y, m - 1, dd + k)).toISOString().slice(0, 10); };
+const bdDayDiff = (a, b) => Math.round((Date.parse(a + "T00:00:00Z") - Date.parse(b + "T00:00:00Z")) / 864e5);
+function bdGoalParse(s){ const t = String(s || "").toLowerCase().replace(/ /g, " "), g = {}, tom = bdTomorrow(), num = x => +String(x).replace(/\s/g, "");
+  const m = t.match(/(\d[\d ]*)\s*(лід|лид|реєстр|регистр|заяв|підпис|подпис|оплат|продаж|покуп|брон)/);
+  if (m) { g.n = num(m[1]); g.unit = /оплат|продаж|покуп/.test(m[2]) ? "pay" : /брон/.test(m[2]) ? "book" : "lead"; }
+  const b = t.match(/\$\s?(\d[\d ]*)/) || t.match(/(\d[\d ]*)\s*(\$|дол|usd|бакс)/); if (b) g.budget = num(b[1]);
+  const dm = t.match(/(?:^|[^\d.])(\d{1,2})[.\/](\d{1,2})(?![\d])/), thr = t.match(/через\s+(\d+)\s*(дн|ден|день|діб|сут)/);
+  if (/післязавтра|послезавтра/.test(t)) g.date = bdDayAdd(tom, 1); else if (/завтра/.test(t)) g.date = tom; else if (/сьогодні|сегодня/.test(t)) g.date = bdDayAdd(tom, -1);
+  else if (thr) g.date = bdDayAdd(tom, +thr[1] - 1);
+  else if (dm && +dm[2] >= 1 && +dm[2] <= 12 && +dm[1] >= 1 && +dm[1] <= 31) { const y = +tom.slice(0, 4); let d = y + "-" + String(dm[2]).padStart(2, "0") + "-" + String(dm[1]).padStart(2, "0"); if (bdDayDiff(d, tom) < -1) d = (y + 1) + d.slice(4); g.date = d; }
+  return g; }
+/* цена лида: факт воронки за выбранный на карте период, иначе план воронки */
+function bdGoalCpl(f, p){ let fact = 0; try { if (typeof prOn === "function" && prOn(p)) { const x = prOf(p); if (x.cur) { const rows = x.cur.filter(r => fxFunnel(p, r) === f.id), sp = rows.reduce((a, r) => a + (+r.spend || 0), 0), ld = rows.reduce((a, r) => a + (+r.leads || 0), 0); if (ld >= 10) fact = sp / ld; } } } catch (e) {}
+  const t = fT(f, p), plan = t.leads > 0 ? t.bud / t.leads : 0; return fact ? {v:fact, from:"fact"} : plan ? {v:plan, from:"plan"} : null; }
+function bdGoalCalc(f, p){ const F0 = BD.form, g = bdGoalParse(F0.goal), c = bdGoalCpl(f, p), t = f.tg || {}, o = {g, cpl:c};
+  if (!c) return o;
+  const k = g.unit === "pay" ? (t.l2b / 100) * (t.b2p / 100) : g.unit === "book" ? t.l2b / 100 : 1;
+  if (g.n && k > 0) { o.leads = Math.ceil(g.n / k); o.total = o.leads * c.v;
+    if (g.date) { o.days = bdDayDiff(g.date, F0.date); o.late = o.days < 1; o.daily = Math.ceil(o.total / Math.max(1, o.days)); } }
+  if (g.budget) o.byBudget = Math.floor(g.budget / c.v * k);
+  return o; }
+const BD_CHG = () => [["offer",L("офер","оффер")],["price",L("ціна","цена")],["land",L("лендинг","лендинг")],["crs",L("креативи","креативы")],["aud",L("аудиторія","аудитория")]];
+function bdGoalBlock(f, p, cur, dis){ const F0 = BD.form, o = bdGoalCalc(f, p), g = o.g, dm = d => d.slice(8, 10) + "." + d.slice(5, 7), unit = {lead:L("лідів","лидов"), book:L("бронювань","броней"), pay:L("оплат","оплат")}[g.unit] || "";
+  const mic = (window.SpeechRecognition || window.webkitSpeechRecognition) ? `<button type="button" class="btn btn--ico${BD.mic ? " btn--solid" : ""}" data-act="bdMic" aria-pressed="${BD.mic ? "true" : "false"}" aria-label="${L("Надиктувати","Надиктовать")}" title="${L("Надиктувати","Надиктовать")}"${dis}><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="7.5" y="2.5" width="5" height="9" rx="2.5"/><path d="M4.5 9.5a5.5 5.5 0 0 0 11 0M10 15v2.5"/></svg></button>` : "";
+  const got = [g.n ? g.n + " " + unit : "", g.date ? L("до ","к ") + dm(g.date) : "", g.budget ? bdM(g.budget, cur) : ""].filter(Boolean);
+  let calc = "";
+  if (o.cpl && g.n) { const src = o.cpl.from === "fact" ? L("факт воронки","факт воронки") : L("план воронки","план воронки");
+    calc = `<p class="bdg__c">${g.unit !== "lead" ? `${g.n} ${unit} ≈ ${o.leads} ${L("лідів","лидов")} · ` : ""}${L("лід ","лид ")}${bdM(o.cpl.v, cur)} <small class="sub">(${src})</small> → <b>${bdM(Math.round(o.total), cur)}</b>${o.days >= 1 ? ` · ${o.days} ${L("дн.","дн.")} × <b>${bdM(o.daily, cur)}</b>` : ""}</p>
+      ${o.late ? `<p class="mterr">${L("Старт стоїть на ","Старт стоит на ")}${dm(F0.date)} ${F0.time} — ${L("до цієї дати реклама не встигне. Зсуньте старт у налаштуваннях або дату цілі.","к этой дате реклама не успеет. Сдвиньте старт в настройках или дату цели.")}</p>` : ""}
+      ${o.daily && +F0.budget !== o.daily ? `<div class="row"><button type="button" class="btn btn--sm btn--solid" data-act="bdBud" data-v="${o.daily}"${dis}>${L("Поставити ","Поставить ")}${bdM(o.daily, cur)}${L(" на день"," в день")}</button></div>` : ""}`; }
+  else if (o.cpl && g.budget) calc = `<p class="bdg__c">${bdM(g.budget, cur)} ÷ ${L("лід ","лид ")}${bdM(o.cpl.v, cur)} ≈ <b>${o.byBudget} ${L("лідів","лидов")}</b></p>`;
+  const chg = (f.builds || []).length ? `<div class="row bdg__q"><span class="sub">${L("Що змінилося з минулого запуску","Что изменилось с прошлого запуска")}</span><div class="opts opts--sm">${BD_CHG().map(c => `<button type="button" class="opt" data-act="bdChg" data-v="${c[0]}" aria-pressed="${(F0.chg || []).includes(c[0]) ? "true" : "false"}"${dis}>${c[1]}</button>`).join("")}</div></div>` : "";
+  return `<div class="bdq bdg"><div class="row sp"><b class="bdn">${L("Ціль","Цель")}</b>${hint(L("Одна фраза: скільки, чого й до якої дати. Платформа порахує бюджет за ціною ліда цієї воронки. Можна пропустити.","Одна фраза: сколько, чего и к какой дате. Платформа посчитает бюджет по цене лида этой воронки. Можно пропустить."))}</div>
+    <div class="row bdg__in"><input id="bd-goal" data-bd="goal" value="${esc(F0.goal || "")}" placeholder="${L("100 лідів на вебінар післязавтра","100 лидов на вебинар послезавтра")}" aria-label="${L("Ціль запуску","Цель запуска")}"${dis}>${mic}</div>
+    ${got.length ? `<div class="bdg__got">${got.map(x => `<span class="pill pill--mute">${esc(x)}</span>`).join("")}</div>` : ""}${calc}${chg}</div>`; }
+function bdMic(){ const SR = window.SpeechRecognition || window.webkitSpeechRecognition; if (!SR || !BD.form) return;
+  if (BD.mic) { try { BD.mic.stop(); } catch (e) {} BD.mic = null; render(); return; }
+  const r = new SR(); r.lang = lang === "uk" ? "uk-UA" : "ru-RU"; r.interimResults = false; r.maxAlternatives = 1;
+  r.onresult = e => { const t = [...e.results].map(x => x[0].transcript).join(" ").trim(); if (t && BD.form) BD.form.goal = ((BD.form.goal || "") + " " + t).trim(); };
+  r.onerror = e => { if (e.error === "not-allowed" || e.error === "service-not-allowed") toast(L("Браузер не дав доступ до мікрофона","Браузер не дал доступ к микрофону")); };
+  r.onend = () => { BD.mic = null; render(); };
+  BD.mic = r; try { r.start(); } catch (e) { BD.mic = null; } render(); }
+Object.assign(ACT, {
+  bdMic(){ bdMic(); return false; },
+  bdChg(d){ const F0 = BD.form; if (!F0) return false; F0.chg = F0.chg || []; const i = F0.chg.indexOf(d.v); if (i < 0) F0.chg.push(d.v); else F0.chg.splice(i, 1); },
+  /* вход с карты: «+ Кампания» у Meta Ads открывает запуск нужной воронки */
+  bdFromMap(d){ const p = W.projs.find(x => x.id === d.p), f = p && p.funnels.find(x => x.id === d.f); if (!f) return false;
+    W.cur = p.id; W.fun = f.id; W.ftab = d.tab || W.ftab; BD.open = f.id; if (CLOUD && bdConn(p) && bdCanWrite(bdConn(p))) bdInit(f, p); else BD.open = null; save();
+    setTimeout(() => { const el = document.getElementById("bd"); if (el) el.scrollIntoView({block:"start"}); }, 80); }
+});
+document.addEventListener("change", e => { if (e.target && e.target.id === "bd-goal") render(); });
