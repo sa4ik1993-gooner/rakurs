@@ -693,3 +693,5 @@ body.has-tabbar .only-m{display:flex}
 .hrow .hint--wide .hint__t{left:auto;right:0}
 
 .prv .tdo{display:inline-flex;gap:6px;margin-left:auto}
+
+.adl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}

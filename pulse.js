@@ -3,7 +3,8 @@
    только говорит, что видит, почему и что сделать.
    Данные — те же своды на сервере, что у блока «Факт рекламы». Подключается после fact.js. */
 const PR = {mode:meMode(), d1:"", d2:""};   /* период карты: y — вчера, 3/7/14/30 — дней по вчера, m — месяц по сегодня, c — свои даты */
-const PD = {};                          /* данные по проекту и периоду */
+const PD = {};
+const PROV_CH = {google:"gg", tiktok:"tt", telegram:"tga"};       /* название канала в базе → код канала на карте */                          /* данные по проекту и периоду */
 const prPad = n => (n < 10 ? "0" : "") + n;
 const prToday = () => { const d = new Date(); return d.getFullYear() + "-" + prPad(d.getMonth() + 1) + "-" + prPad(d.getDate()); };
 const prShift = (s, n) => new Date(Date.parse(s) + n * 864e5).toISOString().slice(0, 10);
@@ -30,7 +31,7 @@ function prLoad(p){ if (!prOn(p)) return; const x = prOf(p), fx = fxOf(p), r = x
   if (x.loading || x.at && x.synced === fx.synced && Date.now() - x.at < 10 * 60000) return;
   x.loading = true; x.err = "";
   const q = (fn, a) => Promise.resolve(sb.rpc(fn, Object.assign({p:p.id}, a))).then(res => res.error ? (x.err = x.err || fxErr(res.error.message), null) : (res.data || []), e => (x.err = x.err || fxErr(e && e.message), null));
-  const camp = o => ({prov:o.provider, f:o.funnel_id || "", id:o.campaign_id, name:o.campaign_name || o.campaign_id, spend:+o.spend || 0, imp:+o.impressions || 0, clicks:+o.clicks || 0, leads:+o.leads || 0});
+  const camp = o => ({prov:PROV_CH[o.provider] || o.provider, f:o.funnel_id || "", id:o.campaign_id, name:o.campaign_name || o.campaign_id, spend:+o.spend || 0, imp:+o.impressions || 0, clicks:+o.clicks || 0, leads:+o.leads || 0});
   Promise.all([q("ad_summary", {d1:r.d1, d2:r.d2}), q("ad_summary", {d1:r.p1, d2:r.p2}), q("ad_adsets", {d1:r.d1, d2:r.d2}), q("ad_creatives", {d1:r.d1, d2:r.d2}), q("sales_summary", {d1:r.d1, d2:r.d2}), prAccMap(p, x)]).then(([c, pv, gs, as, ss]) => {
     x.cur = c ? c.map(camp) : null; x.prev = pv ? pv.map(camp) : [];
     x.sets = gs ? gs.map(o => ({cid:o.campaign_id, id:o.adset_id || "", name:o.adset_name || o.adset_id || "—", spend:+o.spend || 0, imp:+o.impressions || 0, clicks:+o.clicks || 0, leads:+o.leads || 0})) : [];
@@ -114,7 +115,7 @@ const prSkel = () => `<div class="skel" role="status" aria-label="${L("Зава�
 /* Сегодняшние цифры из Meta. День берётся по часам кабинета (Киев), а не по UTC: иначе после полуночи до 02:00–03:00
    сервер считал бы «сегодня» ещё вчерашним днём. Запасной путь — обычное обновление за два дня. */
 async function prSyncToday(p, manual){ const fx = fxOf(p); if (fx.syncing) return; fx.syncing = true; fx.err = ""; render();
-  const t = prToday(); let d = await mtCall({action:"history", project_id:p.id, since:t, until:t});
+  const t = prToday(); if (typeof adSyncToday === "function") adSyncToday(p); let d = await mtCall({action:"history", project_id:p.id, since:t, until:t});
   if (!d.ok && d.error !== "meta" && d.error !== "not_connected") d = await mtCall({action:"sync", project_id:p.id, days:2});
   fx.syncing = false;
   if (!d.ok) { fx.err = d.error === "meta" || d.error === "not_connected" ? mtErr(d) : fxErr(d.detail || d.error); if (manual) toast(fx.err); render(); return; }

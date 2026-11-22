@@ -19,7 +19,7 @@ async function fxLoad(p){ const x = fxOf(p); if (!CLOUD || !sb || x.loading) ret
       const lr = await sb.rpc("sales_lag", {p:p.id}); if (!lr.error) x.lag = lr.data || []; } catch (e) {}
     x.sets = null; try { const gr = await sb.rpc("ad_adsets", {p:p.id, d1, d2}); if (!gr.error) x.sets = (gr.data || []).map(o => ({cid:o.campaign_id, id:o.adset_id, name:o.adset_name || o.adset_id || "—", spend:+o.spend || 0, imp:+o.impressions || 0, clicks:+o.clicks || 0, leads:+o.leads || 0})); } catch (e) {}
     x.ads = null; try { const ar = await sb.rpc("ad_creatives", {p:p.id, d1, d2}); if (!ar.error) x.ads = (ar.data || []).map(o => ({cid:o.campaign_id, k:fxKey(o.campaign_name), name:o.ad_name || "", spend:+o.spend || 0, imp:+o.impressions || 0, clicks:+o.clicks || 0, leads:+o.leads || 0})); } catch (e) {}
-    if (r.error) x.err = fxErr(r.error.message); else { x.rows = (r.data || []).map(o => ({prov:o.provider, f:o.funnel_id || "", id:o.campaign_id, name:o.campaign_name || o.campaign_id, spend:+o.spend || 0, imp:+o.impressions || 0, clicks:+o.clicks || 0, leads:+o.leads || 0})); x.at = Date.now(); } }
+    if (r.error) x.err = fxErr(r.error.message); else { x.rows = (r.data || []).map(o => ({prov:PROV_CH[o.provider] || o.provider, f:o.funnel_id || "", id:o.campaign_id, name:o.campaign_name || o.campaign_id, spend:+o.spend || 0, imp:+o.impressions || 0, clicks:+o.clicks || 0, leads:+o.leads || 0})); x.at = Date.now(); } }
   catch (e) { x.err = fxErr(e && e.message); }
   x.loading = false; render(); }
 /* тянет свежую статистику из Meta на сервер, затем перечитывает сводку */
