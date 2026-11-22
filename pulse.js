@@ -18,6 +18,8 @@ function prRange(){ const t = prToday(); let d1, d2;
 const prLabel = r => (PR.mode === "t" ? L("сьогодні, ","сегодня, ") + prDM(r.d1) : PR.mode === "y" ? L("вчора, ","вчера, ") + prDM(r.d1) : r.span === 1 ? prDM(r.d1) : prDM(r.d1) + "–" + prDM(r.d2) + " · " + r.span + L(" дн."," дн."));
 const prShort = () => PR.mode === "t" ? L("сьогодні","сегодня") : PR.mode === "y" ? L("вчора","вчера") : PR.mode === "m" ? L("місяць","месяц") : PR.mode === "c" ? L("період","период") : PR.mode + L(" дн."," дн.");
 const prOn = p => !!(CLOUD && sb && p && p.meta && p.meta.conn);
+/* у канала воронки есть статистика на сервере: Meta — по подключению, остальные — по строкам с этим каналом */
+const prHas = (p, f, c) => { if (!prOn(p)) return false; if (c === "meta") return true; const x = prOf(p); return !!(x.cur && x.cur.some(r => r.prov === c && fxFunnel(p, r) === f.id)); };
 const prCur = p => (p.meta.conn.account || {}).currency || "";
 const prM = (v, cur) => { const s = v >= 1000 ? num(v) : fxM(v); return !cur || cur === "USD" ? "$" + s : s + " " + cur; };
 const prPct = v => dec(v * 100, v < 0.1 ? 2 : 1) + "%";
@@ -43,20 +45,22 @@ function prLoad(p){ if (!prOn(p)) return; const x = prOf(p), fx = fxOf(p), r = x
 
 /* ---------- рекламные аккаунты: какой кампании какой аккаунт ----------
    Аккаунт кампании берётся из строк статистики (колонка account_id, schema_history.sql). Если у проекта один аккаунт — все кампании его. */
-const prAccs = p => { const c = p.meta.conn || {}; return c.accounts && c.accounts.length ? c.accounts : c.account ? [c.account] : []; };
-function prAccMap(p, x){ const accs = prAccs(p); if (accs.length <= 1) { x.am = {one:accs[0] ? String(accs[0].id) : ""}; return Promise.resolve(); }
-  const out = {}, page = i => Promise.resolve(sb.from("ad_metrics").select("campaign_id,account_id").eq("project_id", p.id).eq("provider", "meta").gte("day", x.r.p1).lte("day", x.r.d2).range(i * 1000, i * 1000 + 999))
+const PR_CH = ["meta", "gg", "tt", "tga"];
+const prAccs = (p, ch) => { const c = !ch || ch === "meta" ? p.meta.conn || {} : ((p.ads || {})[ch] || {}); return c.accounts && c.accounts.length ? c.accounts : c.account ? [c.account] : []; };
+function prAccMap(p, x){ const one = {}; PR_CH.forEach(ch => { const a = prAccs(p, ch); if (a.length === 1) one[ch] = String(a[0].id); });
+  if (!PR_CH.some(ch => prAccs(p, ch).length > 1)) { x.am = {one}; return Promise.resolve(); }
+  const out = {}, page = i => Promise.resolve(sb.from("ad_metrics").select("campaign_id,account_id").eq("project_id", p.id).gte("day", x.r.p1).lte("day", x.r.d2).range(i * 1000, i * 1000 + 999))
     .then(res => { if (res.error) { x.am = {err:res.error.message}; return; } const d = res.data || []; d.forEach(o => { if (o.account_id) out[o.campaign_id] = String(o.account_id); });
-      if (d.length === 1000 && i < 29) return page(i + 1); x.am = {map:out}; }, e => { x.am = {err:String(e && e.message || e)}; });
+      if (d.length === 1000 && i < 29) return page(i + 1); x.am = {map:out, one}; }, e => { x.am = {err:String(e && e.message || e)}; });
   return page(0); }
-const prAccOf = (x, id) => !x.am ? "" : "one" in x.am ? x.am.one : x.am.map ? x.am.map[id] || "" : "";
-const prAccName = (p, id) => { const a = prAccs(p).find(o => String(o.id) === id); return !id ? L("Акаунт не визначено","Аккаунт не определён") : a && a.name && a.name !== a.id ? a.name : id; };
+const prAccOf = (x, id, ch) => !x.am ? "" : (x.am.map && x.am.map[id]) || (x.am.one || {})[ch || "meta"] || "";
+const prAccName = (p, id, ch) => { const a = prAccs(p, ch).find(o => String(o.id) === id); return !id ? L("Акаунт не визначено","Аккаунт не определён") : a && a.name && a.name !== a.id ? a.name : id; };
 const prAK = id => "a" + (id || "_");                                  /* кусок ключа карты для аккаунта */
 const prAId = k => k === "a_" ? "" : k.slice(1);
 
 /* строки кампаний воронки в канале, с бронями и оплатами по точному совпадению метки utm_campaign */
 const prRows = (p, list, f, c, x) => (list || []).filter(r => r.prov === c && fxFunnel(p, r) === f.id).map(r => Object.assign({}, r, (x && x.sb && x.sb[fxKey(r.name)]) || {}));
-const prRowsA = (p, list, f, c, x, acc) => prRows(p, list, f, c, x).filter(r => acc == null || prAccOf(prOf(p), r.id) === acc);
+const prRowsA = (p, list, f, c, x, acc) => prRows(p, list, f, c, x).filter(r => acc == null || prAccOf(prOf(p), r.id, c) === acc);
 const prCap = (f, p) => { const c = fT(f, p).cap; return c > 0 && isFinite(c) ? c : 0; };
 
 /* Пороги выводов и число кампаний на доске — настройки компании (раздел «Настройки»); здесь значения по умолчанию. */
@@ -139,13 +143,14 @@ const prFive = (s, cur) => [[L("Витрати","Расход"), prM(s.spend, cu
 /* те же пять цифр для карточки воронки (все каналы) или канала */
 function prCardKpi(p, f, c){ if (!prOn(p)) return null; const x = prOf(p); if (!x.cur) return null;
   const rows = x.cur.filter(r => fxFunnel(p, r) === f.id && (!c || r.prov === c)).map(r => Object.assign({}, r, x.sb[fxKey(r.name)] || {}));
+  if (c && c !== "meta" && !rows.length) return null;
   return prFive(fxSum(rows), prCur(p)); }
 /* аккаунты воронки в канале: те, где за период был расход; если расхода нет нигде — все подключённые */
 function prAccList(p, f, c){ const x = prOf(p), rows = prRows(p, x.cur, f, c, x), prev = prRows(p, x.prev, f, c), ids = [];
-  rows.forEach(r => { const a = prAccOf(x, r.id); if (r.spend > 0 && !ids.includes(a)) ids.push(a); });
-  if (!ids.length) prAccs(p).forEach(a => ids.push(String(a.id)));
-  return ids.map(id => { const own = rows.filter(r => prAccOf(x, r.id) === id); return {id, name:prAccName(p, id), s:fxSum(own), v:fxSum(prev.filter(r => prAccOf(x, r.id) === id)), n:own.filter(r => r.spend > 0).length}; }).sort((a, b) => b.s.spend - a.s.spend); }
-function prAccNodes(p, f, c, ck){ if (c !== "meta" || !prOn(p)) return []; const x = prOf(p); if (!x.cur || !x.am) return [];
+  rows.forEach(r => { const a = prAccOf(x, r.id, c); if (r.spend > 0 && !ids.includes(a)) ids.push(a); });
+  if (!ids.length) prAccs(p, c).forEach(a => ids.push(String(a.id)));
+  return ids.map(id => { const own = rows.filter(r => prAccOf(x, r.id, c) === id); return {id, name:prAccName(p, id, c), s:fxSum(own), v:fxSum(prev.filter(r => prAccOf(x, r.id, c) === id)), n:own.filter(r => r.spend > 0).length}; }).sort((a, b) => b.s.spend - a.s.spend); }
+function prAccNodes(p, f, c, ck){ if (!prHas(p, f, c)) return []; const x = prOf(p); if (!x.cur || !x.am) return [];
   const cap = prCap(f, p), cur = prCur(p), list = prAccList(p, f, c);
   return list.map(a => { const k = ck + "/" + prAK(a.id), j = prMain(prJudge(a.s, a.v, cap, cur)) || {lv:"", t:a.s.spend ? "" : L("витрат немає","расхода нет")};
     const n = {k, lv:4, t:a.name, kpi:prFive(a.s, cur), m:j.t, v:j.lv}, kids = prCampNodes(p, f, c, k, a.id);
@@ -154,7 +159,7 @@ function prAccNodes(p, f, c, ck){ if (c !== "meta" || !prOn(p)) return []; const
 
 /* ---------- панель канала ---------- */
 function prChanPanel(p, f, c, acc){ const ch = chOf(c), x = prOf(p), cur = prCur(p), cap = prCap(f, p), ck = "co/" + p.id + "/" + f.id + "/" + c, one = acc != null;
-  const head = one ? `${lvTag(4)}<div class="row sp"><h2>${esc(prAccName(p, acc))}</h2>${prFresh(p)}</div><p class="sub">${acc ? `<span class="mono">act_${esc(acc)}</span> · ` : ""}${ch[1]} · ${esc(f.name)} · ${esc(p.name)} · <span class="mono">${prLabel(x.r)}</span></p>`
+  const head = one ? `${lvTag(4)}<div class="row sp"><h2>${esc(prAccName(p, acc, c))}</h2>${prFresh(p)}</div><p class="sub">${acc ? `<span class="mono">${c === "meta" ? "act_" : ""}${esc(acc)}</span> · ` : ""}${ch[1]} · ${esc(f.name)} · ${esc(p.name)} · <span class="mono">${prLabel(x.r)}</span></p>`
     : `${lvTag(3)}<div class="row sp"><h2>${chIcon(c)} ${ch[1]}</h2>${prFresh(p)}</div><p class="sub">${esc(f.name)} · ${esc(p.name)} · <span class="mono">${prLabel(x.r)}</span></p>`;
   let btns = `<div class="row"><button class="btn btn--sm btn--solid" data-act="mapOpenF" data-p="${p.id}" data-id="${f.id}">${L("Аналітика воронки","Аналитика воронки")}</button><button class="btn btn--sm" data-act="mapConn" data-id="${p.id}">${L("Підключення проєкту","Подключения проекта")}</button><button class="btn btn--sm" data-act="mapCh" data-p="${p.id}" data-f="${f.id}" data-v="${c}">${L("Прибрати канал із воронки","Убрать канал из воронки")}</button></div>`;
   if (x.err && !x.cur) return `<div class="panel">${head}<p class="mterr">${esc(x.err)}</p>${btns}</div>`;
@@ -166,20 +171,20 @@ function prChanPanel(p, f, c, acc){ const ch = chOf(c), x = prOf(p), cur = prCur
   list.forEach(o => { o.j = prMain(prJudge(o.r, o.v, cap, cur)) || {lv:"mute", t:"—"}; });
   const bad = list.filter(o => o.j.lv === "crit");
   if (bad.length && list.length > 1) js.unshift({lv:"crit", t:L("Кампаній, де потрібне рішення: ","Кампаний, где нужно решение: ") + bad.length, why:bad.map(o => o.r.name + " — " + prM(o.r.spend, cur)).join("; "), todo:L("Вони дорожчі за стелю або витрачають без лідів. Відкрийте кожну в таблиці нижче: там причина й що зробити.","Они дороже потолка или тратят без лидов. Откройте каждую в таблице ниже: там причина и что сделать.")});
-  if ((x.am.err || rows.some(r => r.spend > 0 && !prAccOf(x, r.id))) && prAccs(p).length > 1) js.push({lv:"mute", t:L("Акаунти не розділено","Аккаунты не разделены"), why:L("Сервер ще не зберігає, з якого акаунта кожна кампанія","Сервер ещё не хранит, из какого аккаунта каждая кампания") + (x.am.err ? ": " + x.am.err : "."), todo:L("Виконайте в Supabase файл schema_history.sql, оновіть код функції meta й натисніть «Оновити з Meta».","Выполните в Supabase файл schema_history.sql, обновите код функции meta и нажмите «Обновить из Meta».")});
+  if ((x.am.err || rows.some(r => r.spend > 0 && !prAccOf(x, r.id, c))) && prAccs(p, c).length > 1) js.push({lv:"mute", t:L("Акаунти не розділено","Аккаунты не разделены"), why:L("Сервер ще не зберігає, з якого акаунта кожна кампанія","Сервер ещё не хранит, из какого аккаунта каждая кампания") + (x.am.err ? ": " + x.am.err : "."), todo:L("Виконайте в Supabase файл schema_history.sql, оновіть код функції meta й натисніть «Оновити з Meta».","Выполните в Supabase файл schema_history.sql, обновите код функции meta и нажмите «Обновить из Meta».")});
   const au = rows.filter(r => r.spend > 0 && fxAuto(p, r)); if (au.length) js.push({lv:"mute", t:L("Воронку поставили самі: ","Воронку поставили сами: ") + plural(au.length, L("кампанія","кампания"), L("кампанії","кампании"), L("кампаній","кампаний")), why:L("У назвах цих кампаній немає назви воронки, а воронка в проєкті одна — тому віднесли до неї: ","В названиях этих кампаний нет названия воронки, а воронка в проекте одна — поэтому отнесли к ней: ") + au.map(r => r.name).join("; "), todo:L("Якщо якась кампанія не про цю воронку — зніміть прив’язку у проєкті, вкладка «Підключення».","Если какая-то кампания не про эту воронку — снимите привязку в проекте, вкладка «Подключения».")});
   const fx = fxOf(p); if (fx.synced && Date.now() - new Date(fx.synced).getTime() > 26 * 3600e3) js.push({lv:"warn", t:L("Дані застаріли","Данные устарели"), why:L("Останнє оновлення з Meta — ","Последнее обновление из Meta — ") + fxWhen(fx.synced) + ".", todo:L("Натисніть «Оновити з Meta» над картою.","Нажмите «Обновить из Meta» над картой.")});
   const tbl = `<div class="tw"><table><thead><tr><th>${L("Кампанія","Кампания")}</th><th class="n">${L("Витрати","Расход")}</th><th class="n">${L("Ліди","Лиды")}</th><th class="n">${L("Ціна ліда","Цена лида")}</th><th class="n">${L("До минулого","К прошлому")}</th><th>${L("Висновок","Вывод")}</th></tr></thead><tbody>
-    ${list.map(o => `<tr data-act="mapSel" data-k="${esc(ck + "/" + prAK(prAccOf(x, o.r.id)) + "/" + o.r.id)}" tabindex="0"><td class="mono">${esc(o.r.name)}</td><td class="n mono">${prM(o.r.spend, cur)}</td><td class="n mono">${num(o.r.leads)}</td><td class="n mono">${o.r.leads ? prM(o.r.spend / o.r.leads, cur) : "—"}</td><td class="n">${o.r.leads && o.v.leads ? prDelta(o.r.spend / o.r.leads, o.v.spend / o.v.leads, true) : o.v.spend ? "" : `<span class="sub">${L("нова","новая")}</span>`}</td><td>${prPill(o.j)}</td></tr>`).join("")}</tbody></table></div>`;
+    ${list.map(o => `<tr data-act="mapSel" data-k="${esc(ck + "/" + prAK(prAccOf(x, o.r.id, c)) + "/" + o.r.id)}" tabindex="0"><td class="mono">${esc(o.r.name)}</td><td class="n mono">${prM(o.r.spend, cur)}</td><td class="n mono">${num(o.r.leads)}</td><td class="n mono">${o.r.leads ? prM(o.r.spend / o.r.leads, cur) : "—"}</td><td class="n">${o.r.leads && o.v.leads ? prDelta(o.r.spend / o.r.leads, o.v.spend / o.v.leads, true) : o.v.spend ? "" : `<span class="sub">${L("нова","новая")}</span>`}</td><td>${prPill(o.j)}</td></tr>`).join("")}</tbody></table></div>`;
   const al = one ? [] : prAccList(p, f, c), atbl = al.length > 1 ? `<span class="tag">${L("Рекламні акаунти","Рекламные аккаунты")} · ${al.length}</span><div class="tw"><table><thead><tr><th>${L("Акаунт","Аккаунт")}</th>${prFive({spend:0, imp:0, clicks:0, leads:0, pay:0}, cur).map(k => `<th class="n">${k[0]}</th>`).join("")}<th>${L("Висновок","Вывод")}</th></tr></thead><tbody>
     ${al.map(a => { const j = prMain(prJudge(a.s, a.v, cap, cur)) || {lv:"mute", t:"—"}; return `<tr data-act="mapSel" data-k="${esc(ck + "/" + prAK(a.id))}" tabindex="0"><td>${esc(a.name)}</td>${prFive(a.s, cur).map(k => `<td class="n mono">${k[1]}</td>`).join("")}<td>${prPill(j)}</td></tr>`; }).join("")}</tbody></table></div>` : "";
   return `<div class="panel">${head}${prKpis(s, v, cap, cur)}<span class="tag">${L("Висновки","Выводы")} ${hint(L("Висновки рахуються за правилами: стеля ціни ліда воронки, порівняння з минулим періодом, CTR. Частку «клік → завантаження сторінки» додамо, коли сервер почне забирати завантаження сторінок. Платформа нічого не змінює в кабінеті сама.","Выводы считаются по правилам: потолок цены лида воронки, сравнение с прошлым периодом, CTR. Долю «клик → загрузка страницы» добавим, когда сервер начнёт забирать загрузки страниц. Платформа ничего не меняет в кабинете сама."))}</span>${prList(js)}${atbl}<span class="tag">${L("Кампанії за період","Кампании за период")} · ${list.length}</span>${tbl}${btns}</div>`; }
 
 /* ---------- панель кампании ---------- */
-function prCampPanel(p, f, c, id){ const x = prOf(p), cur = prCur(p), cap = prCap(f, p), ck = "co/" + p.id + "/" + f.id + "/" + c + "/" + prAK(prAccOf(x, id));
+function prCampPanel(p, f, c, id){ const x = prOf(p), cur = prCur(p), cap = prCap(f, p), ck = "co/" + p.id + "/" + f.id + "/" + c + "/" + prAK(prAccOf(x, id, c));
   if (!x.cur || !x.am) return `<div class="panel">${lvTag(5)}${prSkel()}</div>`;
   const r = prRows(p, x.cur, f, c, x).find(o => o.id === id), v = prRows(p, x.prev, f, c).find(o => o.id === id) || {spend:0, imp:0, clicks:0, leads:0};
-  const back = `<button class="btn btn--sm" data-act="mapSel" data-k="${esc(ck)}">${L("← Акаунт ","← Аккаунт ")}${esc(prAccName(p, prAccOf(x, id)))}</button>`;
+  const back = `<button class="btn btn--sm" data-act="mapSel" data-k="${esc(ck)}">${L("← Акаунт ","← Аккаунт ")}${esc(prAccName(p, prAccOf(x, id, c), c))}</button>`;
   if (!r) return `<div class="panel">${lvTag(5)}<p class="sub">${L("За цей період у кампанії немає даних.","За этот период у кампании нет данных.")}</p><div class="row">${back}</div></div>`;
   const js = prJudge(r, v, cap, cur), sets = (x.sets || []).filter(o => o.cid === id && o.spend > 0).sort((a, b) => b.spend - a.spend), ads = (x.ads || []).filter(o => o.cid === id && o.spend > 0).sort((a, b) => b.spend - a.spend);
   const TH = prTh(), stop = cap ? ads.filter(a => !a.leads && a.spend >= TH.noLead * cap) : [];
