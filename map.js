@@ -155,23 +155,31 @@ function mapDemoTree(){
   (function key(n, k){ n.k = k; (n.kids || []).forEach((x, i) => key(x, k + "/" + i)); })(t, "co");
   return t;
 }
+/* скрытые карточки: чтобы при разборе рекламы оставить на доске только нужное. Хранится в браузере этого человека. */
+MP.hide = {}; try { MP.hide = JSON.parse(localStorage.getItem("rakurs_map_hide")) || {}; } catch (e) {}
+const mapHK = n => n.add ? n.k + "/+" + n.add : n.more ? n.k + "/+more" : n.k;
+const mapHidden = n => !!MP.hide[mapHK(n)];
+const mapHideSave = () => { try { localStorage.setItem("rakurs_map_hide", JSON.stringify(MP.hide)); } catch (e) {} };
 function mapNode(n, sel){
+  if (mapHidden(n)) return "";
   const on = sel && (n.k === sel || n.k.indexOf(sel + "/") === 0 || sel.indexOf(n.k + "/") === 0), lv = LEVELS()[n.lv], open = n.can && !n.fold;
   const card = n.ghost ? `<div class="nd nd--ghost"><small class="lv">${lv[0]}</small><b>${n.t}</b><span>${n.s}</span></div>`
     : n.more ? `<button type="button" class="nd nd--more" data-act="mapSel" data-k="${n.k}"><b>${n.t}</b><span>${n.s || L("усі — у панелі каналу","все — в панели канала")}</span></button>`
     : n.add ? `<button type="button" class="nd nd--add" data-act="mapAdd" data-k="${n.k}" data-what="${n.add}"><b>+ ${n.t}</b></button>`
     : `<button type="button" class="nd nd--l${n.lv}${n.v ? " nd--v-" + n.v : ""}${open ? " nd--can" : ""}${n.k === sel ? " sel" : ""}" data-act="mapSel" data-k="${n.k}" aria-pressed="${n.k === sel}"><small class="lv">${lv[0]}</small><b>${n.ic ? chIcon(n.ic) : ""}${esc(n.t)}</b>${n.s ? `<span>${esc(n.s)}</span>` : ""}${n.fx ? `<span class="fx">${esc(n.fx)}</span>` : ""}${n.kpi ? `<dl class="ndk">${n.kpi.map(q => `<div><dt>${q[0]}</dt><dd>${q[1]}</dd></div>`).join("")}</dl>` : ""}${n.m ? `<em${n.v ? ` class="v-${n.v}"` : n.warn ? ' class="w"' : ""}>${esc(n.m)}</em>` : ""}</button>`;
-  const tog = open ? `<button type="button" class="fold" data-act="mapFold" data-k="${n.k}" aria-expanded="true" aria-label="${L("Згорнути гілку: ","Свернуть ветку: ")}${esc(n.t)}" title="${L("Згорнути гілку","Свернуть ветку")}">−</button>` : "";
-  const kids = n.can && n.fold ? `<ul><li class="${sel ? "dim" : ""}"><button type="button" class="nd nd--fold" data-act="mapFold" data-k="${n.k}" aria-expanded="false" aria-label="${L("Розгорнути гілку: ","Развернуть ветку: ")}${esc(n.t)}"><b>${(n.ics || []).map(chIcon).join("")}${n.stub[0]}</b><span>${esc(n.stub[1])}</span><em class="go" aria-hidden="true">+</em></button></li></ul>`
-    : n.kids && n.kids.length ? `<ul>${n.kids.map(x => mapNode(x, sel)).join("")}</ul>` : "";
-  return `<li class="${sel ? (on ? "on" : "dim") : ""}">${card}${tog}${kids}</li>`;
+  const hide = n.lv > 0 && !n.ghost ? `<button type="button" class="hide" data-act="mapHide" data-k="${esc(mapHK(n))}" aria-label="${L("Сховати з дошки: ","Скрыть с доски: ")}${esc(n.t)}" title="${L("Сховати з дошки","Скрыть с доски")}"></button>` : "";
+  const shown = (n.kids || []).filter(x => !mapHidden(x));
+  const tog = open && shown.length ? `<button type="button" class="fold" data-act="mapFold" data-on="0" data-k="${n.k}" aria-expanded="true" aria-label="${L("Згорнути гілку: ","Свернуть ветку: ")}${esc(n.t)}" title="${L("Згорнути гілку","Свернуть ветку")}">‹</button>` : "";
+  const kids = n.can && n.fold ? `<ul><li class="${sel ? "dim" : ""}"><button type="button" class="nd nd--fold" data-act="mapFold" data-on="1" data-k="${n.k}" aria-expanded="false" aria-label="${L("Розгорнути гілку: ","Развернуть ветку: ")}${esc(n.t)}"><b>${(n.ics || []).map(chIcon).join("")}${n.stub[0]}</b><span>${esc(n.stub[1])}</span><em class="go" aria-hidden="true">›</em></button></li></ul>`
+    : shown.length ? `<ul>${shown.map(x => mapNode(x, sel)).join("")}</ul>` : "";
+  return `<li class="${sel ? (on ? "on" : "dim") : ""}${hide ? " hb" : ""}">${card}${hide}${tog}${kids}</li>`;
 }
 /* кнопки над доской появляются, когда есть что сворачивать */
 function mapBar(){ const n = W.projs.reduce((a, p) => a + (p.funnels.length ? 1 : 0) + p.funnels.filter(f => (f.ch || []).length).length, 0);
   const auto = (mapMany() || W.projs.some(p => p.funnels.length > MAP_FUNS)) && !Object.keys(MP.fold).length;
   const tip = L("Уся структура компанії на одній дошці: компанія, проєкти, воронки, канали трафіку, рекламні акаунти й кампанії. Натисніть на картку, щоб побачити її гілку й висновки.","Вся структура компании на одной доске: компания, проекты, воронки, каналы трафика, рекламные аккаунты и кампании. Нажмите на карточку, чтобы увидеть её ветку и выводы.")
     + (auto ? " " + L("Структура велика, тому частину гілок згорнуто.","Структура большая, поэтому часть веток свёрнута.") : "");
-  return `<div class="row map__bar">${n >= 2 ? icoBtn("collapse", L("Згорнути все","Свернуть всё"), 'data-act="mapFoldAll" data-v="1"') + icoBtn("expand", L("Розгорнути все","Развернуть всё"), 'data-act="mapFoldAll" data-v="0"') : ""}${hint(tip)}</div>`; }
+  return `<div class="row map__bar">${n >= 2 ? icoBtn("collapse", L("Згорнути все","Свернуть всё"), 'data-act="mapFoldAll" data-v="1"') + icoBtn("expand", L("Розгорнути все","Развернуть всё"), 'data-act="mapFoldAll" data-v="0"') : ""}${Object.keys(MP.hide).length ? `<button type="button" class="btn btn--sm btn--eye" data-act="mapShowAll" aria-label="${L("Показати сховані","Показать скрытые")}" title="${L("Показати сховані","Показать скрытые")}">${ICO.eye}<b>${Object.keys(MP.hide).length}</b></button>` : ""}${hint(tip + " " + L("Риска в кутку картки ховає її разом із гілкою; око над дошкою повертає сховане.","Чёрточка в углу карточки скрывает её вместе с веткой; глаз над доской возвращает скрытое."))}</div>`; }
 const mapDeep = n => Math.max(n.lv || 0, ...(n.kids || []).map(mapDeep));
 const mapBoard = (tree, sel, n = Math.max(4, mapDeep(tree) + 1)) => `<div class="map__scroll" tabindex="0" role="group" aria-label="${L("Карта структури","Карта структуры")}"><div class="map__in" style="--n:${n}">
   <div class="map__heads">${LEVELS().slice(0, n).map((l, i) => `<div><i>0${i + 1}</i><b>${l[0]}</b></div>`).join("")}</div>
@@ -231,9 +239,11 @@ Object.assign(ACT, {
     if (MP.sel && MP.sel.split("/")[3] === d.v && !f.ch.includes(d.v)) MP.sel = "co/" + p.id + "/" + f.id;
     save(); },
   mapFold(d){ const [, pid, fid, cid] = d.k.split("/"), p = W.projs.find(x => x.id === pid); if (!p) return;
-    const now = mapFolded(d.k, cid ? false : fid ? p.funnels.length > MAP_FUNS : mapMany()); MP.fold[d.k] = !now;
+    const now = d.on ? d.on === "1" : mapFolded(d.k, cid ? false : fid ? p.funnels.length > MAP_FUNS : mapMany()); MP.fold[d.k] = !now;
     setTimeout(() => { const e = [...document.querySelectorAll(now ? ".nd[data-act=mapSel]" : ".nd--fold")].find(x => x.dataset.k === d.k); if (e) e.focus({preventScroll:true}); }, 0); },
   /* «свернуть всё»: при нескольких проектах сворачиваются проекты, при одном — каналы его воронок */
+  mapHide(d){ MP.hide[d.k] = 1; if (MP.sel && (MP.sel === d.k || MP.sel.indexOf(d.k + "/") === 0)) MP.sel = null; mapHideSave(); },
+  mapShowAll(){ MP.hide = {}; mapHideSave(); },
   mapFoldAll(d){ const on = d.v === "1", one = W.projs.length < 2; MP.fold = {};
     W.projs.forEach(p => { MP.fold["co/" + p.id] = on && !one; p.funnels.forEach(f => { MP.fold["co/" + p.id + "/" + f.id] = on && one; }); }); },
   chEven(){ const f = F(); if (!f) return false; f.chs = {}; save(); },

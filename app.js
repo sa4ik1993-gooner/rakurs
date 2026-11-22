@@ -551,6 +551,7 @@ const hint = t => `<span class="hint"><button type="button" class="hint__b" aria
 /* иконки вместо слов там, где знак понятен всем */
 const ICO = {
   collapse:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3v6H3M15 3v6h6M9 21v-6H3M15 21v-6h6" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
+  eye:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.6" fill="currentColor"/></svg>',
   expand:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6" fill="none" stroke="currentColor" stroke-width="2"/></svg>'};
 const icoBtn = (ico, label, attrs) => `<button type="button" class="btn btn--sm btn--ico" aria-label="${label}" title="${label}" ${attrs}>${ICO[ico]}</button>`;
 document.addEventListener("click", e => {

@@ -606,3 +606,16 @@ h1[tabindex="-1"]:focus,h2[tabindex="-1"]:focus,#view[tabindex="-1"]:focus,.moda
 .nd--fold .go{font:600 14px/1 var(--f-mono);align-self:flex-start;width:22px;height:22px;border:1.5px solid var(--line);border-radius:50%;display:grid;place-items:center}
 /* на телефоне подсказка раскрывается строкой под значком, а не всплывает за край экрана */
 @media (max-width:640px){ .hint.on{display:flex;flex-wrap:wrap;flex-basis:100%} .hint__t{position:static;transform:none;width:100%;max-width:none;margin-top:6px} }
+
+/* чёрточка в углу карточки — скрыть её с доски; глаз над доской — вернуть */
+.mt li>.hide{position:absolute;left:calc(var(--w) - 30px);top:0;z-index:1;width:26px;height:22px;padding:0;border:0;background:transparent;cursor:pointer;opacity:.45}
+.mt li>.hide::before{content:"";position:absolute;left:7px;right:7px;top:10px;height:2px;background:var(--muted)}
+.mt li>.hide:hover,.mt li>.hide:focus-visible{opacity:1}
+.mt li>.hide:hover::before{background:var(--play)}
+.mt li.hb>.nd{padding-right:30px}
+.mt li.hb>.nd--l0{}
+.btn--eye{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 10px}
+.btn--eye svg{width:18px;height:18px}
+.btn--eye b{font:600 12px/1 var(--f-mono)}
+@media (pointer:coarse){ .mt li>.hide{width:36px;height:32px;left:calc(var(--w) - 40px)} .mt li>.hide::before{top:15px;left:10px;right:10px} }
+@container map (max-width:640px){ .mt li>.hide{left:auto;right:44px;top:6px} .mt li.hb>.nd{padding-right:84px} }
