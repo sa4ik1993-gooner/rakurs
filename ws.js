@@ -8,7 +8,7 @@ if (CLOUD) W = blankW();   /* с сервером локальная копия 
 const accKey = id => "rakurs_acc_" + id;
 const accGet = id => { try { const a = JSON.parse(localStorage.getItem(accKey(id))); return a && Array.isArray(a.projs) ? a : null; } catch (e) { return null; } };
 /* приводит сохранённые данные к текущей структуре */
-function norm(){ W.ctab = W.ctab || "map";
+function norm(){ W.ctab = W.ctab || "map"; if (W.ctab === "acc") W.ctab = "me";
   if (W.co) { W.co.kb = W.co.kb || []; W.co.paths = W.co.paths || []; W.co.brand = Object.assign(blankBrand(), W.co.brand); W.co.ban = W.co.ban || ""; W.co.tone = W.co.tone || ""; }
   W.projs.forEach(p => { p.kb = p.kb || []; p.exp = p.exp || []; p.kbOff = p.kbOff || []; const b = p.brand = Object.assign(blankBrand(), p.brand); if (b.own == null) b.own = !!(b.colors || b.fonts || b.voice); (p.funnels || []).forEach(f => { f.ch = f.ch || []; f.sale = f.sale || p.sale || "web"; }); }); }
 norm();
@@ -124,7 +124,7 @@ function pathsPanel(){
     ${adm ? `<div class="pathrow"><div class="form">${saleNew("kp")}</div><div class="row"><button class="btn btn--sm btn--solid" data-act="wsPathNew">${L("Додати шлях","Добавить путь")}</button></div></div>` : ""}</div>`;
 }
 function vCompany(){
-  const t = W.ctab, tabs = [["map",L("Карта","Карта")],["projects",L("Проєкти","Проекты")],["kb",L("База знань компанії","База знаний компании")],["team",L("Команда","Команда")],["acc",L("Акаунт","Аккаунт")]];
+  const t = W.ctab, tabs = [["map",L("Карта","Карта")],["projects",L("Проєкти","Проекты")],["kb",L("База знань компанії","База знаний компании")],["team",L("Команда","Команда")],["set",L("Налаштування","Настройки")],["me",L("Профіль","Профиль")]];
   const body = {
     map: () => vMap(),
     projects: () => `${W.projs.length ? `<div class="cols">${W.projs.map(p=>{ const ch = pChain(p), done = ch.filter(c=>c[2]).length; return `<div class="panel">
@@ -138,8 +138,6 @@ function vCompany(){
       ${brandPanel("co")}
       <div class="panel"><span class="tag">${L("Спільні правила","Общие правила")}</span><div class="form">${fld("co.ban",L("Що не можна обіцяти й казати в жодному проєкті","Что нельзя обещать и говорить ни в одном проекте"),{w:1})}${fld("co.tone",L("Тон компанії","Тон компании"),{w:1})}</div>
         <p class="sub">${L("Додаються до правил кожного проєкту й перевіряються в кожному ролику й тексті.","Добавляются к правилам каждого проекта и проверяются в каждом ролике и тексте.")}</p></div>
-      ${utmPanel("co")}
-      ${pathsPanel()}
       ${kbCols("co")}`,
     team: () => { if (!CLOUD) return `<div class="panel vf"><span class="tag">${L("Команда","Команда")}</span><p>${L("Кілька людей в одній компанії з’являться разом із сервером: кожен входить своєю поштою й бачить ті проєкти, до яких йому дали доступ.","Несколько человек в одной компании появятся вместе с сервером: каждый входит своей почтой и видит те проекты, к которым ему дали доступ.")}</p><p class="sub proto">${L("Прототип: сервер ще не підключено.","Прототип: сервер ещё не подключён.")}</p></div>`;
       const R = ROLES(), link = location.origin + location.pathname, pn = ids => ids ? ids.map(i => (W.projs.find(p=>p.id===i)||{}).name || "—").join(", ") : L("усі проєкти","все проекты");
@@ -155,19 +153,42 @@ function vCompany(){
           <div class="utm"><code>${esc(link)}</code><button class="btn btn--sm" data-act="wsCopyLink">${L("Копіювати","Копировать")}</button></div>
           <p class="sub">${L("Запрошення саме не надсилається — текст передаєте ви. Поки не підключено власний поштовий сервіс, лист для входу може не дійти до людини поза вашою організацією на сервері, тому надійніше запрошувати за ніком у Telegram.","Приглашение само не отправляется — текст передаёте вы. Пока не подключён свой почтовый сервис, письмо для входа может не дойти до человека вне вашей организации на сервере, поэтому надёжнее приглашать по нику в Telegram.")}</p></div>
         <div class="panel"><span class="tag">${L("Що може роль","Что может роль")}</span><dl class="kv"><dt>${R.owner}</dt><dd>${L("усе: команда, компанія, проєкти","всё: команда, компания, проекты")}</dd><dt>${R.lead}</dt><dd>${L("база компанії, створення й видалення проєктів","база компании, создание и удаление проектов")}</dd><dt>${R.targetolog}</dt><dd>${L("редагує проєкти й воронки, до яких має доступ","редактирует проекты и воронки, к которым есть доступ")}</dd></dl></div></div>`; },
-    acc: () => { const u = W.user, size = (()=>{ try { return Math.max(1, Math.round(JSON.stringify(W).length/1024)); } catch (e) { return 0; } })();
-      return `<div class="c2"><div class="panel"><span class="tag">${L("Акаунт","Аккаунт")}</span>
-        <dl class="kv"><dt>${L("Вхід","Вход")}</dt><dd>${u.via==="tg"?"Telegram":L("Пошта","Почта")} · ${L("підтверджено","подтверждено")}</dd><dt>${L("Ідентифікатор","Идентификатор")}</dt><dd class="mono">${esc(u.name || u.id)}</dd>${TG()&&u.via!=="tg"?`<dt>Telegram</dt><dd>${CL.tg?esc(CL.tg.username||CL.tg.name||"")+" · "+L("прив’язано","привязан"):`<button class="btn btn--sm" data-act="wsTgLink">${L("Прив’язати Telegram","Привязать Telegram")}</button>`}</dd>`:""}
-          <dt>${L("Компанія","Компания")}</dt><dd>${esc(W.co.name)}</dd><dt>${L("Проєктів","Проектов")}</dt><dd class="mono">${W.projs.length}</dd><dt>${L("Обсяг даних","Объём данных")}</dt><dd class="mono">${size} KB</dd></dl>
-        <div class="form">${fld("co.name",L("Назва компанії","Название компании"),{w:1})}</div>
-        <div class="row"><button class="btn" data-act="wsLogout">${L("Вийти","Выйти")}</button><button class="btn" data-act="theme">${L("Тема: світла / темна","Тема: светлая / тёмная")}</button>${isOwner()?`<button class="btn btn--danger" data-act="wsWipe">${W.wipe?L("Точно видалити все?","Точно удалить всё?"):CLOUD?L("Видалити компанію й дані","Удалить компанию и данные"):L("Видалити акаунт і дані","Удалить аккаунт и данные")}</button>`:""}</div>${CLOUD&&CL.cos.length>1?`<span class="tag">${L("Ваші компанії","Ваши компании")}</span>${CL.cos.map(c=>`<div class="row sp"><b>${esc(c.id===W.co.id?W.co.name:c.name)}</b>${c.id===W.co.id?pill("good",L("відкрита","открыта")):`<button class="btn btn--sm" data-act="wsSwitchCo" data-id="${c.id}">${L("Відкрити","Открыть")}</button>`}</div>`).join("")}`:""}</div>
-        <div class="panel vf"><span class="tag">${L("Де зберігаються дані","Где хранятся данные")}</span>
+    set: () => { const adm = canAdmin(), T = prTh(), num1 = (k, label, unit, tip) => `<div class="field"><label for="st-${k}">${label} ${hint(tip)}</label><div class="row row--u"><input id="st-${k}" class="tin" data-w="co.set.${k}" value="${esc(String((W.co.set || {})[k] == null ? "" : W.co.set[k]))}" placeholder="${PR_DEF[k]}" inputmode="decimal"${adm ? "" : " disabled"}><span class="sub mono">${unit}</span></div></div>`;
+      return `<div class="row only-m"><button class="btn btn--sm" data-act="wsCtab" data-v="team">${L("Команда","Команда")} →</button></div><div class="c2 c2--sw"><div class="panel"><span class="tag">${L("Компанія","Компания")}</span>
+          <div class="form">${adm ? fld("co.name",L("Назва компанії","Название компании"),{w:1}) : `<p>${esc(W.co.name)}</p>`}</div>
+          ${CLOUD?`<dl class="kv"><dt>${L("Ваша роль","Ваша роль")}</dt><dd>${ROLES()[CL.role]||"—"}</dd></dl>`:""}${CLOUD&&CL.cos.length>1?`<span class="tag">${L("Ваші компанії","Ваши компании")}</span>${CL.cos.map(c=>`<div class="row sp"><b>${esc(c.id===W.co.id?W.co.name:c.name)}</b>${c.id===W.co.id?pill("good",L("відкрита","открыта")):`<button class="btn btn--sm" data-act="wsSwitchCo" data-id="${c.id}">${L("Відкрити","Открыть")}</button>`}</div>`).join("")}`:""}
+          ${isOwner()?`<div class="row"><button class="btn btn--danger" data-act="wsWipe">${W.wipe?L("Точно видалити все?","Точно удалить всё?"):CLOUD?L("Видалити компанію й дані","Удалить компанию и данные"):L("Видалити акаунт і дані","Удалить аккаунт и данные")}</button></div>`:""}</div>
+        <div class="panel"><span class="tag">${L("Висновки на карті","Выводы на карте")} ${hint(L("За цими порогами платформа пише висновки по акаунтах і кампаніях. Порожнє поле — значення за замовчуванням. Стеля ціни ліда рахується з цілей воронки.","По этим порогам платформа пишет выводы по аккаунтам и кампаниям. Пустое поле — значение по умолчанию. Потолок цены лида считается из целей воронки."))}</span>
+          <div class="form">
+            ${num1("early", L("Рано судити, доки витрачено менше","Рано судить, пока потрачено меньше"), L("стель","потолков"), L("Доки кампанія не витратила стільки стель ціни ліда і не дала 5 лідів, висновок — «рано судити».","Пока кампания не потратила столько потолков цены лида и не дала 5 лидов, вывод — «рано судить»."))}
+            ${num1("noLead", L("Витрати без лідів — від","Расход без лидов — от"), L("стель","потолков"), L("Скільки стель можна витратити без жодного ліда, перш ніж це стане проблемою.","Сколько потолков можно потратить без единого лида, прежде чем это станет проблемой."))}
+            ${num1("crit", L("Лід дорогий, якщо вище стелі на","Лид дорогой, если выше потолка на"), "%", L("До цієї межі — «трохи вище стелі», далі — «дорожчий за стелю».","До этой границы — «чуть выше потолка», дальше — «дороже потолка»."))}
+            ${num1("up", L("Лід подорожчав — від","Лид подорожал — от"), "%", L("Зростання ціни ліда до минулого такого ж періоду.","Рост цены лида к прошлому такому же периоду."))}
+            ${num1("ctr", L("CTR падає — від","CTR падает — от"), "%", L("Падіння CTR до минулого періоду, від 1000 показів.","Падение CTR к прошлому периоду, от 1000 показов."))}
+            ${num1("top", L("Кампаній під акаунтом на дошці","Кампаний под аккаунтом на доске"), L("шт.","шт."), L("Решта — в панелі акаунта.","Остальные — в панели аккаунта."))}
+          </div>${adm ? "" : `<p class="sub">${L("Змінює власник або керівник лідогенерації.","Меняет собственник или руководитель лидогенерации.")}</p>`}</div></div>
+        ${utmPanel("co")}
+        ${pathsPanel()}
+        <div class="c2"><div class="panel vf"><span class="tag">${L("Де зберігаються дані","Где хранятся данные")}</span>
           <p>${L("Усе, що ви вводите, зберігається одразу і прив’язане до акаунта: після виходу та входу тим самим способом компанія, проєкти й бази знань на місці.","Всё, что вы вводите, сохраняется сразу и привязано к аккаунту: после выхода и входа тем же способом компания, проекты и базы знаний на месте.")}</p>
           ${CLOUD?`<p class="sub">${L("Дані лежать на сервері: вони доступні з будь-якого пристрою після входу й однакові для всієї команди. Роль у цій компанії: ","Данные лежат на сервере: они доступны с любого устройства после входа и одинаковы для всей команды. Роль в этой компании: ")}<b>${ROLES()[CL.role]||"—"}</b>.</p>`:`<p class="sub proto">${L("Прототип: дані лежать у цьому браузері. На іншому пристрої їх не буде, доки немає сервера, — перенесіть копією.","Прототип: данные лежат в этом браузере. На другом устройстве их не будет, пока нет сервера, — перенесите копией.")}</p>`}
           <div class="row"><button class="btn btn--sm" data-act="wsExport">${L("Завантажити копію","Скачать копию")}</button><button class="btn btn--sm" data-act="wsCopyAll">${L("Скопіювати копію","Скопировать копию")}</button>
-            ${CLOUD?"":`<label class="btn btn--sm"><input type="file" hidden accept=".json,application/json" data-wimp="1">${L("Відновити з копії","Восстановить из копии")}</label>`}</div></div></div>`; }
+            ${CLOUD?"":`<label class="btn btn--sm"><input type="file" hidden accept=".json,application/json" data-wimp="1">${L("Відновити з копії","Восстановить из копии")}</label>`}</div></div></div>`; },
+    me: () => { const u = W.user, per = [["t",L("Сьогодні","Сегодня")],["y",L("Вчора","Вчера")],["7","7 " + L("дн.","дн.")],["30","30 " + L("дн.","дн.")],["m",L("Місяць","Месяц")]], th = document.documentElement.dataset.theme || "auto", nh = Object.keys(MP.hide || {}).length;
+      const seg = (act, list, cur) => `<span class="seg" role="group">${list.map(x => `<button type="button" data-act="${act}" data-v="${x[0]}" aria-pressed="${String(cur) === x[0]}"${x[2] ? ` aria-label="${x[2]}" title="${x[2]}"` : ""}>${x[1]}</button>`).join("")}</span>`;
+      return `<div class="c2"><div class="panel"><span class="tag">${L("Про вас","О вас")}</span>
+          <div class="form"><div class="field w"><label for="me-name">${L("Ім’я","Имя")}</label><input id="me-name" data-me="name" value="${esc(ME.name)}" autocomplete="name"></div>
+            <div class="field w"><label for="me-title">${L("Посада або роль у команді","Должность или роль в команде")}</label><input id="me-title" data-me="title" value="${esc(ME.title)}" placeholder="${L("таргетолог, маркетолог, власник","таргетолог, маркетолог, собственник")}"></div></div>
+          <dl class="kv"><dt>${L("Вхід","Вход")}</dt><dd>${u.via==="tg"?"Telegram":L("Пошта","Почта")} · <span class="mono">${esc(u.name || u.id)}</span></dd>${TG()&&u.via!=="tg"?`<dt>Telegram</dt><dd>${CL.tg?esc(CL.tg.username||CL.tg.name||""):`<button class="btn btn--sm" data-act="wsTgLink">${L("Прив’язати","Привязать")}</button>`}</dd>`:""}${CLOUD?`<dt>${L("Роль у компанії","Роль в компании")}</dt><dd>${ROLES()[CL.role]||"—"}</dd>`:""}</dl>
+          <div class="row"><button class="btn" data-act="wsLogout">${L("Вийти","Выйти")}</button></div></div>
+        <div class="panel"><span class="tag">${L("Особисті налаштування","Личные настройки")} ${hint(L("Діють лише для вас і не змінюють нічого в колег.","Действуют только для вас и ничего не меняют у коллег."))}</span>
+          <dl class="kv kv--set"><dt>${L("Мова","Язык")}</dt><dd><span class="lang" role="group"><button type="button" data-lang="uk" aria-pressed="${lang==="uk"}">UA</button><button type="button" data-lang="ru" aria-pressed="${lang==="ru"}">RU</button></span></dd>
+            <dt>${L("Тема","Тема")}</dt><dd>${seg("themeSet", [["light", ICO.sun, L("Світла","Светлая")], ["dark", ICO.moon, L("Темна","Тёмная")], ["auto", "A", L("Як у пристрої","Как в устройстве")]], th)}</dd>
+            <dt>${L("Карта відкривається за","Карта открывается за")}</dt><dd>${seg("mePeriod", per, ME.period || "t")}</dd>
+            <dt>${L("Режим","Режим")}</dt><dd>${seg("tier", [["lite","Lite"],["pro","Pro"]], S.tier)}</dd>
+            ${nh ? `<dt>${L("Сховані картки на карті","Скрытые карточки на карте")}</dt><dd><button class="btn btn--sm" data-act="mapShowAll">${L("Показати всі","Показать все")} · ${nh}</button></dd>` : ""}</dl></div></div>`; },
   }[t]();
-  return `<div class="head"><div><span class="tag">${W.co.kind==="agency"?L("Агентство","Агентство"):L("Компанія","Компания")}</span><h1>${esc(W.co.name)}</h1></div>
+  return `<div class="head"><div><span class="tag">${t==="me"?L("Профіль","Профиль"):t==="set"?L("Налаштування компанії","Настройки компании"):W.co.kind==="agency"?L("Агентство","Агентство"):L("Компанія","Компания")}</span><h1>${esc(t==="me" ? ME.name || W.user.name || W.user.id : W.co.name)}</h1></div>
     ${(t==="projects"||t==="map")&&canAdmin()?`<button class="btn btn--solid" data-act="modal" data-id="project">${L("Додати проєкт","Добавить проект")}</button>`:""}</div>
   <div class="seg seg--co" role="group">${tabs.map(x=>`<button type="button" data-act="wsCtab" data-v="${x[0]}" aria-pressed="${t===x[0]}">${x[1]}${x[0]==="kb"&&W.co.kb.length?" · "+W.co.kb.length:""}</button>`).join("")}</div>
   ${body}`;
@@ -373,24 +394,25 @@ const TBI = {
   projects:'<path d="M2.5 5h5l1.5 2h8.5v9h-15z"/>',
   kb:'<path d="M4 3.5h10.5A1.5 1.5 0 0 1 16 5v11.5H5.5A1.5 1.5 0 0 1 4 15z"/><path d="M4 15a1.5 1.5 0 0 1 1.5-1.5H16"/>',
   team:'<circle cx="7.5" cy="7" r="2.5"/><path d="M2.5 16c.5-3 2.4-4.5 5-4.5s4.5 1.5 5 4.5"/><circle cx="14" cy="7.5" r="2"/><path d="M14.5 11.6c1.7.3 2.7 1.7 3 4.4"/>',
-  acc:'<circle cx="10" cy="10" r="7.5"/><circle cx="10" cy="8" r="2.5"/><path d="M5 15.3c1-2.1 2.7-3.1 5-3.1s4 1 5 3.1"/>'};
+  set:'<path d="M3 5.5h8M15 5.5h2M3 10h2M9 10h8M3 14.5h8M15 14.5h2"/><circle cx="13" cy="5.5" r="2"/><circle cx="7" cy="10" r="2"/><circle cx="13" cy="14.5" r="2"/>',
+  me:'<circle cx="10" cy="10" r="7.5"/><circle cx="10" cy="8" r="2.5"/><path d="M5 15.3c1-2.1 2.7-3.1 5-3.1s4 1 5 3.1"/>'};
 function tabBar(){
   let tb = $("tabbar"); if (!tb) { tb = document.createElement("nav"); tb.id = "tabbar"; tb.className = "tabbar"; document.body.appendChild(tb); }
   const on = own() && !!W.user && !!W.co && !(CLOUD && (!CL.ready || CL.entering)); tb.hidden = !on; document.body.classList.toggle("has-tabbar", on); if (!on) { tb.innerHTML = ""; return; }
   tb.setAttribute("aria-label", L("Розділи компанії","Разделы компании"));
   const cur = P() ? "projects" : W.ctab;
-  tb.innerHTML = [["map",L("Карта","Карта")],["projects",L("Проєкти","Проекты")],["kb",L("База","База")],["team",L("Команда","Команда")],["acc",L("Акаунт","Аккаунт")]].map(x =>
+  tb.innerHTML = [["map",L("Карта","Карта")],["projects",L("Проєкти","Проекты")],["kb",L("База","База")],["set",L("Налашт.","Настройки")],["me",L("Профіль","Профиль")]].map(x =>
     `<button type="button" data-act="wsCtab" data-v="${x[0]}"${cur === x[0] ? ' aria-current="page"' : ""}><svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${TBI[x[0]]}</svg><span>${x[1]}</span></button>`).join("");
 }
 function ownShell(){
   const p = P(), f = F(), nb = (act, v, t, on) => `<a role="button" tabindex="0" data-act="${act}" data-v="${v}" ${on?'aria-current="page"':""}>${t}</a>`;
   $("rail").innerHTML = `<a class="logo" href="index.html">${brandLogo("rail")}</a>
     ${W.user&&W.co?`<button type="button" class="ws" data-act="wsBackP"><small>${L("Компанія","Компания")}</small><b>${esc(W.co.name)}</b></button>
-    <nav class="navg navg--co"><span>${L("Компанія","Компания")}</span>${nb("wsCtab","map",L("Карта","Карта"),!p&&W.ctab==="map")}${nb("wsCtab","projects",L("Проєкти","Проекты")+(W.projs.length?` <b class="cnt">${W.projs.length}</b>`:""),!p&&W.ctab==="projects")}${nb("wsCtab","kb",L("База знань","База знаний")+(W.co.kb.length?` <b class="cnt">${W.co.kb.length}</b>`:""),!p&&W.ctab==="kb")}${nb("wsCtab","acc",L("Акаунт","Аккаунт"),!p&&W.ctab==="acc")}</nav>`:""}
+    <nav class="navg navg--co"><span>${L("Компанія","Компания")}</span>${nb("wsCtab","map",L("Карта","Карта"),!p&&W.ctab==="map")}${nb("wsCtab","projects",L("Проєкти","Проекты")+(W.projs.length?` <b class="cnt">${W.projs.length}</b>`:""),!p&&W.ctab==="projects")}${nb("wsCtab","kb",L("База знань","База знаний")+(W.co.kb.length?` <b class="cnt">${W.co.kb.length}</b>`:""),!p&&W.ctab==="kb")}${nb("wsCtab","team",L("Команда","Команда"),!p&&W.ctab==="team")}${nb("wsCtab","set",L("Налаштування","Настройки"),!p&&W.ctab==="set")}</nav>`:""}
     ${W.user&&p?`<nav class="navg"><span>${esc(p.name)}</span>${pChain(p).map(c=>nb("wsTab",c[0],c[1]+(c[2]?"":" <em>·</em>"),!f&&W.tab===c[0])).join("")}</nav>`:""}
     ${W.user&&f?`<nav class="navg"><span>${esc(f.name)}</span>${fChain(f,p).map(c=>nb("wsFtab",c[0],c[1]+(c[2]?"":" <em>·</em>"),W.ftab===c[0])).join("")}</nav>`:""}
-    <div class="rail__foot">${W.user?`<div class="me"><small>${W.user.via==="tg"?"Telegram":L("Пошта","Почта")} · ${L("підтверджено","подтверждено")}</small><b>${esc(W.user.name || W.user.id)}</b>${TG()&&W.user.via!=="tg"&&CL.tg?`<small>Telegram · ${esc(CL.tg.username||CL.tg.name||L("прив’язано","привязан"))}</small>`:""}</div>${TG()&&W.user.via!=="tg"&&!CL.tg?`<button type="button" data-act="wsTgLink">${L("Прив’язати Telegram","Привязать Telegram")}</button>`:""}<button type="button" data-act="wsLogout">${L("Вийти","Выйти")}</button>`:""}<button type="button" data-act="wsSample">${L("Приклад «Школа 3D»","Пример «Школа 3D»")}</button><button type="button" data-act="theme">${L("Тема: світла / темна","Тема: светлая / тёмная")}</button>
-      <a href="index.html">← ${L("На сайт","На сайт")}</a></div>`;
+    <div class="rail__foot">${W.user&&W.co?`<button type="button" class="me me--btn" data-act="wsCtab" data-v="me"${!p&&W.ctab==="me"?' aria-current="page"':""} title="${L("Профіль","Профиль")}"><b>${esc(ME.name || W.user.name || W.user.id)}</b><small>${esc(ME.title || (ME.name ? W.user.name || W.user.id : L("профіль","профиль")))}</small></button>`:""}
+      <div class="rail__ico"><button type="button" class="ib" data-act="theme" aria-label="${L("Тема: світла / темна","Тема: светлая / тёмная")}" title="${L("Тема: світла / темна","Тема: светлая / тёмная")}">${isDark() ? ICO.moon : ICO.sun}</button>${W.user?`<button type="button" class="ib" data-act="wsLogout" aria-label="${L("Вийти","Выйти")}" title="${L("Вийти","Выйти")}">${ICO.exit}</button>`:""}<a href="index.html" title="${L("На сайт","На сайт")}">← ${L("сайт","сайт")}</a></div></div>`;
   $("bar").innerHTML = `<span class="crumb">${[W.co&&W.co.name, p&&p.name, f&&f.name].filter(Boolean).map(esc).join(" › ") || (W.user?L("Нова компанія","Новая компания"):L("Реєстрація","Регистрация"))}</span><span id="sync" role="status">${CLOUD ? cloudBadgeHTML() : `<span class="badge">${L("прототип · дані у браузері","прототип · данные в браузере")}</span>`}</span>
     <div class="bar__r"><div class="seg tier" role="group" aria-label="${L("Режим","Режим")}"><button type="button" data-act="tier" data-v="lite" aria-pressed="${S.tier==="lite"}">Lite</button><button type="button" data-act="tier" data-v="pro" aria-pressed="${S.tier==="pro"}">Pro</button></div><div class="lang" role="group" aria-label="${L("Мова","Язык")}"><button type="button" data-lang="uk" aria-pressed="${lang==="uk"}">UA</button><button type="button" data-lang="ru" aria-pressed="${lang==="ru"}">RU</button></div></div>`;
   $("frozen").hidden = true; $("fab").hidden = true; document.documentElement.lang = lang;
@@ -454,6 +476,8 @@ Object.assign(ACT, {
                 `Привет! Открыл тебе доступ в кабинет «${W.co.name}». Роль: ${R[m.role] || m.role}. Доступ: ${proj ? "проект «" + proj + "»" : "все проекты компании"}.\n\nСсылка: ${link}\n\nКак войти: ${tg ? "вкладка «Telegram» → «Войти через Telegram», под ником " + m.email + ". Почта и пароль не нужны." : "вкладка «Почта», адрес " + m.email + ". На него придёт письмо со ссылкой для входа, пароль не нужен."}`);
     (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast(L("Запрошення скопійовано — надішліть його людині","Приглашение скопировано — отправьте его человеку")), () => { window.prompt(L("Скопіюйте текст запрошення","Скопируйте текст приглашения"), t); }); return false; },
   wsCopyLink(){ const t = location.origin + location.pathname; (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(()=>toast(L("Посилання скопійовано","Ссылка скопирована")), ()=>toast(L("Виділіть посилання й скопіюйте вручну","Выделите ссылку и скопируйте вручную"))); return false; },
+  themeSet(d){ const el = document.documentElement; if (d.v === "auto") delete el.dataset.theme; else el.dataset.theme = d.v; try { if (d.v === "auto") localStorage.removeItem("rakurs_theme"); else localStorage.setItem("rakurs_theme", d.v); } catch (e) {} },
+  mePeriod(d){ ME.period = d.v; meSave(); PR.touched = 0; PR.mode = meMode(); },
   wsCtab(d){ W.cur = null; W.fun = null; W.ctab = d.v; save(); },
   wsGoCoKb(){ W.cur = null; W.fun = null; W.ctab = "kb"; save(); },
   wsBrandOwn(d){ P().brand.own = d.v === "1"; save(); },
@@ -516,9 +540,9 @@ Object.assign(ACT, {
       aud:{off:[], add:[], note:""}, lands:u?[{id:uid(), url:u, note:""}]:[], crs:[], ch:[...document.querySelectorAll(".nf-ch:checked")].map(e => e.value), tg:{pay: first ? Math.max(1, Math.round(pT(p).rev / check)) : 10, check, l2b:p.tg.l2b, b2p:p.tg.b2p}};
     p.funnels.push(f); W.fun = f.id; W.ftab = "an"; S.modal = null; save(); toast(L("Воронку створено","Воронка создана")); }
 });
-document.addEventListener("input", e => { const t = e.target; if (!t.dataset.w || !own()) return; const path = t.dataset.w, isN = /\.tg\./.test(path);
+document.addEventListener("input", e => { const t = e.target; if (t.dataset.me) { ME[t.dataset.me] = t.value; meSave(); return; } if (!t.dataset.w || !own()) return; const path = t.dataset.w, isN = /\.tg\./.test(path);
   if (isN) { const n = pnum(t.value); if (!(n > 0)) return; wset(path, n); const c = $("w-calc"); if (c) c.innerHTML = F() ? calcF(F(), P()) : calcP(P()); const cp = $("ch-plan"); if (cp && F()) cp.innerHTML = chPlanBody(F(), P()); } else wset(path, t.value); });
-document.addEventListener("change", e => { const t = e.target; if (!own()) return;
+document.addEventListener("change", e => { const t = e.target; if (t.dataset.me) { renderShell(); return; } if (!own()) return;
   if (t.dataset.w && /^co\.paths\.\d+\.steps$/.test(t.dataset.w)) { const v = stepsNorm(t.value); if (v && v !== t.value) { wset(t.dataset.w, v); render(); } return; }
   if (t.id === "nf-sale") { const b = $("nf-own"); if (b) { b.hidden = t.value !== "+"; if (!b.hidden) $("nf-pname").focus(); } return; }
   if (t.id === "fp-sale") { if (t.value === "+") PNEW = true; else { PNEW = false; ACT.wsSale({v:t.value}); } render(); if (PNEW) { const n = $("fp-pname"); if (n) n.focus(); } return; }

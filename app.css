@@ -619,3 +619,39 @@ h1[tabindex="-1"]:focus,h2[tabindex="-1"]:focus,#view[tabindex="-1"]:focus,.moda
 .btn--eye b{font:600 12px/1 var(--f-mono)}
 @media (pointer:coarse){ .mt li>.hide{width:36px;height:32px;left:calc(var(--w) - 40px)} .mt li>.hide::before{top:15px;left:10px;right:10px} }
 @container map (max-width:640px){ .mt li>.hide{left:auto;right:44px;top:6px} .mt li.hb>.nd{padding-right:84px} }
+
+/* низ левой полосы: профиль и значки вместо текста */
+.rail__foot .me--btn{display:flex;flex-direction:column;gap:2px;padding:8px;text-align:left;border:1px solid var(--rail-on);background:transparent;cursor:pointer;min-width:0}
+.rail__foot .me--btn b{font:600 13px/1.3 var(--f-body);color:var(--rail-fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rail__foot .me--btn small{font:400 11px/1.3 var(--f-mono);letter-spacing:0;text-transform:none;color:var(--rail-mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rail__foot .me--btn[aria-current="page"]{border-color:var(--play)}
+.rail__ico{display:flex;align-items:center;gap:6px}
+.rail__ico a{margin-left:auto}
+.rail__foot .ib{width:34px;height:34px;padding:0;display:grid;place-items:center}
+.ib svg,.seg button svg{width:18px;height:18px;display:block}
+.kv--set dd{display:flex;align-items:center;min-height:36px}
+.kv--set{align-items:center}
+
+/* разделы компании — в левой полосе (на телефоне — в нижней панели), дублирующий ряд вкладок убран */
+.seg--co{display:none}
+.only-m{display:none}
+body.has-tabbar .only-m{display:flex}
+@media (min-width:901px){ body.has-tabbar .only-m{display:none} }
+.hint__b{font-family:Georgia,serif;font-style:italic;font-weight:700;font-size:12px}
+.hint--wide .hint__t{max-width:min(560px,86vw);left:0;transform:none}
+.hint__t>b{display:block;margin-bottom:8px}
+.hint__t .lvls{grid-template-columns:1fr;gap:8px;margin:0 0 8px}
+.hint__t .lvls span{font-size:12.5px;opacity:.8}
+.hint__t>span{display:block;opacity:.85}
+
+.c2--sw{grid-template-columns:minmax(0,3fr) minmax(0,5fr)}
+.c2--sw>.panel:first-child{order:2}
+.row--u{flex-wrap:nowrap;align-items:center;gap:8px}
+.row--u .tin{width:84px;flex:none}
+.kv--set{display:block}
+.kv--set dt{margin-top:12px;font-size:13px;color:var(--muted)}
+.kv--set dd{margin:4px 0 0;min-height:0}
+.kv--set .seg{flex-wrap:wrap}
+.kv--set .seg button{white-space:nowrap}
+@media (max-width:900px){ .c2--sw{grid-template-columns:1fr} .c2--sw>.panel:first-child{order:0} }
+.c2--sw>.panel:nth-child(2) .form{grid-template-columns:1fr}

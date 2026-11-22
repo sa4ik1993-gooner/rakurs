@@ -130,10 +130,10 @@ function mapTree(){
     if (p.funnels.length) { pn.can = true; pn.fold = mapFolded(pn.k, many); pn.stub = [plFn(p.funnels.length), nch ? plCh(nch) : L("канали не обрано","каналы не выбраны")]; }
     if (pn.fold && MP.sel && MP.sel.indexOf(pn.k + "/") === 0) MP.sel = pn.k;
     p.funnels.forEach(f => {
-      const fn = {k:pn.k + "/" + f.id, lv:2, t:f.name, s:saleName(f), m:f.tg && f.tg.pay ? L("ціль: ","цель: ") + plural(f.tg.pay, L("оплата","оплата"), L("оплати","оплаты"), L("оплат","оплат")) : "", fx:mapFx(p, f), kids:[]};
+      const fn = {k:pn.k + "/" + f.id, lv:2, t:f.name, s:saleName(f), m:f.tg && f.tg.pay ? L("ціль: ","цель: ") + plural(f.tg.pay, L("оплата","оплата"), L("оплати","оплаты"), L("оплат","оплат")) : "", fx:mapFx(p, f), kids:[]}; { const kp = prCardKpi(p, f); if (kp) { fn.kpi = kp; fn.fx = ""; } }
       if ((f.ch || []).length) { fn.can = true; fn.fold = mapFolded(fn.k, p.funnels.length > MAP_FUNS); fn.ics = f.ch; fn.stub = [plCh(f.ch.length), f.ch.map(c => chOf(c)[1]).join(" · ")]; }
       if (fn.fold && MP.sel && MP.sel.indexOf(fn.k + "/") === 0) MP.sel = fn.k;
-      const plan = chPlan(f, p); (f.ch || []).forEach(c => { const ch = chOf(c), pl = plan.find(r => r.id === c); const cn = {k:fn.k + "/" + c, lv:3, ic:c, t:ch[1], s:pl && pl.bud > 0 ? money(pl.bud) + " · " + Math.round(pl.share) + "%" : ch[2], fx:mapFx(p, f, c), m:c === "meta" && mtBroken(p) ? L("підключення зламалося","подключение сломалось") : p.conn[c] === 1 ? L("кабінет підключено","кабинет подключён") : p.conn[c] ? L("кабінет позначено","кабинет отмечен") : L("кабінет не підключено","кабинет не подключён"), warn:!p.conn[c] || (c === "meta" && mtBroken(p))}; const cks = prAccNodes(p, f, c, cn.k); if (cks.length) { cn.kids = cks; cn.can = true; cn.fold = mapFolded(cn.k, false); cn.ics = []; cn.stub = [plural(cks.length, L("акаунт","аккаунт"), L("акаунти","аккаунта"), L("акаунтів","аккаунтов")), L("рекламні акаунти каналу","рекламные аккаунты канала")]; if (cn.fold && MP.sel && MP.sel.indexOf(cn.k + "/") === 0) MP.sel = cn.k; } fn.kids.push(cn); });
+      const plan = chPlan(f, p); (f.ch || []).forEach(c => { const ch = chOf(c), pl = plan.find(r => r.id === c); const cn = {k:fn.k + "/" + c, lv:3, ic:c, t:ch[1], s:pl && pl.bud > 0 ? L("план ","план ") + money(pl.bud) + " · " + Math.round(pl.share) + "%" : ch[2], fx:mapFx(p, f, c), m:c === "meta" && mtBroken(p) ? L("підключення зламалося","подключение сломалось") : p.conn[c] === 1 ? L("кабінет підключено","кабинет подключён") : p.conn[c] ? L("кабінет позначено","кабинет отмечен") : L("кабінет не підключено","кабинет не подключён"), warn:!p.conn[c] || (c === "meta" && mtBroken(p))}; { const kp = c === "meta" ? prCardKpi(p, f, c) : null; if (kp) { cn.kpi = kp; cn.fx = ""; } } const cks = prAccNodes(p, f, c, cn.k); if (cks.length) { cn.kids = cks; cn.can = true; cn.fold = mapFolded(cn.k, false); cn.ics = []; cn.stub = [plural(cks.length, L("акаунт","аккаунт"), L("акаунти","аккаунта"), L("акаунтів","аккаунтов")), L("рекламні акаунти каналу","рекламные аккаунты канала")]; if (cn.fold && MP.sel && MP.sel.indexOf(cn.k + "/") === 0) MP.sel = cn.k; } fn.kids.push(cn); });
       if ((f.ch || []).length < CHAN().length) fn.kids.push({add:"c", k:fn.k + "/+", lv:3, t:L("Канал","Канал")});
       pn.kids.push(fn);
     });
@@ -177,16 +177,15 @@ function mapNode(n, sel){
 /* кнопки над доской появляются, когда есть что сворачивать */
 function mapBar(){ const n = W.projs.reduce((a, p) => a + (p.funnels.length ? 1 : 0) + p.funnels.filter(f => (f.ch || []).length).length, 0);
   const auto = (mapMany() || W.projs.some(p => p.funnels.length > MAP_FUNS)) && !Object.keys(MP.fold).length;
-  const tip = L("Уся структура компанії на одній дошці: компанія, проєкти, воронки, канали трафіку, рекламні акаунти й кампанії. Натисніть на картку, щоб побачити її гілку й висновки.","Вся структура компании на одной доске: компания, проекты, воронки, каналы трафика, рекламные аккаунты и кампании. Нажмите на карточку, чтобы увидеть её ветку и выводы.")
-    + (auto ? " " + L("Структура велика, тому частину гілок згорнуто.","Структура большая, поэтому часть веток свёрнута.") : "");
-  return `<div class="row map__bar">${n >= 2 ? icoBtn("collapse", L("Згорнути все","Свернуть всё"), 'data-act="mapFoldAll" data-v="1"') + icoBtn("expand", L("Розгорнути все","Развернуть всё"), 'data-act="mapFoldAll" data-v="0"') : ""}${Object.keys(MP.hide).length ? `<button type="button" class="btn btn--sm btn--eye" data-act="mapShowAll" aria-label="${L("Показати сховані","Показать скрытые")}" title="${L("Показати сховані","Показать скрытые")}">${ICO.eye}<b>${Object.keys(MP.hide).length}</b></button>` : ""}${hint(tip + " " + L("Риска в кутку картки ховає її разом із гілкою; око над дошкою повертає сховане.","Чёрточка в углу карточки скрывает её вместе с веткой; глаз над доской возвращает скрытое."))}</div>`; }
+  const tip = mapLegend() + (auto ? `<span>${L("Структура велика, тому частину гілок згорнуто.","Структура большая, поэтому часть веток свёрнута.")}</span>` : "");
+  return `<div class="row map__bar">${n >= 2 ? icoBtn("collapse", L("Згорнути все","Свернуть всё"), 'data-act="mapFoldAll" data-v="1"') + icoBtn("expand", L("Розгорнути все","Развернуть всё"), 'data-act="mapFoldAll" data-v="0"') : ""}${Object.keys(MP.hide).length ? `<button type="button" class="btn btn--sm btn--eye" data-act="mapShowAll" aria-label="${L("Показати сховані","Показать скрытые")}" title="${L("Показати сховані","Показать скрытые")}">${ICO.eye}<b>${Object.keys(MP.hide).length}</b></button>` : ""}${hint(tip, "wide")}</div>`; }
 const mapDeep = n => Math.max(n.lv || 0, ...(n.kids || []).map(mapDeep));
 const mapBoard = (tree, sel, n = Math.max(4, mapDeep(tree) + 1)) => `<div class="map__scroll" tabindex="0" role="group" aria-label="${L("Карта структури","Карта структуры")}"><div class="map__in" style="--n:${n}">
   <div class="map__heads">${LEVELS().slice(0, n).map((l, i) => `<div><i>0${i + 1}</i><b>${l[0]}</b></div>`).join("")}</div>
   <ul class="mt">${mapNode(tree, sel)}</ul></div></div>`;
-const mapLegend = () => `<div class="panel"><span class="tag">${L("Як читати карту","Как читать карту")}</span>
-  <ol class="lvls">${LEVELS().slice(0, W.projs.some(prOn) ? 6 : 4).map((l, i) => `<li><i>0${i + 1}</i><div><b>${l[0]}</b><span class="sub">${l[1]}</span></div></li>`).join("")}</ol>
-  <p class="sub">${L("Кожен рівень живе всередині попереднього. Цифри зводяться знизу вгору: канал → воронка → проєкт → компанія. Натисніть на картку, щоб побачити її гілку.","Каждый уровень живёт внутри предыдущего. Цифры сводятся снизу вверх: канал → воронка → проект → компания. Нажмите на карточку, чтобы увидеть её ветку.")}</p></div>`;
+/* «как читать карту» — в подсказке «i» над доской, а не блоком на экране */
+const mapLegend = () => `<b>${L("Як читати карту","Как читать карту")}</b><ol class="lvls">${LEVELS().slice(0, W.projs.some(prOn) ? 6 : 4).map((l, i) => `<li><i>0${i + 1}</i><div><b>${l[0]}</b><span>${l[1]}</span></div></li>`).join("")}</ol>
+  <span>${L("Цифри зводяться знизу вгору. Натисніть на картку — побачите її гілку й висновки. Риска в кутку ховає картку з гілкою, око повертає сховане.","Цифры сводятся снизу вверх. Нажмите на карточку — увидите её ветку и выводы. Чёрточка в углу скрывает карточку с веткой, глаз возвращает скрытое.")}</span>`;
 const lvTag = i => `<span class="tag">${L("Рівень","Уровень")} 0${i + 1} · ${LEVELS()[i][0]}</span>`;
 const chOpts = (p, f) => `<div class="opts opts--sm">${CHAN().map(c => `<button type="button" class="opt" data-act="mapCh" data-p="${p.id}" data-f="${f.id}" data-v="${c[0]}" aria-pressed="${(f.ch || []).includes(c[0])}">${chIcon(c[0])}${c[1]}</button>`).join("")}</div>`;
 
@@ -196,7 +195,7 @@ function mapInfo(){ const s = MP.sel, [, pid, fid, cid, kid] = (s || "").split("
     return kid && /^a/.test(kid) ? (k2 ? prCampPanel(p, f, cid, k2) : prChanPanel(p, f, cid, prAId(kid))) : kid ? prCampPanel(p, f, cid, kid) : prChanPanel(p, f, cid); }
   const base = mapInfo0(); return !s || !pid || (p && !fid) ? prOverview(p || null) + base : base; }
 function mapInfo0(){
-  const s = MP.sel; if (!s) return mapLegend();
+  const s = MP.sel; if (!s) return "";
   const [, pid, fid, cid] = s.split("/"), p = W.projs.find(x => x.id === pid), f = p && p.funnels.find(x => x.id === fid);
   if (pid && !p || fid && !f || cid && !(f.ch || []).includes(cid)) { MP.sel = null; return mapLegend(); }
   if (cid) { const ch = chOf(cid);

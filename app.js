@@ -464,7 +464,7 @@ function renderShell(){
   $("rail").innerHTML = `<a class="logo" href="index.html">${brandLogo("rail")}</a>
     <button type="button" class="ws" data-act="goProjects"><small>${L("Проєкт","Проект")}</small><b>${L("Школа 3D","Школа 3D")}</b></button>
     ${NAV().map(g=>`<nav class="navg"><span>${g[0]}</span>${g[1].map(n=>`<a href="#${n[0]}" ${n[0]===r?'aria-current="page"':""}>${n[1]}${n[0]==="today"&&pend?`<b>${pend}</b>`:""}</a>`).join("")}</nav>`).join("")}
-    <div class="rail__foot"><button type="button" data-act="theme">${L("Тема: світла / темна","Тема: светлая / тёмная")}</button><button type="button" data-act="reset">${L("Скинути демо","Сбросить демо")}</button><a href="index.html">← ${L("На сайт","На сайт")}</a></div>`;
+    <div class="rail__foot"><button type="button" class="ib" data-act="theme" aria-label="${L("Тема: світла / темна","Тема: светлая / тёмная")}" title="${L("Тема: світла / темна","Тема: светлая / тёмная")}">${isDark() ? ICO.moon : ICO.sun}</button><button type="button" data-act="reset">${L("Скинути демо","Сбросить демо")}</button><a href="index.html">← ${L("На сайт","На сайт")}</a></div>`;
   $("bar").innerHTML = `<span class="crumb">${L("Школа 3D","Школа 3D")}</span><span class="badge">${L("демо-дані","демо-данные")}</span><span class="range">06.11 – 19.11</span>
     <div class="bar__r"><div class="seg tier" role="group" aria-label="${L("Режим","Режим")}"><button type="button" data-act="tier" data-v="lite" aria-pressed="${S.tier==="lite"}">Lite</button><button type="button" data-act="tier" data-v="pro" aria-pressed="${S.tier==="pro"}">Pro</button></div><div class="lang" role="group" aria-label="${L("Мова","Язык")}"><button type="button" data-lang="uk" aria-pressed="${lang==="uk"}">UA</button><button type="button" data-lang="ru" aria-pressed="${lang==="ru"}">RU</button></div>
     <button type="button" class="stop" data-act="stop" aria-pressed="${S.frozen}">${S.frozen?L("АВТОДІЇ ЗУПИНЕНО","АВТОДЕЙСТВИЯ ОСТАНОВЛЕНЫ"):L("СТОП","СТОП")}</button></div>`;
@@ -546,12 +546,25 @@ const ACT = {
   asstClose(){ S.asst.open = false; },
   asstGo(){ S.asst.open = false; }
 };
+/* Личный профиль и личные настройки человека (не компании): имя, должность, период карты по умолчанию.
+   Лежат в браузере и, когда есть сервер, в данных его учётной записи — поэтому приходят на любое устройство после входа. */
+const ME = {name:"", title:"", period:"t"}; try { Object.assign(ME, JSON.parse(localStorage.getItem("rakurs_me")) || {}); } catch (e) {}
+const meMode = () => /^\d+$/.test(ME.period) ? +ME.period : ME.period || "t";
+let meT = 0;
+function meSave(){ try { localStorage.setItem("rakurs_me", JSON.stringify(ME)); } catch (e) {}
+  clearTimeout(meT); meT = setTimeout(() => { try { if (typeof CLOUD !== "undefined" && CLOUD && sb && sb.auth && sb.auth.updateUser) Promise.resolve(sb.auth.updateUser({data:{profile:ME}})).catch(() => {}); } catch (e) {} }, 900); }
+function meLoad(o){ if (!o || typeof o !== "object") return; ["name", "title", "period"].forEach(k => { if (typeof o[k] === "string") ME[k] = o[k]; });
+  try { localStorage.setItem("rakurs_me", JSON.stringify(ME)); } catch (e) {} if (typeof PR !== "undefined" && !PR.touched) PR.mode = meMode(); }
+const isDark = () => { const el = document.documentElement; return el.dataset.theme ? el.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; };
 /* Подсказка в значке «?»: пояснения не занимают место на экране, открываются наведением или нажатием. */
-const hint = t => `<span class="hint"><button type="button" class="hint__b" aria-label="${L("Підказка","Подсказка")}" aria-expanded="false">?</button><span class="hint__t" role="tooltip">${t}</span></span>`;
+const hint = (t, cls) => `<span class="hint${cls ? " hint--" + cls : ""}"><button type="button" class="hint__b" aria-label="${L("Підказка","Подсказка")}" aria-expanded="false">i</button><span class="hint__t" role="tooltip">${t}</span></span>`;
 /* иконки вместо слов там, где знак понятен всем */
 const ICO = {
   collapse:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3v6H3M15 3v6h6M9 21v-6H3M15 21v-6h6" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
   eye:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.6" fill="currentColor"/></svg>',
+  sun:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1" stroke="currentColor" stroke-width="2"/></svg>',
+  moon:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
+  exit:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5v16h5M15 8l4 4-4 4M19 12H9" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
   expand:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6" fill="none" stroke="currentColor" stroke-width="2"/></svg>'};
 const icoBtn = (ico, label, attrs) => `<button type="button" class="btn btn--sm btn--ico" aria-label="${label}" title="${label}" ${attrs}>${ICO[ico]}</button>`;
 document.addEventListener("click", e => {

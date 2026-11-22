@@ -62,6 +62,7 @@ async function cloudSigned(user, hello){
 async function cloudEnter(user){
   const em = String(user.email).toLowerCase(), viaTg = TGMAIL.test(em), md = user.user_metadata || {};
   W.user = {via: viaTg ? "tg" : "email", id:em, uid:user.id, name: viaTg ? (md.tg_username || md.name || "Telegram") : em};
+  meLoad(md.profile);
   await sb.rpc("claim_membership");
   CL.tg = null; if (TG()) { const t = await sb.from("tg_accounts").select("username,name").maybeSingle(); if (!t.error && t.data) { CL.tg = t.data; if (viaTg) W.user.name = t.data.username || t.data.name || W.user.name; } }
   const r = await sb.from("companies").select("*").order("created_at"); if (r.error) throw r.error;

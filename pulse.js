@@ -2,7 +2,7 @@
    Выводы считает обычный код по правилам — без ИИ и без платного API. Платформа ничего не меняет в кабинете сама:
    только говорит, что видит, почему и что сделать.
    Данные — те же своды на сервере, что у блока «Факт рекламы». Подключается после fact.js. */
-const PR = {mode:"y", d1:"", d2:""};   /* период карты: y — вчера, 3/7/14/30 — дней по вчера, m — месяц по сегодня, c — свои даты */
+const PR = {mode:meMode(), d1:"", d2:""};   /* период карты: y — вчера, 3/7/14/30 — дней по вчера, m — месяц по сегодня, c — свои даты */
 const PD = {};                          /* данные по проекту и периоду */
 const prPad = n => (n < 10 ? "0" : "") + n;
 const prToday = () => { const d = new Date(); return d.getFullYear() + "-" + prPad(d.getMonth() + 1) + "-" + prPad(d.getDate()); };
@@ -35,7 +35,8 @@ function prLoad(p){ if (!prOn(p)) return; const x = prOf(p), fx = fxOf(p), r = x
     x.ads = as ? as.map(o => ({cid:o.campaign_id, name:o.ad_name || "—", spend:+o.spend || 0, imp:+o.impressions || 0, clicks:+o.clicks || 0, leads:+o.leads || 0})) : [];
     x.sb = {}; (ss || []).forEach(o => { const k = fxKey(o.utm_campaign), t = x.sb[k] = x.sb[k] || {book:0, pay:0, rev:0}, cur = o.currency || "", rate = cur === "USD" || !cur ? 1 : (p.fx || {})[cur];
       if (o.kind === "booking") t.book += +o.events || 0; else if (o.kind === "payment") { t.pay += +o.events || 0; t.rev += rate ? (+o.amount || 0) / rate : 0; } });
-    x.loading = false; x.at = Date.now(); x.synced = fx.synced; if (!S.modal) render(); });
+    x.loading = false; x.at = Date.now(); x.synced = fx.synced; if (!S.modal) render();
+    if (PR.mode === "t" && !PR.auto && !fx.syncing && fx.synced && Date.now() - new Date(fx.synced).getTime() > 15 * 60000) { PR.auto = 1; prSyncToday(p, false); } });
   const need = Math.round((Date.parse(prToday()) - Date.parse(r.p1)) / 864e5) + 1;
   if (need > Math.max(fx.cover || 0, 8) && !x.deep) { x.deep = true;
     mtCall({action:"sync", project_id:p.id, days:Math.min(90, need)}).then(d => { if (!d.ok) return; fx.synced = d.synced_at; fx.cover = Math.max(fx.cover || 0, need); x.at = 0; if (!S.modal) render(); }); } }
@@ -58,19 +59,22 @@ const prRows = (p, list, f, c, x) => (list || []).filter(r => r.prov === c && fx
 const prRowsA = (p, list, f, c, x, acc) => prRows(p, list, f, c, x).filter(r => acc == null || prAccOf(prOf(p), r.id) === acc);
 const prCap = (f, p) => { const c = fT(f, p).cap; return c > 0 && isFinite(c) ? c : 0; };
 
+/* Пороги выводов и число кампаний на доске — настройки компании (раздел «Настройки»); здесь значения по умолчанию. */
+const PR_DEF = {early:5, noLead:2, crit:20, up:30, ctr:30, top:5};
+function prTh(){ const o = Object.assign({}, PR_DEF), c = (W.co && W.co.set) || {}; Object.keys(PR_DEF).forEach(k => { const n = parseFloat(String(c[k] == null ? "" : c[k]).replace(",", ".")); if (n > 0) o[k] = n; }); o.top = Math.max(1, Math.min(20, Math.round(o.top))); return o; }
 /* Правила вывода. s — текущий период, v — прошлый такой же, cap — потолок цены лида воронки (в долларах).
    Судим, когда потрачено 5 потолков или пришло 5 лидов; раньше — «рано судить». */
-function prJudge(s, v, cap, cur){ const out = [], m = n => prM(n, cur); if (!s.spend) return out;
+function prJudge(s, v, cap, cur){ const out = [], m = n => prM(n, cur), T = prTh(); if (!s.spend) return out;
   const cpl = s.leads ? s.spend / s.leads : 0, pc = v && v.leads ? v.spend / v.leads : 0, ctr = s.imp ? s.clicks / s.imp : 0, pctr = v && v.imp ? v.clicks / v.imp : 0;
-  const enough = cap ? s.spend >= 5 * cap || s.leads >= 5 : s.spend >= 30 || s.leads >= 5;
-  if (cap && !s.leads && s.spend >= 2 * cap) return [{lv:"crit", t:L("Витрати без лідів","Расход без лидов"),
+  const enough = cap ? s.spend >= T.early * cap || s.leads >= 5 : s.spend >= 30 || s.leads >= 5;
+  if (cap && !s.leads && s.spend >= T.noLead * cap) return [{lv:"crit", t:L("Витрати без лідів","Расход без лидов"),
     why:L("Витрачено ","Потрачено ") + m(s.spend) + L(" — це "," — это ") + dec(s.spend / cap, 1) + L(" стелі ціни ліда, а лідів немає."," потолка цены лида, а лидов нет."),
     todo:L("Відкрийте сайт за посиланням з оголошення: чи відкривається, чи працює форма, чи надсилає пиксель подію. Якщо все гаразд — вимкніть кампанію або замініть креативи.","Откройте сайт по ссылке из объявления: открывается ли, работает ли форма, отправляет ли пиксель событие. Если всё в порядке — выключите кампанию или замените креативы.")}];
   if (!enough) return [{lv:"mute", t:L("Рано судити","Рано судить"),
-    why:L("Витрачено ","Потрачено ") + m(s.spend) + (s.leads ? L(", лідів ",", лидов ") + s.leads : "") + L(". Висновок буде після ",". Вывод будет после ") + (cap ? m(5 * cap) : m(30)) + L(" витрат або 5 лідів."," расхода или 5 лидов."),
+    why:L("Витрачено ","Потрачено ") + m(s.spend) + (s.leads ? L(", лідів ",", лидов ") + s.leads : "") + L(". Висновок буде після ",". Вывод будет после ") + (cap ? m(T.early * cap) : m(30)) + L(" витрат або 5 лідів."," расхода или 5 лидов."),
     todo:L("Нічого не змінювати, дивитися далі.","Ничего не менять, смотреть дальше.")}];
   if (!cap) out.push({lv:"mute", t:L("Немає стелі ціни ліда","Нет потолка цены лида"), why:L("У воронки не задано ціль, тому ціну ліда не з чим порівняти.","У воронки не задана цель, поэтому цену лида не с чем сравнить."), todo:L("Задайте ціль воронки: оплати, чек і конверсії.","Задайте цель воронки: оплаты, чек и конверсии.")});
-  else if (cpl > cap * 1.2) out.push({lv:"crit", t:L("Лід дорожчий за стелю","Лид дороже потолка"),
+  else if (cpl > cap * (1 + T.crit / 100)) out.push({lv:"crit", t:L("Лід дорожчий за стелю","Лид дороже потолка"),
     why:L("Ціна ліда ","Цена лида ") + m(cpl) + L(" при стелі "," при потолке ") + m(cap) + " (+" + Math.round((cpl / cap - 1) * 100) + "%).",
     todo:L("Подивіться, які оголошення дають найдорожчі ліди, і вимкніть гірші. Якщо дорого всюди — справа в офері, сторінці або аудиторії.","Посмотрите, какие объявления дают самые дорогие лиды, и выключите худшие. Если дорого везде — дело в оффере, странице или аудитории.")});
   else if (cpl > cap) out.push({lv:"warn", t:L("Лід трохи вищий за стелю","Лид чуть выше потолка"),
@@ -79,10 +83,10 @@ function prJudge(s, v, cap, cur){ const out = [], m = n => prM(n, cur); if (!s.s
   else out.push({lv:"good", t:L("У нормі","В норме"),
     why:L("Ціна ліда ","Цена лида ") + m(cpl) + L(" при стелі "," при потолке ") + m(cap) + ".",
     todo:L("Якщо ціна тримається кілька днів поспіль — можна додати бюджет на 20–30%.","Если цена держится несколько дней подряд — можно добавить бюджет на 20–30%.")});
-  if (pc && cpl > pc * 1.3) out.push({lv:"warn", t:L("Лід подорожчав","Лид подорожал"),
+  if (pc && cpl > pc * (1 + T.up / 100)) out.push({lv:"warn", t:L("Лід подорожчав","Лид подорожал"),
     why:m(pc) + " → " + m(cpl) + " (+" + Math.round((cpl / pc - 1) * 100) + L("%) до минулого такого ж періоду.","%) к прошлому такому же периоду."),
     todo:L("Порівняйте оголошення: якщо подорожчало все — втомилися аудиторія або креативи; якщо одне — вимкніть його.","Сравните объявления: если подорожало всё — устали аудитория или креативы; если одно — выключите его.")});
-  if (pctr && s.imp >= 1000 && ctr < pctr * 0.7) out.push({lv:"warn", t:L("CTR падає","CTR падает"),
+  if (pctr && s.imp >= 1000 && ctr < pctr * (1 - T.ctr / 100)) out.push({lv:"warn", t:L("CTR падає","CTR падает"),
     why:"CTR " + prPct(pctr) + " → " + prPct(ctr) + L(" до минулого періоду."," к прошлому периоду."),
     todo:L("Схоже на вигорання креативів: підготуйте нові ролики або нові перші секунди.","Похоже на выгорание креативов: подготовьте новые ролики или новые первые секунды.")});
   if (s.pay && s.rev && s.spend) out.push({lv:"good", t:L("Є оплати","Есть оплаты"), why:plural(s.pay, L("оплата","оплата"), L("оплати","оплаты"), L("оплат","оплат")) + " · ROAS " + dec(s.rev / s.spend, 1) + L(" (за датою вебінару, оплати ще можуть дозріти)."," (по дате вебинара, оплаты ещё могут дозреть)."), todo:""});
@@ -123,16 +127,19 @@ function prBar(){ if (!W.projs.some(prOn)) return ""; const r = prRange();
     ${PR.mode === "c" ? `<div class="row prdates"><label>${L("з","с")} <input type="date" id="pr-d1" value="${PR.d1 || r.d1}" max="${prToday()}"></label><label>${L("по","по")} <input type="date" id="pr-d2" value="${PR.d2 || r.d2}" max="${prToday()}"></label><button class="btn btn--sm btn--solid" data-act="prCustom">${L("Показати","Показать")}</button></div>` : ""}</div>`; }
 
 /* ---------- аккаунты пятым уровнем, кампании шестым ---------- */
-const PR_TOP = 5;
 const prPl = n => plural(n, L("лід","лид"), L("ліди","лида"), L("лідів","лидов"));
 function prCampNodes(p, f, c, ck, acc){ const x = prOf(p); if (!x.cur) return [];
   const cap = prCap(f, p), cur = prCur(p), prev = prRowsA(p, x.prev, f, c, x, acc), rows = prRowsA(p, x.cur, f, c, x, acc).filter(r => r.spend > 0).sort((a, b) => b.spend - a.spend);
-  const nodes = rows.slice(0, PR_TOP).map(r => { const v = prev.find(o => o.id === r.id) || {}, j = prMain(prJudge(r, v, cap, cur)) || {lv:"mute", t:""};
+  const PR_TOP = prTh().top, nodes = rows.slice(0, PR_TOP).map(r => { const v = prev.find(o => o.id === r.id) || {}, j = prMain(prJudge(r, v, cap, cur)) || {lv:"mute", t:""};
     return {k:ck + "/" + r.id, lv:5, t:r.name, s:prM(r.spend, cur) + " · " + prPl(r.leads) + (r.leads ? L(" по "," по ") + prM(r.spend / r.leads, cur) : ""), m:j.t, v:j.lv}; });
   if (rows.length > PR_TOP) nodes.push({more:1, k:ck, lv:5, t:L("ще ","ещё ") + plural(rows.length - PR_TOP, L("кампанія","кампания"), L("кампанії","кампании"), L("кампаній","кампаний")), s:L("усі — у панелі акаунта","все — в панели аккаунта")});
   return nodes; }
 /* пять главных цифр аккаунта за период */
 const prFive = (s, cur) => [[L("Витрати","Расход"), prM(s.spend, cur)], [L("Ліди","Лиды"), num(s.leads)], [L("Ціна ліда","Цена лида"), s.leads ? prM(s.spend / s.leads, cur) : "—"], ["CTR", s.imp ? prPct(s.clicks / s.imp) : "—"], [L("Оплати","Оплаты"), num(s.pay)]];
+/* те же пять цифр для карточки воронки (все каналы) или канала */
+function prCardKpi(p, f, c){ if (!prOn(p)) return null; const x = prOf(p); if (!x.cur) return null;
+  const rows = x.cur.filter(r => fxFunnel(p, r) === f.id && (!c || r.prov === c)).map(r => Object.assign({}, r, x.sb[fxKey(r.name)] || {}));
+  return prFive(fxSum(rows), prCur(p)); }
 /* аккаунты воронки в канале: те, где за период был расход; если расхода нет нигде — все подключённые */
 function prAccList(p, f, c){ const x = prOf(p), rows = prRows(p, x.cur, f, c, x), prev = prRows(p, x.prev, f, c), ids = [];
   rows.forEach(r => { const a = prAccOf(x, r.id); if (r.spend > 0 && !ids.includes(a)) ids.push(a); });
@@ -175,9 +182,9 @@ function prCampPanel(p, f, c, id){ const x = prOf(p), cur = prCur(p), cap = prCa
   const back = `<button class="btn btn--sm" data-act="mapSel" data-k="${esc(ck)}">${L("← Акаунт ","← Аккаунт ")}${esc(prAccName(p, prAccOf(x, id)))}</button>`;
   if (!r) return `<div class="panel">${lvTag(5)}<p class="sub">${L("За цей період у кампанії немає даних.","За этот период у кампании нет данных.")}</p><div class="row">${back}</div></div>`;
   const js = prJudge(r, v, cap, cur), sets = (x.sets || []).filter(o => o.cid === id && o.spend > 0).sort((a, b) => b.spend - a.spend), ads = (x.ads || []).filter(o => o.cid === id && o.spend > 0).sort((a, b) => b.spend - a.spend);
-  const stop = cap ? ads.filter(a => !a.leads && a.spend >= 2 * cap) : [];
-  if (stop.length) js.push({lv:"crit", t:L("Оголошення без лідів: ","Объявления без лидов: ") + stop.length, why:stop.map(a => a.name + " — " + prM(a.spend, cur)).join("; "), todo:L("Кожне витратило дві стелі ціни ліда без жодного ліда — кандидати на вимкнення.","Каждое потратило два потолка цены лида без единого лида — кандидаты на выключение.")});
-  const row = (o, nm) => { const cpl = o.leads ? o.spend / o.leads : 0, lv = !cap ? "" : !o.leads ? (o.spend >= 2 * cap ? "crit" : "") : cpl > cap * 1.5 ? "crit" : cpl > cap ? "warn" : "good";
+  const TH = prTh(), stop = cap ? ads.filter(a => !a.leads && a.spend >= TH.noLead * cap) : [];
+  if (stop.length) js.push({lv:"crit", t:L("Оголошення без лідів: ","Объявления без лидов: ") + stop.length, why:stop.map(a => a.name + " — " + prM(a.spend, cur)).join("; "), todo:L("Кожне витратило ","Каждое потратило ") + dec(TH.noLead, 1).replace(/[.,]0$/, "") + L(" стелі ціни ліда без жодного ліда — кандидати на вимкнення."," потолка цены лида без единого лида — кандидаты на выключение.")});
+  const row = (o, nm) => { const cpl = o.leads ? o.spend / o.leads : 0, lv = !cap ? "" : !o.leads ? (o.spend >= TH.noLead * cap ? "crit" : "") : cpl > cap * 1.5 ? "crit" : cpl > cap ? "warn" : "good";
     return `<tr><td class="mono">${esc(nm)}</td><td class="n mono">${prM(o.spend, cur)}</td><td class="n mono">${num(o.clicks)}</td><td class="n mono">${o.imp ? prPct(o.clicks / o.imp) : "—"}</td><td class="n mono">${num(o.leads)}</td><td class="n">${cpl ? `<span class="mono">${prM(cpl, cur)}</span>` : "—"} ${lv ? pill(lv, lv === "good" ? L("у стелі","в потолке") : lv === "warn" ? L("вище стелі","выше потолка") : o.leads ? L("понад 1,5 стелі","выше 1,5 потолка") : L("без лідів","без лидов")) : ""}</td></tr>`; };
   const th = first => `<thead><tr><th>${first}</th><th class="n">${L("Витрати","Расход")}</th><th class="n">${L("Кліки","Клики")}</th><th class="n">CTR</th><th class="n">${L("Ліди","Лиды")}</th><th class="n">${L("Ціна ліда","Цена лида")}</th></tr></thead>`;
   return `<div class="panel">${lvTag(5)}<div class="row sp"><h2 class="mono prname">${esc(r.name)}</h2>${prFresh(p)}</div><p class="sub">${chOf(c)[1]} · ${esc(f.name)} · ${esc(p.name)} · <span class="mono">${prLabel(x.r)}</span></p>
@@ -209,7 +216,7 @@ function prOverview(only){ const ps = (only ? [only] : W.projs).filter(prOn); if
     ${items ? `<ul class="prv">${items}</ul>` : `<p class="sub">${s.spend ? L("Усі кампанії в межах стелі або ще рано судити.","Все кампании в пределах потолка или ещё рано судить.") : "—"}</p>`}</div>`; }
 
 Object.assign(ACT, {
-  prMode(d){ PR.mode = d.v === "t" || d.v === "y" || d.v === "m" || d.v === "c" ? d.v : +d.v;
+  prMode(d){ PR.touched = 1; PR.mode = d.v === "t" || d.v === "y" || d.v === "m" || d.v === "c" ? d.v : +d.v;
     if (PR.mode === "t") W.projs.filter(prOn).forEach(p => { const fx = fxOf(p); if (!fx.synced || Date.now() - new Date(fx.synced).getTime() > 15 * 60000) prSyncToday(p, false); }); if (d.v === "c" && !PR.d1) { PR.d2 = prShift(prToday(), -1); PR.d1 = prShift(prToday(), -7); } },
   prCustom(){ const a = (document.getElementById("pr-d1") || {}).value, b = (document.getElementById("pr-d2") || {}).value;
     if (!a || !b) { toast(L("Вкажіть обидві дати","Укажите обе даты")); return false; }
