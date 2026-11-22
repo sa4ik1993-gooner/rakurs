@@ -546,7 +546,16 @@ const ACT = {
   asstClose(){ S.asst.open = false; },
   asstGo(){ S.asst.open = false; }
 };
+/* Подсказка в значке «?»: пояснения не занимают место на экране, открываются наведением или нажатием. */
+const hint = t => `<span class="hint"><button type="button" class="hint__b" aria-label="${L("Підказка","Подсказка")}" aria-expanded="false">?</button><span class="hint__t" role="tooltip">${t}</span></span>`;
+/* иконки вместо слов там, где знак понятен всем */
+const ICO = {
+  collapse:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3v6H3M15 3v6h6M9 21v-6H3M15 21v-6h6" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
+  expand:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6" fill="none" stroke="currentColor" stroke-width="2"/></svg>'};
+const icoBtn = (ico, label, attrs) => `<button type="button" class="btn btn--sm btn--ico" aria-label="${label}" title="${label}" ${attrs}>${ICO[ico]}</button>`;
 document.addEventListener("click", e => {
+  const hb = e.target.closest(".hint__b"); document.querySelectorAll(".hint.on").forEach(h => { if (!hb || h !== hb.parentNode) { h.classList.remove("on"); h.firstChild.setAttribute("aria-expanded", "false"); } });
+  if (hb) { const on = hb.parentNode.classList.toggle("on"); hb.setAttribute("aria-expanded", String(on)); return; }
   const lb = e.target.closest(".lang button");
   if (lb) { lang = lb.dataset.lang; try { localStorage.setItem("rakurs_lang", lang); } catch (x) {} render(); return; }
   if (e.target.closest("#fab")) { S.asst.open = true; renderAsst(); return; }

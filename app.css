@@ -593,3 +593,16 @@ h1[tabindex="-1"]:focus,h2[tabindex="-1"]:focus,#view[tabindex="-1"]:focus,.moda
 .kpi .dlt+small{margin-top:-2px}
 .prname{font-size:16px;overflow-wrap:anywhere}
 .map .panel tr[data-act]{cursor:pointer}
+
+/* подсказка «?» и кнопки-иконки */
+.hint{position:relative;display:inline-flex;vertical-align:middle}
+.hint__b{width:20px;height:20px;padding:0;border:1.5px solid var(--line);border-radius:50%;background:var(--surface);color:var(--muted);font:600 11px/1 var(--f-mono);cursor:help;display:grid;place-items:center}
+.hint__b:hover,.hint.on .hint__b{border-color:var(--ink);color:var(--ink)}
+.hint__t{display:none;position:absolute;left:50%;top:calc(100% + 8px);transform:translateX(-50%);z-index:30;width:max-content;max-width:min(320px,80vw);padding:10px 12px;background:var(--ink);color:var(--on-ink);font:400 13px/1.45 var(--f-body);text-transform:none;letter-spacing:0;border-radius:2px;box-shadow:0 8px 24px -10px var(--shade);white-space:normal;text-align:left}
+.hint:hover .hint__t,.hint.on .hint__t,.hint__b:focus-visible+.hint__t{display:block}
+@media (pointer:coarse){ .hint__b{width:28px;height:28px} .hint:hover .hint__t{display:none} .hint.on .hint__t{display:block} }
+.btn--ico{display:inline-grid;place-items:center;width:34px;height:34px;padding:0}
+.btn--ico svg{width:18px;height:18px}
+.nd--fold .go{font:600 14px/1 var(--f-mono);align-self:flex-start;width:22px;height:22px;border:1.5px solid var(--line);border-radius:50%;display:grid;place-items:center}
+/* на телефоне подсказка раскрывается строкой под значком, а не всплывает за край экрана */
+@media (max-width:640px){ .hint.on{display:flex;flex-wrap:wrap;flex-basis:100%} .hint__t{position:static;transform:none;width:100%;max-width:none;margin-top:6px} }

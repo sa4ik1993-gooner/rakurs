@@ -162,14 +162,16 @@ function mapNode(n, sel){
     : n.add ? `<button type="button" class="nd nd--add" data-act="mapAdd" data-k="${n.k}" data-what="${n.add}"><b>+ ${n.t}</b></button>`
     : `<button type="button" class="nd nd--l${n.lv}${n.v ? " nd--v-" + n.v : ""}${open ? " nd--can" : ""}${n.k === sel ? " sel" : ""}" data-act="mapSel" data-k="${n.k}" aria-pressed="${n.k === sel}"><small class="lv">${lv[0]}</small><b>${n.ic ? chIcon(n.ic) : ""}${esc(n.t)}</b>${n.s ? `<span>${esc(n.s)}</span>` : ""}${n.fx ? `<span class="fx">${esc(n.fx)}</span>` : ""}${n.kpi ? `<dl class="ndk">${n.kpi.map(q => `<div><dt>${q[0]}</dt><dd>${q[1]}</dd></div>`).join("")}</dl>` : ""}${n.m ? `<em${n.v ? ` class="v-${n.v}"` : n.warn ? ' class="w"' : ""}>${esc(n.m)}</em>` : ""}</button>`;
   const tog = open ? `<button type="button" class="fold" data-act="mapFold" data-k="${n.k}" aria-expanded="true" aria-label="${L("Згорнути гілку: ","Свернуть ветку: ")}${esc(n.t)}" title="${L("Згорнути гілку","Свернуть ветку")}">−</button>` : "";
-  const kids = n.can && n.fold ? `<ul><li class="${sel ? "dim" : ""}"><button type="button" class="nd nd--fold" data-act="mapFold" data-k="${n.k}" aria-expanded="false" aria-label="${L("Розгорнути гілку: ","Развернуть ветку: ")}${esc(n.t)}"><b>${(n.ics || []).map(chIcon).join("")}${n.stub[0]}</b><span>${esc(n.stub[1])}</span><em class="go">${L("розгорнути","развернуть")} →</em></button></li></ul>`
+  const kids = n.can && n.fold ? `<ul><li class="${sel ? "dim" : ""}"><button type="button" class="nd nd--fold" data-act="mapFold" data-k="${n.k}" aria-expanded="false" aria-label="${L("Розгорнути гілку: ","Развернуть ветку: ")}${esc(n.t)}"><b>${(n.ics || []).map(chIcon).join("")}${n.stub[0]}</b><span>${esc(n.stub[1])}</span><em class="go" aria-hidden="true">+</em></button></li></ul>`
     : n.kids && n.kids.length ? `<ul>${n.kids.map(x => mapNode(x, sel)).join("")}</ul>` : "";
   return `<li class="${sel ? (on ? "on" : "dim") : ""}">${card}${tog}${kids}</li>`;
 }
 /* кнопки над доской появляются, когда есть что сворачивать */
-function mapBar(){ const n = W.projs.reduce((a, p) => a + (p.funnels.length ? 1 : 0) + p.funnels.filter(f => (f.ch || []).length).length, 0); if (n < 2) return "";
+function mapBar(){ const n = W.projs.reduce((a, p) => a + (p.funnels.length ? 1 : 0) + p.funnels.filter(f => (f.ch || []).length).length, 0);
   const auto = (mapMany() || W.projs.some(p => p.funnels.length > MAP_FUNS)) && !Object.keys(MP.fold).length;
-  return `<div class="row map__bar"><button class="btn btn--sm" data-act="mapFoldAll" data-v="1">${L("Згорнути все","Свернуть всё")}</button><button class="btn btn--sm" data-act="mapFoldAll" data-v="0">${L("Розгорнути все","Развернуть всё")}</button>${auto ? `<span class="sub">${L("Структура велика, тому частину гілок згорнуто. Розгорніть потрібну.","Структура большая, поэтому часть веток свёрнута. Разверните нужную.")}</span>` : ""}</div>`; }
+  const tip = L("Уся структура компанії на одній дошці: компанія, проєкти, воронки, канали трафіку, рекламні акаунти й кампанії. Натисніть на картку, щоб побачити її гілку й висновки.","Вся структура компании на одной доске: компания, проекты, воронки, каналы трафика, рекламные аккаунты и кампании. Нажмите на карточку, чтобы увидеть её ветку и выводы.")
+    + (auto ? " " + L("Структура велика, тому частину гілок згорнуто.","Структура большая, поэтому часть веток свёрнута.") : "");
+  return `<div class="row map__bar">${n >= 2 ? icoBtn("collapse", L("Згорнути все","Свернуть всё"), 'data-act="mapFoldAll" data-v="1"') + icoBtn("expand", L("Розгорнути все","Развернуть всё"), 'data-act="mapFoldAll" data-v="0"') : ""}${hint(tip)}</div>`; }
 const mapDeep = n => Math.max(n.lv || 0, ...(n.kids || []).map(mapDeep));
 const mapBoard = (tree, sel, n = Math.max(4, mapDeep(tree) + 1)) => `<div class="map__scroll" tabindex="0" role="group" aria-label="${L("Карта структури","Карта структуры")}"><div class="map__in" style="--n:${n}">
   <div class="map__heads">${LEVELS().slice(0, n).map((l, i) => `<div><i>0${i + 1}</i><b>${l[0]}</b></div>`).join("")}</div>
@@ -212,7 +214,7 @@ function mapDemoInfo(){
   const i = s.split("/").length - 1;
   return `<div class="lvnote"><i>0${i + 1}</i><div><b>${LEVELS()[i][0]}</b><span class="sub">${LEVELS()[i][1]}</span></div></div>`;
 }
-const vMap = () => `<p class="sub">${L("Уся структура компанії на одній дошці: компанія, її проєкти, воронки кожного проєкту й канали трафіку кожної воронки. Натисніть на картку, щоб побачити її гілку.","Вся структура компании на одной доске: компания, её проекты, воронки каждого проекта и каналы трафика каждой воронки. Нажмите на карточку, чтобы увидеть её ветку.")}</p>
+const vMap = () => `
   <div class="map">${prBar()}${mapBar()}${mapBoard(mapTree(), MP.sel)}${mapInfo()}</div>`;
 const vMapDemo = () => `<div class="map">${mapBoard(mapDemoTree(), MP.demo)}${mapDemoInfo()}</div>`;
 
