@@ -457,7 +457,7 @@ function tabBar(){
     `<button type="button" data-act="wsCtab" data-v="${x[0]}"${cur === x[0] ? ' aria-current="page"' : ""}>${ico(TBI[x[0]])}<span>${x[1]}</span></button>`).join("");
 }
 function ownShell(){
-  const p = P(), f = F(), nb = (act, v, t, on) => `<a role="button" tabindex="0" data-act="${act}" data-v="${v}" ${on?'aria-current="page"':""} title="${String(t).replace(/<[^>]+>.*$/, "").trim()}">${TBI[v] ? ico(TBI[v]) : ""}<span>${t}</span></a>`;
+  const p = P(), f = F(), nb = (act, v, t, on) => `<a role="button" tabindex="0" data-act="${act}" data-v="${v}" ${on?'aria-current="page"':""} title="${String(t).replace(/<[^>]+>.*$/, "").trim()}"><i class="nbi">${TBI[v] ? ico(TBI[v]) : ""}</i><span>${t}</span></a>`;
   $("rail").innerHTML = `<a class="logo" href="index.html">${brandLogo("rail")}</a>
     ${W.user&&W.co?`<button type="button" class="ws" data-act="wsBackP"><small>${L("Компанія","Компания")}</small><b>${esc(W.co.name)}</b></button>
     <nav class="navg navg--co"><span>${L("Компанія","Компания")}</span>${nb("wsCtab","today",L("Сьогодні","Сегодня"),!p&&W.ctab==="today")}${nb("wsCtab","map",L("Карта","Карта"),!p&&W.ctab==="map")}${nb("wsCtab","ads",L("Реклама","Реклама"),!p&&W.ctab==="ads")}${nb("wsCtab","projects",L("Проєкти","Проекты")+(W.projs.length?` <b class="cnt">${W.projs.length}</b>`:""),!p&&W.ctab==="projects")}${(() => { const inMore = !p && ["kb","team","set"].includes(W.ctab), open = inMore || railMore(); return `<button type="button" class="navmore" data-act="railMore" aria-expanded="${open}">${open ? L("Менше","Меньше") : L("Ще: база знань, команда, налаштування","Ещё: база знаний, команда, настройки")} <span class="chev${open ? " chev--up" : ""}">${ico("chevron")}</span></button>${open ? nb("wsCtab","kb",L("База знань","База знаний")+(W.co.kb.length?` <b class="cnt">${W.co.kb.length}</b>`:""),!p&&W.ctab==="kb")+nb("wsCtab","team",L("Команда","Команда"),!p&&W.ctab==="team")+nb("wsCtab","set",L("Налаштування компанії","Настройки компании"),!p&&W.ctab==="set") : ""}`; })()}</nav>`:""}
@@ -469,9 +469,14 @@ function ownShell(){
     <div class="bar__r"><div class="seg tier" role="group" aria-label="${L("Режим","Режим")}"><button type="button" data-act="tier" data-v="lite" aria-pressed="${S.tier==="lite"}">Lite</button><button type="button" data-act="tier" data-v="pro" aria-pressed="${S.tier==="pro"}">Pro</button></div><div class="lang" role="group" aria-label="${L("Мова","Язык")}"><button type="button" data-lang="uk" aria-pressed="${lang==="uk"}">UA</button><button type="button" data-lang="ru" aria-pressed="${lang==="ru"}">RU</button></div></div>`;
   $("frozen").hidden = true; $("fab").hidden = true; document.documentElement.lang = lang;
   let ap = $("apb"); if (!ap) { ap = document.createElement("div"); ap.id = "apb"; ap.className = "apb"; ap.setAttribute("role", "status"); $("view").before(ap); }
-  const apx = typeof apbHTML === "function" ? apbHTML() : ""; ap.hidden = !apx; ap.innerHTML = apx;
+  ap.hidden = true; ap.innerHTML = "";
+  if (typeof hiroRail === "function") { const ft = document.querySelector("#rail .rail__foot"); if (ft) ft.insertAdjacentHTML("beforebegin", hiroRail()); hiroChat(); }
 }
-function ownView(){ const p = P(), f = F(); if (CLOUD && (!CL.ready || CL.entering || CL.opening)) return skelCab(); return !W.user ? vAuth() : !W.co ? vWelcome() : !p ? vCompany() : f ? vFunnel(f, p) : vProject(p); }
+function ownView(){ const p = P(), f = F(); if (CLOUD && (!CL.ready || CL.entering || CL.opening)) return skelCab();
+  if (!W.user) return vAuth(); if (!W.co) return vWelcome();
+  /* панель Хиро — первым блоком на основных экранах (DESIGN.md v2 п. 6) */
+  const hp = typeof hiroPanel !== "function" ? "" : !p ? (["today", "map", "ads", "projects"].includes(W.ctab) ? hiroPanel(W.ctab) : "") : hiroPanel(f ? "funnel" : "project");
+  return hp + (!p ? vCompany() : f ? vFunnel(f, p) : vProject(p)); }
 let ownKey = "";
 const _rs = renderShell, _rv = renderView, _ra = renderAsst, _mf = modalFunnel;
 renderShell = function(){ tabBar(); if (own()) ownShell(); else { _rs(); const ft = document.querySelector(".rail__foot"); if (ft) ft.insertAdjacentHTML("afterbegin", `<button type="button" data-act="wsOwn">← ${L("Моя компанія","Моя компания")}</button>`); } };

@@ -3,172 +3,228 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HEYROW — система трафіку для онлайн-шкіл</title>
-<meta name="description" content="HEYROW бере на себе запуск, щоденний контроль і окупність реклами онлайн-школи. Пройдіть квіз — покажемо, де ваш трафік втрачає гроші.">
+<title>HEYROW — система реклами для онлайн-шкіл</title>
+<meta name="description" content="HEYROW тримає рекламу онлайн-школи в петлі гіпотез: кожен запуск перевіряє ідею, кожне рішення — за оплатами. Пройди квіз за хвилину.">
+<link rel="icon" href="../ui/logo/icon-32.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800&family=Golos+Text:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;600&family=Caveat:wght@600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
 <style>
-:root{--ink:#0D1424;--ink-2:#1B2438;--ink-line:#2C3650;--paper:#F2F4F8;--signal:#FF5A1F;--signal-soft:#FFE5DA;--muted:#5B6478;--line:#DDE1EA;--on-dark:#A9B2C6;--mint:#1FC28B;
-  --display:"Unbounded","Arial Black",system-ui,sans-serif;--body:"Golos Text","Segoe UI",system-ui,sans-serif;color-scheme:light}
+/* Значения только из tokens.css (комплект heyrow-ui). Отступления описаны в комментариях. */
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{margin:0;background:var(--ink);color:#fff;font:17px/1.6 var(--body)}
-h1,h2,h3{font-family:var(--display);line-height:1.12;margin:0;text-wrap:balance}
-h2{font-size:clamp(24px,3.4vw,34px);font-weight:700;margin-bottom:12px}
-h3{font-size:16px;font-weight:700}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 var(--t-head)/1.55 var(--font-ui)} /* сайт: основной текст 16px вместо 14px интерфейса, иначе на телефоне мелко */
 p{margin:0}
-.wrap{max-width:1080px;margin:0 auto;padding:0 16px}
-section{padding:64px 0}
-.eyebrow{display:inline-block;font:700 12px/1 var(--display);letter-spacing:.08em;text-transform:uppercase;color:var(--signal);margin-bottom:14px}
-.lead{font-size:19px;color:var(--on-dark);max-width:620px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;font:600 16px/1 var(--body);text-decoration:none;border:0;border-radius:14px;padding:17px 24px;cursor:pointer;background:var(--signal);color:#fff}
-.btn:hover{filter:brightness(1.07)}
-.btn:disabled{opacity:.4;cursor:default;filter:none}
-.btn--ghost{background:transparent;border:1px solid var(--ink-line);color:#fff}
+.wrap{max-width:1120px;margin:0 auto;padding:0 var(--s-4)}
+.title{font:700 var(--t-title)/1.2 var(--font-display);margin:0 0 var(--s-3)}
+.text{max-width:640px;color:var(--muted)}
+.num{font-family:var(--font-data);font-variant-numeric:tabular-nums}
 
-.top{display:flex;align-items:center;gap:12px;height:68px}
-.top svg{width:112px;height:auto}
-.lang{margin-left:auto;display:flex;gap:4px}
-.lang a{font:600 13px/1 var(--body);text-decoration:none;color:var(--on-dark);padding:8px 10px;border-radius:999px}
-.lang a[aria-current="true"]{background:var(--ink-2);color:#fff}
+/* кнопки */
+.btn{display:inline-flex;align-items:center;justify-content:center;height:var(--control);padding:0 var(--s-4);border-radius:var(--r-control);font:600 var(--t-body)/1 var(--font-ui);text-decoration:none;border:var(--stroke) solid transparent;cursor:pointer;transition:transform var(--fast) var(--ease)}
+.btn:active{transform:translateY(1px)}
+.btn:focus-visible,.opt:focus-visible,.lang a:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+.btn--main{background:var(--signal);color:var(--surface)}
+.btn--ink{background:var(--ink);color:var(--surface)}
+.btn--sec{background:var(--surface);color:var(--ink);border-color:var(--line-strong)}
+.btn:disabled{opacity:.5;cursor:default}
 
-/* screen 1 */
-.hero{padding:40px 0 72px;border-bottom:1px solid var(--ink-line)}
-.hero h1{font-size:clamp(30px,4.6vw,50px);font-weight:800;letter-spacing:-.02em;max-width:880px}
-.hero h1 b{color:var(--signal);font-weight:800}
-.hero .lead{margin-top:20px}
-.take{counter-reset:k;display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:40px 0 36px;padding:0;list-style:none}
-.take li{background:var(--ink-2);border:1px solid var(--ink-line);border-radius:18px;padding:18px}
-.take li{counter-increment:k;position:relative}
-.take li::before{content:counter(k);display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:9px;background:var(--signal);color:#fff;font:800 14px/1 var(--display);margin-bottom:14px}
-.take li:not(:last-child)::after{content:"→";position:absolute;right:-12px;top:20px;color:var(--signal);font:800 16px/1 var(--display)}
-.loop-note{margin:-18px 0 32px;color:var(--on-dark);font-size:14px}
-.take span{display:block;color:var(--on-dark);font-size:14px;margin-top:6px;line-height:1.45}
-.cta-row{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
-.cta-row small{color:var(--on-dark);font-size:14px}
+/* Hey-плашка */
+.hey{display:inline-block;background:var(--signal);color:var(--surface);font:800 var(--t-head)/1 var(--font-display);padding:var(--s-2) var(--s-4);clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%);margin-bottom:var(--s-4)}
 
-/* screen 2: quiz */
-.quiz-sec{background:var(--paper);color:var(--ink)}
-.quiz-sec .lead{color:var(--muted)}
-.quiz{margin-top:28px;background:#fff;border:1px solid var(--line);border-radius:24px;padding:28px;max-width:760px}
-.bar{height:6px;background:var(--paper);border-radius:99px;overflow:hidden;margin-bottom:22px}
-.bar i{display:block;height:100%;width:0;background:var(--signal);transition:width .25s ease}
-.q-num{font:600 13px/1 var(--body);color:var(--muted);margin-bottom:10px}
-.q-title{font:700 clamp(19px,2.4vw,24px)/1.25 var(--display);margin-bottom:20px}
-.opts{display:grid;gap:10px}
-.opt{display:block;width:100%;text-align:left;font:500 16px/1.35 var(--body);color:var(--ink);background:var(--paper);border:2px solid transparent;border-radius:14px;padding:15px 16px;cursor:pointer}
-.opt:hover{border-color:var(--line)}
-.opt[aria-pressed="true"]{border-color:var(--signal);background:var(--signal-soft)}
-.q-nav{display:flex;justify-content:space-between;align-items:center;margin-top:22px}
-.back{background:none;border:0;color:var(--muted);font:500 15px var(--body);cursor:pointer;padding:8px 0}
+/* шапка */
+.top{background:var(--ink)}
+.top .wrap{display:flex;align-items:center;height:64px}
+.top img{width:128px;height:auto;display:block}
+.lang{margin-left:auto;display:flex;gap:var(--s-1);background:var(--ink-2);padding:var(--s-1);border-radius:8px}
+.lang a{font:600 var(--t-body)/1 var(--font-ui);color:var(--line-strong);text-decoration:none;padding:var(--s-2) var(--s-3);border-radius:var(--r-control)}
+.lang a[aria-current="true"]{background:var(--signal);color:var(--surface)}
+
+/* экран 1 */
+.hero{background:var(--ink);color:var(--surface)}
+.hero .wrap{display:grid;grid-template-columns:1.15fr .85fr;gap:var(--s-6);align-items:center;padding-top:var(--s-6);padding-bottom:var(--s-6)}
+.hero h1{font:800 var(--t-hero)/1.05 var(--font-display);margin:0 0 var(--s-5);letter-spacing:-.01em;text-wrap:balance}
+.hero .lead{color:var(--line);max-width:560px;margin-bottom:var(--s-6)}
+.hero .btns{display:flex;gap:var(--s-3);flex-wrap:wrap}
+.hero img{width:100%;max-width:420px;height:auto;display:block;justify-self:center}
+
+/* экран «как это работает» */
+.how{padding:var(--s-7) 0}
+.how .grid{display:grid;grid-template-columns:1fr 260px;gap:var(--s-6);align-items:end;margin-top:var(--s-5)}
+.panel{background:var(--surface);border:var(--stroke) solid var(--line);border-radius:var(--r-panel);overflow:hidden}
+.rows{list-style:none;margin:0;padding:0}
+.rows .head,.rows li{display:grid;grid-template-columns:48px 160px 1fr 200px;gap:var(--s-4);align-items:center;padding:var(--s-3) var(--s-4);border-bottom:var(--stroke) solid var(--line)}
+.rows li:last-child{border-bottom:0}
+.rows .head{font:600 var(--t-label)/1 var(--font-ui);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);min-height:var(--row)}
+.rows li{min-height:var(--row);font-size:var(--t-body)}
+.rows li:hover{background:var(--paper)}
+.rows .n{font:600 var(--t-data)/1 var(--font-data);color:var(--signal)}
+.rows b{font-weight:600}
+.rows .d{color:var(--muted)}
+.loopback{padding:var(--s-3) var(--s-4);border-top:var(--stroke) solid var(--line);font-size:var(--t-body);color:var(--muted)}
+.hiro{display:grid;gap:var(--s-3);justify-items:center;text-align:center}
+.hiro img{width:200px;height:auto;display:block}
+.say{font:600 var(--t-body)/1.45 var(--font-ui);background:var(--surface);border:var(--stroke) solid var(--line);border-radius:var(--r-panel);padding:var(--s-3) var(--s-4)}
+
+/* экран 2: квиз */
+.quiz-sec{padding:0 0 var(--s-7)}
+.quiz{margin-top:var(--s-5);max-width:760px}
+.quiz .qhead{display:flex;gap:var(--s-3);align-items:center;padding:var(--s-4);border-bottom:var(--stroke) solid var(--line)}
+.quiz .qhead img{width:48px;height:48px;border-radius:50%;flex:none}
+.quiz .qhead p{font-size:var(--t-body);font-weight:500}
+.bar{height:4px;background:var(--track)}
+.bar i{display:block;height:100%;width:0;background:var(--signal);transition:transform var(--slow) var(--ease)}
+#step{padding:var(--s-5) var(--s-4)}
+.q-num{font:600 var(--t-label)/1 var(--font-ui);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:var(--s-2)}
+.q-title{font:600 var(--t-head)/1.35 var(--font-ui);margin-bottom:var(--s-4)}
+.opts{border:var(--stroke) solid var(--line);border-radius:var(--r-panel);overflow:hidden}
+.opt{display:flex;align-items:center;gap:var(--s-3);width:100%;min-height:48px;text-align:left;font:500 var(--t-head)/1.35 var(--font-ui);color:var(--ink);background:var(--surface);border:0;border-bottom:var(--stroke) solid var(--line);padding:var(--s-3) var(--s-4);cursor:pointer;transition:background var(--fast) var(--ease)}
+.opt:last-child{border-bottom:0}
+.opt:hover{background:var(--paper)}
+.opt::before{content:"";width:8px;height:8px;flex:none;border:var(--stroke) solid var(--line-strong)}
+.opt[aria-pressed="true"]{font-weight:600}
+.opt[aria-pressed="true"]::before{background:var(--signal);border-color:var(--signal)}
+.q-nav{margin-top:var(--s-4)}
+.back{background:none;border:0;color:var(--muted);font:500 var(--t-body) var(--font-ui);cursor:pointer;padding:var(--s-2) 0}
+.back:hover{text-decoration:underline}
 .back[hidden]{display:block;visibility:hidden}
 
-.res h3{font:800 clamp(22px,3vw,30px)/1.15 var(--display);margin-bottom:10px}
-.res h3 b{color:var(--signal)}
-.res .note{color:var(--muted);margin-bottom:18px}
-.zones{display:grid;gap:10px;margin:0 0 22px;padding:0;list-style:none}
-.zones li{border-left:4px solid var(--signal);background:var(--paper);border-radius:0 14px 14px 0;padding:12px 16px}
-.zones b{display:block}
-.zones span{font-size:15px;color:var(--muted)}
-.zones li.ok{border-left-color:var(--mint)}
-form{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px}
-.field{display:grid;gap:6px}
-label{font-size:13px;font-weight:600;color:var(--muted)}
-input{font:16px var(--body);color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;width:100%}
-input:focus{outline:3px solid var(--signal);outline-offset:1px}
-form .btn{grid-column:1/-1}
-.err{grid-column:1/-1;color:#C2410C;font-size:14px}
-.fine{font-size:13px;color:var(--muted);margin-top:12px}
-.done h3{font:800 26px/1.2 var(--display);margin-bottom:8px}
-.done p{color:var(--muted)}
+.big{display:flex;align-items:baseline;gap:var(--s-3);flex-wrap:wrap;margin-bottom:var(--s-2)}
+.big strong{font:800 var(--t-hero)/1 var(--font-display);color:var(--signal)}
+.big span{font-weight:600}
+.res .note{color:var(--muted);margin-bottom:var(--s-4);font-size:var(--t-body)}
+.zones{list-style:none;margin:0 0 var(--s-5);padding:0;border:var(--stroke) solid var(--line);border-radius:var(--r-panel)}
+.zones li{display:grid;grid-template-columns:1fr auto;gap:var(--s-1) var(--s-4);padding:var(--s-3) var(--s-4);border-bottom:var(--stroke) solid var(--line);font-size:var(--t-body)}
+.zones li:last-child{border-bottom:0}
+.zones b{font-weight:600}
+.zones .d{grid-column:1/-1;color:var(--muted)}
+.st{display:inline-flex;align-items:center;gap:var(--s-2);font:600 var(--t-body)/1 var(--font-ui);white-space:nowrap}
+.st::before{content:"";width:8px;height:8px;background:var(--minus)}
+.st--ok::before{background:var(--plus)}
+.form-lead{font-weight:600;margin-bottom:var(--s-3)}
+form{display:grid;grid-template-columns:1fr 1fr;gap:var(--s-3)}
+.field{display:grid;gap:var(--s-1)}
+label{font:500 var(--t-data)/1.3 var(--font-ui);color:var(--muted)}
+input{height:var(--control);font:400 var(--t-head) var(--font-ui);color:var(--ink);background:var(--surface);border:var(--stroke) solid var(--line-strong);border-radius:var(--r-control);padding:0 var(--s-3);width:100%}
+input:focus{outline:2px solid var(--signal);outline-offset:2px}
+input[aria-invalid="true"]{border-color:var(--minus)}
+form .btn{grid-column:1/-1;justify-self:start}
+.err{grid-column:1/-1;color:var(--minus);font-size:var(--t-body)}
+.fine{font-size:var(--t-data);color:var(--muted);margin-top:var(--s-3)}
+.done{display:flex;gap:var(--s-4);align-items:flex-start}
+.done img{width:64px;height:64px;border-radius:50%;flex:none}
+.done b{display:block;font-size:var(--t-head);margin-bottom:var(--s-1)}
+.done p{color:var(--muted);font-size:var(--t-body)}
 
-/* screen 3: price */
-.price{display:grid;grid-template-columns:1fr 1.1fr;gap:40px;align-items:start}
-.price__big{font:800 clamp(44px,7vw,68px)/1 var(--display);letter-spacing:-.02em;margin:6px 0 14px}
-.price__big small{font:500 18px var(--body);color:var(--on-dark);letter-spacing:0}
-.price .lead{font-size:17px}
-.incl{margin:0;padding:0;list-style:none;display:grid;gap:12px}
-.incl li{display:flex;gap:14px;align-items:flex-start;background:var(--ink-2);border:1px solid var(--ink-line);border-radius:16px;padding:16px 18px}
-.incl li::before{content:"✓";flex:none;font:800 15px/24px var(--display);color:var(--signal)}
-.incl b{display:block}
-.incl span{color:var(--on-dark);font-size:15px}
-.final{margin-top:44px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;background:var(--signal);border-radius:22px;padding:26px 28px}
-.final p{font:700 clamp(18px,2.4vw,24px)/1.25 var(--display);max-width:620px}
-.final .btn{background:var(--ink)}
-footer{padding:28px 0;font-size:13px;color:var(--on-dark);border-top:1px solid var(--ink-line)}
-footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
-:focus-visible{outline:3px solid var(--signal);outline-offset:3px}
-@media (max-width:900px){.take{grid-template-columns:1fr 1fr}.take li::after{display:none}.price{grid-template-columns:1fr}}
-@media (max-width:520px){.take{grid-template-columns:1fr}form{grid-template-columns:1fr}.quiz{padding:20px}section{padding:52px 0}}
+/* экран 3: цена */
+.price{background:var(--ink);color:var(--surface);padding:var(--s-7) 0}
+.price .grid{display:grid;grid-template-columns:1fr 1fr 220px;gap:var(--s-6);align-items:start}
+.price .text{color:var(--line)}
+.amount{display:inline-flex;align-items:baseline;gap:var(--s-5);margin:var(--s-6) 0 var(--s-2)}
+.amount>span{color:var(--line-strong)}
+.ring{position:relative;display:inline-block}
+.ring strong{font:800 var(--t-hero)/1 var(--font-display);color:var(--signal)}
+.ring img{position:absolute;left:50%;top:50%;width:calc(100% + 100px);height:auto;transform:translate(-50%,-46%);pointer-events:none}
+.mark{font:600 24px/1.1 var(--font-hand);color:var(--signal);margin:var(--s-1) 0 var(--s-5) var(--s-5)} /* пометка Хиро, Caveat 24px по п. 4 */
+.incl{list-style:none;margin:0;padding:0;border-top:var(--stroke) solid var(--ink-line)}
+.incl li{padding:var(--s-3) 0;border-bottom:var(--stroke) solid var(--ink-line);font-size:var(--t-body)}
+.incl b{display:block;font-weight:600;font-size:var(--t-head)}
+.incl span{color:var(--line-strong)}
+.price .hiro img{width:200px}
+.price .say{background:var(--ink-2);border-color:var(--ink-line);color:var(--surface)}
+.price .btns{margin-top:var(--s-6)}
+footer{background:var(--ink);color:var(--line-strong);border-top:var(--stroke) solid var(--ink-line);font-size:var(--t-data)}
+footer .wrap{display:flex;justify-content:space-between;gap:var(--s-3);flex-wrap:wrap;padding-top:var(--s-5);padding-bottom:var(--s-5)}
+
+@media (max-width:900px){
+  .hero .wrap{grid-template-columns:1fr}
+  .hero .wrap{gap:var(--s-2);padding-top:var(--s-4)}
+  .hero img{max-width:168px;order:-1}
+  .how .grid,.price .grid{grid-template-columns:1fr}
+  .hiro{grid-template-columns:120px 1fr;justify-items:start;text-align:left;align-items:center}
+  .hiro img,.price .hiro img{width:120px}
+  .rows .head{display:none}
+  .rows li{grid-template-columns:32px 1fr;gap:var(--s-1) var(--s-3);align-items:start;padding:var(--s-3) var(--s-4)}
+  .rows li .d,.rows li .w{grid-column:2}
+  .rows li .w{color:var(--ink);font-weight:500}
+}
+@media (max-width:520px){
+  form{grid-template-columns:1fr}
+  form .btn{justify-self:stretch}
+  .hero .btns .btn{flex:1 1 100%}
+}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
 <body>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <symbol id="heylogo" viewBox="0 25 682 296">
-    <path d="M16.9 33H77.48V228H16.9V33ZM168.74 33H229.32V228H168.74V33ZM50.96 101.9H193.18V155.46H50.96V101.9ZM428.289 109.18V151.82H283.469V109.18H428.289ZM324.809 130.5L312.589 205.9L288.929 179.64H437.389V228H252.529L267.089 130.5L252.529 33H436.089V81.36H288.929L312.589 55.1L324.809 130.5Z" fill="var(--a)"/><path d="M438.017 33H504.577L572.437 119.84H546.437L614.037 33H680.597L578.937 162.74L539.937 163.52L438.017 33Z" fill="var(--a)"/>
-    <rect x="529.277" y="132.32" width="60.58" height="47.2" fill="var(--a)"/><rect x="529.277" y="179.43" width="60.58" height="48.57" fill="var(--b)"/>
-    <rect y="283.85" width="449.6" height="11.7" fill="var(--b)"/><path d="M486.291 286.367H503.326C505.406 286.367 507.029 285.889 508.194 284.932C509.358 283.975 509.941 282.644 509.941 280.938C509.941 279.191 509.358 277.86 508.194 276.945C507.029 275.988 505.406 275.51 503.326 275.51H484.482L490.285 269.332V312.7H477.368V265.9H505.136C508.714 265.9 511.834 266.545 514.496 267.834C517.158 269.082 519.238 270.83 520.736 273.076C522.234 275.281 522.982 277.902 522.982 280.938C522.982 283.892 522.234 286.492 520.736 288.738C519.238 290.985 517.158 292.732 514.496 293.98C511.834 295.228 508.714 295.852 505.136 295.852H486.291V286.367ZM493.28 290.798H507.819L524.605 312.7H509.629L493.28 290.798ZM561.845 313.698C556.312 313.698 551.445 312.679 547.243 310.641C543.083 308.602 539.839 305.753 537.509 302.092C535.221 298.431 534.077 294.167 534.077 289.3C534.077 284.433 535.221 280.169 537.509 276.508C539.839 272.847 543.083 269.998 547.243 267.959C551.445 265.921 556.312 264.902 561.845 264.902C567.419 264.902 572.287 265.921 576.447 267.959C580.607 269.998 583.851 272.847 586.181 276.508C588.511 280.169 589.675 284.433 589.675 289.3C589.675 294.167 588.511 298.431 586.181 302.092C583.851 305.753 580.607 308.602 576.447 310.641C572.287 312.679 567.419 313.698 561.845 313.698ZM561.845 302.154C564.882 302.154 567.503 301.634 569.707 300.594C571.912 299.554 573.597 298.078 574.762 296.164C575.968 294.25 576.571 291.962 576.571 289.3C576.571 286.638 575.968 284.35 574.762 282.436C573.597 280.522 571.912 279.046 569.707 278.006C567.503 276.966 564.882 276.446 561.845 276.446C558.85 276.446 556.25 276.966 554.045 278.006C551.84 279.046 550.135 280.522 548.928 282.436C547.722 284.35 547.119 286.638 547.119 289.3C547.119 291.962 547.722 294.25 548.928 296.164C550.135 298.078 551.84 299.554 554.045 300.594C556.25 301.634 558.85 302.154 561.845 302.154ZM659.653 307.209H655.597L667.265 265.9H680.931L666.704 312.7H650.043L636.502 272.764H641.806L628.203 312.7H611.605L597.315 265.9H611.043L622.712 307.209L618.718 307.146L632.321 265.9H645.987L659.653 307.209Z" fill="var(--a)"/>
-  </symbol>
-</svg>
-<header class="wrap top">
-  <svg viewBox="0 25 682 296" role="img" aria-label="HEYROW"><use href="#heylogo" style="--a:#fff;--b:var(--signal)"/></svg>
+<header class="top"><div class="wrap">
+  <img src="img/logo-on-dark.svg" alt="HEYROW" width="128" height="56">
   <nav class="lang" aria-label="Language"><a data-lang="uk">UA</a><a data-lang="ru">RU</a></nav>
-</header>
+</div></header>
 
 <main>
 <!-- Экран 1: идея -->
-<section class="hero">
-  <div class="wrap">
-    <span class="eyebrow" data-t="h_eyebrow"></span>
-    <h1 data-t="h_h1" data-html></h1>
+<section class="hero"><div class="wrap">
+  <div>
+    <span class="hey">Hey!</span>
+    <h1 data-t="h_h1"></h1>
     <p class="lead" data-t="h_sub"></p>
-    <ul class="take">
-      <li><h3 data-t="t1"></h3><span data-t="t1d"></span></li>
-      <li><h3 data-t="t2"></h3><span data-t="t2d"></span></li>
-      <li><h3 data-t="t3"></h3><span data-t="t3d"></span></li>
-      <li><h3 data-t="t4"></h3><span data-t="t4d"></span></li>
-      <li><h3 data-t="t5"></h3><span data-t="t5d"></span></li>
-    </ul>
-    <p class="loop-note" data-t="loop_note"></p>
-    <div class="cta-row"><a class="btn" href="#quiz" data-t="h_cta"></a><small data-t="h_cta_note"></small></div>
+    <div class="btns"><a class="btn btn--main" href="#quiz" data-t="h_cta"></a><a class="btn btn--sec" href="#how" data-t="h_cta2"></a></div>
   </div>
-</section>
+  <img src="img/hey.webp" alt="" width="420" height="420" fetchpriority="high">
+</div></section>
+
+<!-- Как это работает: петля гипотез -->
+<section class="how" id="how"><div class="wrap">
+  <h2 class="title" data-t="l_h2"></h2>
+  <p class="text" data-t="l_text"></p>
+  <div class="grid">
+    <div class="panel">
+      <ul class="rows">
+        <li class="head" aria-hidden="true"><span>№</span><span data-t="l_c1"></span><span data-t="l_c2"></span><span data-t="l_c3"></span></li>
+        <li><span class="n">01</span><b data-t="t1"></b><span class="d" data-t="t1d"></span><span class="w" data-t="t1w"></span></li>
+        <li><span class="n">02</span><b data-t="t2"></b><span class="d" data-t="t2d"></span><span class="w" data-t="t2w"></span></li>
+        <li><span class="n">03</span><b data-t="t3"></b><span class="d" data-t="t3d"></span><span class="w" data-t="t3w"></span></li>
+        <li><span class="n">04</span><b data-t="t4"></b><span class="d" data-t="t4d"></span><span class="w" data-t="t4w"></span></li>
+        <li><span class="n">05</span><b data-t="t5"></b><span class="d" data-t="t5d"></span><span class="w" data-t="t5w"></span></li>
+      </ul>
+      <p class="loopback" data-t="loop_note"></p>
+    </div>
+    <div class="hiro"><img src="img/work.webp" alt="" width="200" height="200" loading="lazy"><p class="say" data-t="l_say"></p></div>
+  </div>
+</div></section>
 
 <!-- Экран 2: квиз -->
-<section class="quiz-sec" id="quiz">
-  <div class="wrap">
-    <span class="eyebrow" data-t="q_eyebrow"></span>
-    <h2 data-t="q_h2"></h2>
-    <p class="lead" data-t="q_lead"></p>
-    <div class="quiz" aria-live="polite">
-      <div class="bar"><i id="bar"></i></div>
-      <div id="step"></div>
-    </div>
+<section class="quiz-sec" id="quiz"><div class="wrap">
+  <h2 class="title" data-t="q_h2"></h2>
+  <p class="text" data-t="q_lead"></p>
+  <div class="panel quiz" aria-live="polite">
+    <div class="qhead"><img src="img/av-point.webp" alt="" width="48" height="48"><p data-t="q_say"></p></div>
+    <div class="bar"><i id="bar"></i></div>
+    <div id="step"></div>
   </div>
-</section>
+</div></section>
 
 <!-- Экран 3: цена и что входит -->
-<section id="price">
-  <div class="wrap">
-    <div class="price">
-      <div>
-        <span class="eyebrow" data-t="p_eyebrow"></span>
-        <h2 data-t="p_h2"></h2>
-        <div class="price__big"><span data-t="p_from"></span> $69 <small data-t="p_per"></small></div>
-        <p class="lead" data-t="p_cmp"></p>
-      </div>
-      <ul class="incl">
-        <li><div><b data-t="i1"></b><span data-t="i1d"></span></div></li>
-        <li><div><b data-t="i2"></b><span data-t="i2d"></span></div></li>
-        <li><div><b data-t="i3"></b><span data-t="i3d"></span></div></li>
-        <li><div><b data-t="i4"></b><span data-t="i4d"></span></div></li>
-      </ul>
+<section class="price" id="price"><div class="wrap">
+  <div class="grid">
+    <div>
+      <h2 class="title" data-t="p_h2"></h2>
+      <p class="text" data-t="p_cmp"></p>
+      <div class="amount"><span data-t="p_from"></span><span class="ring"><strong class="num">$69</strong><img src="img/circle.svg" alt=""></span><span data-t="p_per"></span></div>
+      <p class="mark" data-t="p_mark"></p>
+      <a class="btn btn--main" href="#quiz" data-t="f_cta"></a>
     </div>
-    <div class="final"><p data-t="f_p"></p><a class="btn" href="#quiz" data-t="f_cta"></a></div>
+    <ul class="incl">
+      <li><b data-t="i1"></b><span data-t="i1d"></span></li>
+      <li><b data-t="i2"></b><span data-t="i2d"></span></li>
+      <li><b data-t="i3"></b><span data-t="i3d"></span></li>
+      <li><b data-t="i4"></b><span data-t="i4d"></span></li>
+    </ul>
+    <div class="hiro"><img src="img/save.webp" alt="" width="200" height="200" loading="lazy"><p class="say" data-t="p_say"></p></div>
   </div>
-</section>
+</div></section>
 </main>
 <footer><div class="wrap"><span>HEYROW · hey-row.com</span><span data-t="foot"></span></div></footer>
 
@@ -178,97 +234,112 @@ const CONFIG = {
   metaPixelId: ""     // ID пикселя Meta; пусто = пиксель не подключается
 };
 
-/* Вопросы квиза. Ответ с loss:"…" открывает зону потерь в результате. */
+/* Вопросы квиза. Третий элемент 1 у ответа = зона, где рвётся система. */
 const Q = {
 uk:[
- {k:"role",t:"Хто ви в школі?",o:[["owner","Власник або продюсер"],["targetologist","Таргетолог або агенція"],["marketer","Маркетолог"]]},
+ {k:"role",t:"Хто ти в школі?",o:[["owner","Власник або продюсер"],["targetologist","Таргетолог або агенція"],["marketer","Маркетолог"]]},
  {k:"budget",t:"Скільки школа витрачає на рекламу на місяць?",o:[["<1000","до $1 000"],["1000-3000","$1 000–3 000"],["3000-10000","$3 000–10 000"],["10000+","понад $10 000"]]},
- {k:"funnel",t:"Як ви продаєте?",o:[["webinar","Вебінар або автовебінар"],["marathon","Марафон чи інтенсив"],["direct","Одразу з лендингу або через менеджера"],["other","Інакше"]]},
+ {k:"funnel",t:"Як школа продає?",o:[["webinar","Вебінар або автовебінар"],["marathon","Марафон чи інтенсив"],["direct","Одразу з лендингу або через менеджера"],["other","Інакше"]]},
  {k:"read",t:"За чим ви вирішуєте, що креатив спрацював?",o:[["pay","За оплатами"],["cpl","За ціною ліда",1],["feel","За CTR і відчуттями",1]]},
  {k:"hyp",t:"Що змінюється від запуску до запуску?",o:[["test","Перевіряємо конкретну гіпотезу"],["creo","Просто міняємо креативи",1],["same","Крутимо офер у лоб, поки працює",1]]},
  {k:"mem",t:"Якщо таргетолог піде завтра, що залишиться?",o:[["all","Уся історія тестів з висновками"],["part","Кабінет і пара таблиць",1],["none","Майже нічого",1]]},
  {k:"speed",t:"Скільки гіпотез ви перевіряєте за місяць?",o:[["5","5 і більше"],["few","1–4",1],["zero","Не рахуємо",1]]}
 ],
 ru:[
- {k:"role",t:"Кто вы в школе?",o:[["owner","Владелец или продюсер"],["targetologist","Таргетолог или агентство"],["marketer","Маркетолог"]]},
+ {k:"role",t:"Кто ты в школе?",o:[["owner","Владелец или продюсер"],["targetologist","Таргетолог или агентство"],["marketer","Маркетолог"]]},
  {k:"budget",t:"Сколько школа тратит на рекламу в месяц?",o:[["<1000","до $1 000"],["1000-3000","$1 000–3 000"],["3000-10000","$3 000–10 000"],["10000+","больше $10 000"]]},
- {k:"funnel",t:"Как вы продаёте?",o:[["webinar","Вебинар или автовебинар"],["marathon","Марафон или интенсив"],["direct","Сразу с лендинга или через менеджера"],["other","Иначе"]]},
+ {k:"funnel",t:"Как школа продаёт?",o:[["webinar","Вебинар или автовебинар"],["marathon","Марафон или интенсив"],["direct","Сразу с лендинга или через менеджера"],["other","Иначе"]]},
  {k:"read",t:"По чему вы решаете, что креатив сработал?",o:[["pay","По оплатам"],["cpl","По цене лида",1],["feel","По CTR и ощущениям",1]]},
  {k:"hyp",t:"Что меняется от запуска к запуску?",o:[["test","Проверяем конкретную гипотезу"],["creo","Просто меняем креативы",1],["same","Крутим оффер в лоб, пока работает",1]]},
  {k:"mem",t:"Если таргетолог уйдёт завтра, что останется?",o:[["all","Вся история тестов с выводами"],["part","Кабинет и пара таблиц",1],["none","Почти ничего",1]]},
  {k:"speed",t:"Сколько гипотез вы проверяете за месяц?",o:[["5","5 и больше"],["few","1–4",1],["zero","Не считаем",1]]}
 ]};
 
+/* Зоны: название, что делаем, если рвётся; подпись, если в порядке. */
 const Z = {
-uk:{read:["Результат читають за ціною ліда","Дешевий лід ≠ оплата. Дивимось, які креативи доводять до грошей і на якій секунді втрачають глядача."],
-    hyp:["Запуски без гіпотези","Кожен запуск відповідає на одне питання: кут, офер, перший крок. Так рекламу можна покращувати, а не перебирати."],
-    mem:["Знання йдуть разом з людьми","Кожна перевірка записана з результатом — новий таргетолог продовжує, а не починає з нуля."],
-    speed:["Петля крутиться повільно","Що більше перевірених гіпотез на місяць, то швидше знаходиться зв'язка, яка окупається."]},
-ru:{read:["Результат читают по цене лида","Дешёвый лид ≠ оплата. Смотрим, какие креативы доводят до денег и на какой секунде теряют зрителя."],
-    hyp:["Запуски без гипотезы","Каждый запуск отвечает на один вопрос: угол, оффер, первый шаг. Так рекламу можно улучшать, а не перебирать."],
-    mem:["Знания уходят вместе с людьми","Каждая проверка записана с результатом — новый таргетолог продолжает, а не начинает с нуля."],
-    speed:["Петля крутится медленно","Чем больше проверенных гипотез в месяц, тем быстрее находится связка, которая окупается."]}
+uk:{read:["Результат за ціною ліда","Дешевий лід ще не оплата. Показую окупність кожного креативу за оплатами.","Читаєте за оплатами"],
+    hyp:["Запуски без гіпотези","Кожен запуск відповідає на одне питання: кут, офер або перший крок.","Запуски перевіряють гіпотези"],
+    mem:["Знання йдуть разом з людьми","Кожна перевірка записана з висновком. Новий таргетолог продовжує з того ж місця.","Історія тестів зберігається"],
+    speed:["Петля крутиться повільно","Більше перевірених гіпотез на місяць, швидше знаходиться зв'язка, яка окупається.","Темп перевірок нормальний"]},
+ru:{read:["Результат по цене лида","Дешёвый лид ещё не оплата. Показываю окупаемость каждого креатива по оплатам.","Читаете по оплатам"],
+    hyp:["Запуски без гипотезы","Каждый запуск отвечает на один вопрос: угол, оффер или первый шаг.","Запуски проверяют гипотезы"],
+    mem:["Знания уходят вместе с людьми","Каждая проверка записана с выводом. Новый таргетолог продолжает с того же места.","История тестов сохраняется"],
+    speed:["Петля крутится медленно","Больше проверенных гипотез в месяц, быстрее находится связка, которая окупается.","Темп проверок нормальный"]}
 };
 
 const T = {
 uk:{
 title:"HEYROW — система реклами для онлайн-шкіл",
-h_eyebrow:"Hey! Система реклами для онлайн-шкіл",
-h_h1:"Реклама школи як система: <b>кожен запуск — перевірена гіпотеза</b>, кожне рішення — за оплатами",
-h_sub:"Налаштування кабінетів майданчики вже автоматизували самі. Виграє той, хто швидше вигадує, перевіряє і розмножує ідеї. HEYROW перетворює рекламу школи із запусків навмання на петлю гіпотез — і тримає її, навіть якщо змінився таргетолог.",
-t1:"Гіпотеза",t1d:"З ваших продажів, заперечень покупців, реклами конкурентів і минулих запусків.",
-t2:"Варіації",t2d:"Кілька версій креативу під одну гіпотезу, а не офер у лоб.",
-t3:"Запуск",t3d:"Кампанія збирається швидко і за одними правилами.",
-t4:"Результат",t4d:"Читаємо за досмотрами й оплатами, а не за ціною ліда.",t5:"Пам'ять",t5d:"Висновок записаний і стає наступною гіпотезою.",loop_note:"↻ Кожен висновок записаний у пам'ять проєкту і стає наступною гіпотезою.",
-h_cta:"Пройти квіз — 1 хвилина",h_cta_note:"Покажемо, де рветься система вашої реклами",
-q_eyebrow:"Квіз",q_h2:"Де рветься система вашої реклами?",q_lead:"7 запитань. У кінці — слабкі місця вашої петлі гіпотез і що з ними робити.",
-q_of:"Питання {n} з {m}",q_back:"← Назад",
-r_h:"Знайшли <b>{n}</b> {w}, де рветься система",r_h0:"Система у вас уже працює",
-r_note:"Ваш бюджет {b} на місяць. Ось де система втрачає гроші:",r_note0:"Схоже, петля гіпотез у вас уже крутиться. На демо-уроці покажемо, як її пришвидшити і зняти рутину з команди.",
-r_ok:"Тут усе гаразд",
-w1:"зону",w2:"зони",w5:"зон",
-r_form:"Запишіться на демо-урок — 20 хвилин. Покажемо петлю гіпотез на вашій воронці.",
+h_h1:"Реклама школи як система",
+h_sub:"Я Хіро. У мене кожен запуск перевіряє гіпотезу, а кожне рішення приймається за оплатами. Висновки лишаються в проєкті, навіть якщо змінився таргетолог.",
+h_cta:"Пройти квіз за хвилину",h_cta2:"Подивитися, як це працює",
+l_h2:"Петля гіпотез",
+l_text:"Налаштування кабінетів майданчики вже автоматизували. Виграє той, хто швидше вигадує і перевіряє ідеї. Ось як це влаштовано в HEYROW.",
+l_c1:"Крок",l_c2:"Що відбувається",l_c3:"Хто вирішує",
+t1:"Гіпотеза",t1d:"З продажів, заперечень покупців і минулих запусків. Записується в журнал проєкту.",t1w:"Ти, Хіро підказує",
+t2:"Варіації",t2d:"Кілька версій креативу під одну гіпотезу.",t2w:"Ти або таргетолог",
+t3:"Запуск",t3d:"Кампанія збирається за 3 питання і стоїть вимкненою, поки ти її не ввімкнеш.",t3w:"Хіро збирає, ти вмикаєш",
+t4:"Результат",t4d:"Окупність за оплатами, а не за ціною ліда. Зранку видно, що вимкнути.",t4w:"Хіро показує, ти вирішуєш",
+t5:"Пам'ять",t5d:"Висновок лишається в проєкті і стає наступною гіпотезою.",t5w:"Хіро",
+loop_note:"Після кроку 05 петля починається знову, вже з новим висновком.",
+l_say:"Я тримаю петлю. Рішення лишаються за тобою.",
+q_h2:"Де рветься система твоєї реклами?",q_lead:"7 запитань. У кінці побачиш слабкі місця петлі і що з ними робити.",
+q_say:"Відповідай як є. Покажу, де петля рветься.",
+q_of:"Питання {n} з {m}",q_back:"Назад",
+r_lbl1:"зона, де рветься система",r_lbl2:"зони, де рветься система",r_lbl5:"зон, де рветься система",r_h0:"Система вже працює",
+r_note:"Бюджет {b} на місяць. Ось що я бачу:",r_note0:"Петля гіпотез у тебе вже крутиться. На демо-уроці покажу, як її пришвидшити.",
+s_bad:"Рветься",s_ok:"Гаразд",
+r_form:"Запишись на демо-урок, 20 хвилин. Покажу петлю гіпотез на твоїй воронці.",
 f_name:"Ім'я",f_contact:"Telegram або телефон",f_school:"Школа або сайт (необов'язково)",
-f_submit:"Записатися на демо-урок",f_err:"Вкажіть ім'я та контакт, щоб ми могли підтвердити час.",
+f_submit:"Записатися на демо-урок",f_err:"Вкажи ім'я та контакт, щоб ми підтвердили час уроку.",
 f_fine:"Напишемо лише для підтвердження часу уроку.",
-d_h:"Hey! Ви записані",d_p:"Напишемо протягом робочого дня, щоб підтвердити час демо-уроку.",d_prev:"Режим перегляду: заявку нікуди не надіслано.",
-p_eyebrow:"Ціна",p_h2:"Система роботи з трафіком дешевше за одного таргетолога",p_from:"від",p_per:"/ міс",
-p_cmp:"Рекламний бюджет ви платите Meta напряму. Тариф підбираємо на демо-уроці під кількість проєктів.",
-i1:"Структура школи в одній системі",i1d:"Проєкти, воронки, креативи і цілі — підключаємо разом на першому дзвінку.",
-i2:"Петля гіпотез",i2d:"Що перевіряти далі — з ваших продажів і минулих запусків.",
+d_h:"Записав тебе на демо-урок",d_p:"Напишемо протягом робочого дня, щоб підтвердити час.",d_prev:"Режим перегляду: заявку нікуди не надіслано.",
+p_h2:"Система дешевше за одного таргетолога",p_from:"від",p_per:"/ міс",
+p_cmp:"Рекламний бюджет платиш Meta напряму. Тариф підбираємо на демо-уроці під кількість проєктів.",
+p_mark:"дешевше за одного таргетолога",
+i1:"Структура школи в одній системі",i1d:"Проєкти, воронки, креативи і цілі. Підключаємо разом на першому дзвінку.",
+i2:"Петля гіпотез",i2d:"Журнал перевірок і що тестувати далі.",
 i3:"Окупність за оплатами",i3d:"По кампаніях, креативах і датах вебінарів.",
-i4:"Пам'ять проєкту",i4d:"Кожен тест із висновком — історія лишається у школи, а не в підрядника.",
-f_p:"Почніть з квізу — за хвилину побачите, де рветься система вашої реклами.",f_cta:"Пройти квіз",
+i4:"Пам'ять проєкту",i4d:"Історія тестів лишається у школи, а не в підрядника.",
+p_say:"Почни з квізу. За хвилину покажу, де рветься система.",
+f_cta:"Пройти квіз",
 foot:"Система реклами для онлайн-шкіл"
 },
 ru:{
 title:"HEYROW — система рекламы для онлайн-школ",
-h_eyebrow:"Hey! Система рекламы для онлайн-школ",
-h_h1:"Реклама школы как система: <b>каждый запуск — проверенная гипотеза</b>, каждое решение — по оплатам",
-h_sub:"Настройку кабинетов площадки уже автоматизировали сами. Выигрывает тот, кто быстрее придумывает, проверяет и размножает идеи. HEYROW превращает рекламу школы из запусков наугад в петлю гипотез — и держит её, даже если сменился таргетолог.",
-t1:"Гипотеза",t1d:"Из ваших продаж, возражений покупателей, рекламы конкурентов и прошлых запусков.",
-t2:"Вариации",t2d:"Несколько версий креатива под одну гипотезу, а не оффер в лоб.",
-t3:"Запуск",t3d:"Кампания собирается быстро и по одним правилам.",
-t4:"Результат",t4d:"Читаем по досмотрам и оплатам, а не по цене лида.",t5:"Память",t5d:"Вывод записан и становится следующей гипотезой.",loop_note:"↻ Каждый вывод записан в память проекта и становится следующей гипотезой.",
-h_cta:"Пройти квиз — 1 минута",h_cta_note:"Покажем, где рвётся система вашей рекламы",
-q_eyebrow:"Квиз",q_h2:"Где рвётся система вашей рекламы?",q_lead:"7 вопросов. В конце — слабые места вашей петли гипотез и что с ними делать.",
-q_of:"Вопрос {n} из {m}",q_back:"← Назад",
-r_h:"Нашли <b>{n}</b> {w}, где рвётся система",r_h0:"Система у вас уже работает",
-r_note:"Ваш бюджет {b} в месяц. Вот где система теряет деньги:",r_note0:"Похоже, петля гипотез у вас уже крутится. На демо-уроке покажем, как её ускорить и снять рутину с команды.",
-r_ok:"Здесь всё в порядке",
-w1:"зону",w2:"зоны",w5:"зон",
-r_form:"Запишитесь на демо-урок — 20 минут. Покажем петлю гипотез на вашей воронке.",
+h_h1:"Реклама школы как система",
+h_sub:"Я Хиро. У меня каждый запуск проверяет гипотезу, а каждое решение принимается по оплатам. Выводы остаются в проекте, даже если сменился таргетолог.",
+h_cta:"Пройти квиз за минуту",h_cta2:"Посмотреть, как это работает",
+l_h2:"Петля гипотез",
+l_text:"Настройку кабинетов площадки уже автоматизировали. Выигрывает тот, кто быстрее придумывает и проверяет идеи. Вот как это устроено в HEYROW.",
+l_c1:"Шаг",l_c2:"Что происходит",l_c3:"Кто решает",
+t1:"Гипотеза",t1d:"Из продаж, возражений покупателей и прошлых запусков. Записывается в журнал проекта.",t1w:"Ты, Хиро подсказывает",
+t2:"Вариации",t2d:"Несколько версий креатива под одну гипотезу.",t2w:"Ты или таргетолог",
+t3:"Запуск",t3d:"Кампания собирается за 3 вопроса и стоит выключенной, пока ты её не включишь.",t3w:"Хиро собирает, ты включаешь",
+t4:"Результат",t4d:"Окупаемость по оплатам, а не по цене лида. Утром видно, что выключить.",t4w:"Хиро показывает, ты решаешь",
+t5:"Память",t5d:"Вывод остаётся в проекте и становится следующей гипотезой.",t5w:"Хиро",
+loop_note:"После шага 05 петля начинается снова, уже с новым выводом.",
+l_say:"Я держу петлю. Решения остаются за тобой.",
+q_h2:"Где рвётся система твоей рекламы?",q_lead:"7 вопросов. В конце увидишь слабые места петли и что с ними делать.",
+q_say:"Отвечай как есть. Покажу, где петля рвётся.",
+q_of:"Вопрос {n} из {m}",q_back:"Назад",
+r_lbl1:"зона, где рвётся система",r_lbl2:"зоны, где рвётся система",r_lbl5:"зон, где рвётся система",r_h0:"Система уже работает",
+r_note:"Бюджет {b} в месяц. Вот что я вижу:",r_note0:"Петля гипотез у тебя уже крутится. На демо-уроке покажу, как её ускорить.",
+s_bad:"Рвётся",s_ok:"В порядке",
+r_form:"Запишись на демо-урок, 20 минут. Покажу петлю гипотез на твоей воронке.",
 f_name:"Имя",f_contact:"Telegram или телефон",f_school:"Школа или сайт (необязательно)",
-f_submit:"Записаться на демо-урок",f_err:"Укажите имя и контакт, чтобы мы могли подтвердить время.",
+f_submit:"Записаться на демо-урок",f_err:"Укажи имя и контакт, чтобы мы подтвердили время урока.",
 f_fine:"Напишем только чтобы подтвердить время урока.",
-d_h:"Hey! Вы записаны",d_p:"Напишем в течение рабочего дня, чтобы подтвердить время демо-урока.",d_prev:"Режим просмотра: заявка никуда не отправлена.",
-p_eyebrow:"Цена",p_h2:"Система работы с трафиком дешевле одного таргетолога",p_from:"от",p_per:"/ мес",
-p_cmp:"Рекламный бюджет вы платите Meta напрямую. Тариф подбираем на демо-уроке под количество проектов.",
-i1:"Структура школы в одной системе",i1d:"Проекты, воронки, креативы и цели — подключаем вместе на первом созвоне.",
-i2:"Петля гипотез",i2d:"Что проверять дальше — из ваших продаж и прошлых запусков.",
+d_h:"Записал тебя на демо-урок",d_p:"Напишем в течение рабочего дня, чтобы подтвердить время.",d_prev:"Режим просмотра: заявка никуда не отправлена.",
+p_h2:"Система дешевле одного таргетолога",p_from:"от",p_per:"/ мес",
+p_cmp:"Рекламный бюджет платишь Meta напрямую. Тариф подбираем на демо-уроке под количество проектов.",
+p_mark:"дешевле одного таргетолога",
+i1:"Структура школы в одной системе",i1d:"Проекты, воронки, креативы и цели. Подключаем вместе на первом созвоне.",
+i2:"Петля гипотез",i2d:"Журнал проверок и что тестировать дальше.",
 i3:"Окупаемость по оплатам",i3d:"По кампаниям, креативам и датам вебинаров.",
-i4:"Память проекта",i4d:"Каждый тест с выводом — история остаётся у школы, а не у подрядчика.",
-f_p:"Начните с квиза — за минуту увидите, где рвётся система вашей рекламы.",f_cta:"Пройти квиз",
+i4:"Память проекта",i4d:"История тестов остаётся у школы, а не у подрядчика.",
+p_say:"Начни с квиза. За минуту покажу, где рвётся система.",
+f_cta:"Пройти квиз",
 foot:"Система рекламы для онлайн-школ"
 }};
 
@@ -276,7 +347,7 @@ const params = new URLSearchParams(location.search);
 const lang = params.get("lang") === "ru" ? "ru" : "uk";
 const t = T[lang], qs = Q[lang], zs = Z[lang];
 document.documentElement.lang = lang; document.title = t.title;
-document.querySelectorAll("[data-t]").forEach(el => { const v = t[el.dataset.t]; if (v == null) return; el.hasAttribute("data-html") ? el.innerHTML = v : el.textContent = v; });
+document.querySelectorAll("[data-t]").forEach(el => { const v = t[el.dataset.t]; if (v != null) el.textContent = v; });
 document.querySelectorAll(".lang a").forEach(a => { const q = new URLSearchParams(location.search); q.set("lang", a.dataset.lang); a.href = "?" + q; a.setAttribute("aria-current", a.dataset.lang === lang); });
 
 if (CONFIG.metaPixelId) {
@@ -288,16 +359,18 @@ if (CONFIG.metaPixelId) {
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const box = document.getElementById("step"), bar = document.getElementById("bar");
+bar.style.width = "100%"; bar.style.transformOrigin = "left";
+const setBar = f => { bar.style.transform = `scaleX(${f})`; };
 const ans = {}; let i = 0, started = false;
 
 function render() {
-  bar.style.width = (i / qs.length * 100) + "%";
+  setBar(i / qs.length);
   if (i >= qs.length) return result();
   const q = qs[i];
   box.innerHTML = `<p class="q-num">${t.q_of.replace("{n}", i + 1).replace("{m}", qs.length)}</p>
     <p class="q-title">${esc(q.t)}</p>
     <div class="opts">${q.o.map(o => `<button type="button" class="opt" data-v="${esc(o[0])}" aria-pressed="${ans[q.k] === o[0]}">${esc(o[1])}</button>`).join("")}</div>
-    <div class="q-nav"><button type="button" class="back" ${i ? "" : "hidden"}>${t.q_back}</button></div>`;
+    <div class="q-nav"><button type="button" class="back" ${i ? "" : "hidden"}>← ${t.q_back}</button></div>`;
   box.querySelectorAll(".opt").forEach(b => b.onclick = () => {
     if (!started) { started = true; if (window.fbq) fbq("trackCustom", "QuizStart"); }
     ans[q.k] = b.dataset.v; i++; render();
@@ -306,33 +379,39 @@ function render() {
 }
 
 function lossOf(k) { const q = qs.find(x => x.k === k); const o = q.o.find(x => x[0] === ans[k]); return !!(o && o[2]); }
-function word(n) { return n === 1 ? t.w1 : (n >= 2 && n <= 4 ? t.w2 : t.w5); }
+function label(n) { return n === 1 ? t.r_lbl1 : (n >= 2 && n <= 4 ? t.r_lbl2 : t.r_lbl5); }
 
 function result() {
-  bar.style.width = "100%";
+  setBar(1);
   const keys = ["read", "hyp", "mem", "speed"];
   const lost = keys.filter(lossOf);
   const budget = qs[1].o.find(o => o[0] === ans.budget)?.[1] || "";
-  box.innerHTML = `<div class="res">
-    <h3>${lost.length ? t.r_h.replace("{n}", lost.length).replace("{w}", word(lost.length)) : esc(t.r_h0)}</h3>
+  const head = lost.length
+    ? `<div class="big"><strong class="num">${lost.length}</strong><span>${esc(label(lost.length))}</span></div>`
+    : `<div class="big"><span style="font-size:var(--t-head)">${esc(t.r_h0)}</span></div>`;
+  box.innerHTML = `<div class="res">${head}
     <p class="note">${esc(lost.length ? t.r_note.replace("{b}", budget) : t.r_note0)}</p>
-    ${lost.length ? `<ul class="zones">${lost.map(k => `<li><b>${esc(zs[k][0])}</b><span>${esc(zs[k][1])}</span></li>`).join("")}</ul>` : ""}
-    <p style="font-weight:600;margin-bottom:12px">${esc(t.r_form)}</p>
+    <ul class="zones">${keys.map(k => lossOf(k)
+      ? `<li><b>${esc(zs[k][0])}</b><span class="st">${esc(t.s_bad)}</span><span class="d">${esc(zs[k][1])}</span></li>`
+      : `<li><b>${esc(zs[k][2])}</b><span class="st st--ok">${esc(t.s_ok)}</span></li>`).join("")}</ul>
+    <p class="form-lead">${esc(t.r_form)}</p>
     <form id="lead" novalidate>
       <div class="field"><label for="f-name">${t.f_name}</label><input id="f-name" name="name" autocomplete="name"></div>
       <div class="field"><label for="f-contact">${t.f_contact}</label><input id="f-contact" name="contact" autocomplete="tel"></div>
       <div class="field" style="grid-column:1/-1"><label for="f-school">${t.f_school}</label><input id="f-school" name="school"></div>
       <p class="err" id="lead-err" hidden>${t.f_err}</p>
-      <button class="btn" type="submit">${t.f_submit}</button>
+      <button class="btn btn--main" type="submit">${t.f_submit}</button>
     </form>
     <p class="fine">${t.f_fine}</p>
-    <div class="q-nav"><button type="button" class="back">${t.q_back}</button></div></div>`;
+    <div class="q-nav"><button type="button" class="back">← ${t.q_back}</button></div></div>`;
   box.querySelector(".back").onclick = () => { i = qs.length - 1; render(); };
   const form = document.getElementById("lead");
   form.addEventListener("submit", async e => {
     e.preventDefault();
     const err = document.getElementById("lead-err");
-    if (!form.name.value.trim() || !form.contact.value.trim()) { err.hidden = false; return; }
+    const bad = [form.name, form.contact].filter(f => !f.value.trim());
+    [form.name, form.contact].forEach(f => f.setAttribute("aria-invalid", bad.includes(f)));
+    if (bad.length) { err.hidden = false; return; }
     form.querySelector("button").disabled = true;
     const data = Object.assign({}, ans, Object.fromEntries(new FormData(form)));
     data.zones = lost.join(","); data.lang = lang; data.page = location.href.split("?")[0]; data.sent_at = new Date().toISOString();
@@ -342,7 +421,7 @@ function result() {
       try { await fetch(CONFIG.formEndpoint, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(data) }); } catch (_) {}
     }
     if (window.fbq) fbq("track", "Lead", { content_name: "demo_lesson" }, { eventID: data.event_id });
-    box.innerHTML = `<div class="done"><h3>${esc(t.d_h)}</h3><p>${esc(t.d_p)}</p>${CONFIG.formEndpoint ? "" : `<p class="fine">${esc(t.d_prev)}</p>`}</div>`;
+    box.innerHTML = `<div class="done"><img src="img/av-watch.webp" alt="" width="64" height="64"><div><b>${esc(t.d_h)}</b><p>${esc(t.d_p)}</p>${CONFIG.formEndpoint ? "" : `<p class="fine">${esc(t.d_prev)}</p>`}</div></div>`;
   });
 }
 render();

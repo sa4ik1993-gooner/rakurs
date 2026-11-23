@@ -17,7 +17,7 @@ window.BRAND = {
   touchIcon: "ui/logo/icon-180.png",
 
   fonts: {
-    url: "https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;600&family=Unbounded:wght@700;800&family=Caveat:wght@600&display=swap",
+    url: "https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@600;700;800&family=Caveat:wght@600&display=swap",
     display: "'Unbounded','Arial Black',sans-serif",          // заголовки и логотип
     body: "'Golos Text','Segoe UI',system-ui,sans-serif",      // основной текст
     mono: "'JetBrains Mono',ui-monospace,Menlo,monospace"      // цифры, метки, подписи

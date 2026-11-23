@@ -161,13 +161,17 @@ MP.hide = {}; try { MP.hide = JSON.parse(localStorage.getItem("rakurs_map_hide")
 const mapHK = n => n.add ? n.k + "/+" + n.add : n.more ? n.k + "/+more" : n.k;
 const mapHidden = n => !!MP.hide[mapHK(n)];
 const mapHideSave = () => { try { localStorage.setItem("rakurs_map_hide", JSON.stringify(MP.hide)); } catch (e) {} };
+/* узел карты v2: круглый значок уровня (у канала — белый кружок со знаком площадки) и статус-плашка */
+const LVI = ["hero", "projects", "funnel", "campaigns", "connections", "launch"];
+const ndIco = n => n.ic ? `<i class="ndi ndi--ch">${chIcon(n.ic)}</i>` : `<i class="ndi ndi--l${n.lv}" aria-hidden="true">${ico(LVI[n.lv] || "launch")}</i>`;
+const ndSt = n => n.m ? `<span class="st ${n.v === "crit" ? "st--err" : n.v === "warn" || n.warn ? "st--pause" : n.v === "mute" ? "st--mute" : "st--on"}">${esc(n.m)}</span>` : "";
 function mapNode(n, sel){
   if (mapHidden(n)) return "";
   const on = sel && (n.k === sel || n.k.indexOf(sel + "/") === 0 || sel.indexOf(n.k + "/") === 0), lv = LEVELS()[n.lv], open = n.can && !n.fold;
   const card = n.ghost ? `<div class="nd nd--ghost"><small class="lv">${lv[0]}</small><b>${n.t}</b><span>${n.s}</span></div>`
     : n.more ? `<button type="button" class="nd nd--more" data-act="mapSel" data-k="${n.k}"><b>${n.t}</b><span>${n.s || L("усі — у панелі каналу","все — в панели канала")}</span></button>`
     : n.add ? `<button type="button" class="nd nd--add" data-act="mapAdd" data-k="${n.k}" data-what="${n.add}"><b>+ ${n.t}</b></button>`
-    : `<button type="button" class="nd nd--l${n.lv}${n.v ? " nd--v-" + n.v : ""}${open ? " nd--can" : ""}${n.k === sel ? " sel" : ""}" data-act="mapSel" data-k="${n.k}" aria-pressed="${n.k === sel}"><small class="lv">${lv[0]}</small><b>${n.ic ? chIcon(n.ic) : ""}${esc(n.t)}</b>${n.s ? `<span>${esc(n.s)}</span>` : ""}${n.fx ? `<span class="fx">${esc(n.fx)}</span>` : ""}${n.kpi ? `<dl class="ndk">${n.kpi.map(q => `<div><dt>${q[0]}</dt><dd>${q[1]}</dd></div>`).join("")}</dl>` : ""}${n.m ? `<em class="st ${n.v === "crit" ? "st--err" : n.v === "good" ? "st--on" : n.v === "warn" || n.warn ? "st--pause" : n.v === "mute" ? "" : "st--on"}">${esc(n.m)}</em>` : ""}</button>`;
+    : `<button type="button" class="nd nd--l${n.lv}${n.v ? " nd--v-" + n.v : ""}${open ? " nd--can" : ""}${n.k === sel ? " sel" : ""}" data-act="mapSel" data-k="${n.k}" aria-pressed="${n.k === sel}"><span class="ndh">${ndIco(n)}${ndSt(n)}</span><small class="lv">${lv[0]}</small><b>${esc(n.t)}</b>${n.s ? `<span class="nds">${esc(n.s)}</span>` : ""}${n.fx ? `<span class="fx">${esc(n.fx)}</span>` : ""}${n.kpi ? `<dl class="ndk">${n.kpi.map(q => `<div><dt>${q[0]}</dt><dd${n.v === "crit" && /Ціна ліда|Цена лида/.test(q[0]) ? ' class="hot"' : ""}>${q[1]}</dd></div>`).join("")}</dl>` : ""}</button>`;
   const hide = n.lv > 0 && !n.ghost ? `<button type="button" class="hide" data-act="mapHide" data-k="${esc(mapHK(n))}" aria-label="${L("Сховати з дошки: ","Скрыть с доски: ")}${esc(n.t)}" title="${L("Сховати з дошки","Скрыть с доски")}"></button>` : "";
   const shown = (n.kids || []).filter(x => !mapHidden(x));
   const tog = open && shown.length ? `<button type="button" class="fold" data-act="mapFold" data-on="0" data-k="${n.k}" aria-expanded="true" aria-label="${L("Згорнути гілку: ","Свернуть ветку: ")}${esc(n.t)}" title="${L("Згорнути гілку","Свернуть ветку")}">‹</button>` : "";
