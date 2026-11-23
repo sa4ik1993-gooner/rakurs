@@ -564,7 +564,15 @@ function meLoad(o){ if (!o || typeof o !== "object") return; ["name", "title", "
 const isDark = () => { const el = document.documentElement; return el.dataset.theme ? el.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; };
 /* Подсказка в значке «?»: пояснения не занимают место на экране, открываются наведением или нажатием. */
 const hint = (t, cls) => `<span class="hint${cls ? " hint--" + cls : ""}"><button type="button" class="hint__b" aria-label="${L("Підказка","Подсказка")}" aria-expanded="false">i</button><span class="hint__t" role="tooltip">${t}</span></span>`;
-/* иконки вместо слов там, где знак понятен всем */
+
+/* подсказка «i» не вылезает за край экрана: перед показом проверяем место и прижимаем к нужному краю */
+function hintFit(h){ const t = h && h.querySelector(".hint__t"); if (!t || matchMedia("(max-width:640px)").matches) return;
+  t.style.left = ""; t.style.right = ""; t.style.transform = "";
+  requestAnimationFrame(() => { const r = t.getBoundingClientRect(), vw = document.documentElement.clientWidth; if (!r.width) return;
+    if (r.right > vw - 8) { t.style.left = "auto"; t.style.right = "0"; t.style.transform = "none"; }
+    else if (r.left < 8) { t.style.left = "0"; t.style.right = "auto"; t.style.transform = "none"; }
+    const r2 = t.getBoundingClientRect(); if (r2.right > vw - 8) t.style.transform = "translateX(" + Math.round(vw - 8 - r2.right) + "px)"; else if (r2.left < 8) t.style.transform = "translateX(" + Math.round(8 - r2.left) + "px)"; }); }
+["mouseover", "focusin", "click"].forEach(ev => document.addEventListener(ev, e => { const h = e.target && e.target.closest && e.target.closest(".hint"); if (h) hintFit(h); }, true));/* иконки вместо слов там, где знак понятен всем */
 const ICO = {
   collapse:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3v6H3M15 3v6h6M9 21v-6H3M15 21v-6h6" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
   eye:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.6" fill="currentColor"/></svg>',
