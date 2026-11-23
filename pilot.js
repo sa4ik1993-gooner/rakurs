@@ -28,8 +28,12 @@ function plRow(p, x, dis){ const pay = x.payload || {}, rep = x.kind === "report
     : x.status === "done" ? `<span class="st ${x.result === "watch" ? "st--on" : "st--fix"}">${x.result === "watch" ? L("Залишив, стежу","Оставил, слежу") : L("Виправив автопілот","Исправил автопилот")}</span>`
     : x.status === "fail" ? `<span class="st st--err">${L("Не вийшло: ","Не получилось: ")}${esc(x.result || "")}</span>`
     : `<span class="st">${{yes:L("Ти погодив","Ты согласовал"), canceled:L("Прибрано з графіка","Убрано из графика"), no:L("Ти відхилив","Ты отклонил"), expired:L("Без відповіді, застаріло","Без ответа, устарело")}[x.status] || esc(x.status)}${x.decided_by ? " · " + esc(x.decided_by) : ""}</span>`;
-  const body = rep ? `<details><summary>${L("Показати звіт","Показать отчёт")}</summary><pre class="plpre">${esc(plStrip(x.body))}</pre></details>` : `<div class="plb">${esc(plStrip(x.body))}</div>`;
-  return `<li class="feed__r pll--${x.kind}">${hava(av, 32)}<time>${esc(plTime(x.at))}</time><div class="feed__t"><b>${x.kind === "alert" ? ico("warning") + " " : ""}${esc(x.title)}</b>${body}${state}</div><span class="feed__m">${money}</span></li>`; }
+  /* коротко: заголовок и первый абзац (что и почему), кнопки сразу под ним; разбор целиком — под «Детальніше» */
+  const txt = plStrip(x.body).replace(/[\u26AA\u{1F7E2}\u{1F7E1}\u{1F534}]\uFE0F?\s?/gu, "").trim(), parts = txt.split(/\n\s*\n/), short = parts[0], rest = parts.slice(1).join("\n\n").trim();
+  const body = rep ? `<details class="more"><summary>${L("Показати звіт","Показать отчёт")}${ico("chevron")}</summary><pre class="plpre">${esc(txt)}</pre></details>`
+    : `<div class="plb">${esc(short)}</div>`;
+  const more = !rep && rest ? `<details class="more plmore"><summary>${L("Детальніше: розбір і що зміню","Подробнее: разбор и что изменю")}${ico("chevron")}</summary><div class="plb">${esc(rest)}</div></details>` : "";
+  return `<li class="feed__r pll--${x.kind}">${hava(av, 32)}<time>${esc(plTime(x.at))}</time><div class="feed__t"><b>${x.kind === "alert" ? ico("warning") + " " : ""}${esc(x.title)}</b>${body}${state}${more}</div><span class="feed__m">${money}</span></li>`; }
 function plPanel(p){ if (!CLOUD) return "";
   const r = PL.st[p.id]; if (r === undefined && !PL.busy[p.id]) setTimeout(() => plLoad(p), 0);
   const head = t => `<div class="row sp"><h2>${t}</h2>`;
