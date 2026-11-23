@@ -111,7 +111,7 @@ function tsPlan(p, s, o, rows, ext){ const tot = tsSum(rows), f = s.f && p.funne
       i++; }
     why.push(L("Наступний крок відкривається за результатом: минуло ","Следующий шаг открывается по результату: прошло ") + TS_GAP + L(" дні після попереднього, прийшло ≥"," дня после предыдущего, пришло ≥") + TS_MINL + L(" лідів і ціна ліда ≤ $"," лидов и цена лида ≤ $") + dec(guard) + ".");
     why.push(L("Якщо ціна ліда вища за $","Если цена лида выше $") + dec(guard) + L(" — поверніть попередній бюджет; після "," — верните прежний бюджет; после ") + TS_BACKS + L(" відкатів задача зупиняється з висновком."," откатов задача останавливается с выводом."));
-    why.push(L("Бюджети змінюєте ви: платформа підказує й стежить.","Бюджеты меняете вы: платформа подсказывает и следит."));
+    why.push(L("Бюджети змінюєте ви: Хіро підказує й стежить.","Бюджеты меняете вы: Хиро подсказывает и следит."));
     st.push({d:tsDay(start, i * TS_GAP + 3), t:L("Перевірка: 3 дні на новому бюджеті. Якщо ціна ліда в межах — задачу виконано.","Проверка: 3 дня на новом бюджете. Если цена лида в пределах — задача выполнена."), check:1});
   } else if (o.type === "cut") {
     const tg = o.cpl || tot.cpl * 0.8; out.guard = tg; out.target = tg;
@@ -177,17 +177,18 @@ function tsBox(k, pick){ const busy = TS.busy[k], mic = (window.SpeechRecognitio
 TS.view = (() => { try { return localStorage.getItem("rakurs_ts_view") || "cal"; } catch (e) { return "cal"; } })(); TS.open = null; TS.arm = "";
 function tsCal(ps){ const today = prToday(), d0 = new Date(today + "T12:00:00"), mon = tsDay(today, -((d0.getDay() + 6) % 7)), days = [...Array(28)].map((_, i) => tsDay(mon, i)), by = {};
   ps.forEach(p => (p.tasks || []).filter(t => t.status === "run" || t.status === "plan").forEach(t => t.steps.forEach((x, i) => { (by[x.d] = by[x.d] || []).push({p, t, x, i}); })));
+  const hiro = {}; ps.forEach(p => (((typeof PL !== "undefined" && PL.st[p.id]) || {}).log || []).filter(x => x.kind === "reco" && x.status === "scheduled" && x.exec_on).forEach(x => { (hiro[x.exec_on] = hiro[x.exec_on] || []).push({p, x}); }));
   const wd = [L("Пн","Пн"), L("Вт","Вт"), L("Ср","Ср"), L("Чт","Чт"), L("Пт","Пт"), L("Сб","Сб"), L("Нд","Вс")];
   return `<div class="tcal"><div class="tcal__h">${wd.map(w => `<span>${w}</span>`).join("")}</div><div class="tcal__g">${days.map(d => `<div class="tcd${d === today ? " tcd--now" : ""}${d < today ? " tcd--past" : ""}"><span class="tcd__n">${d.slice(8, 10) === "01" || d === days[0] ? tsDM(d) : +d.slice(8, 10)}</span>
     ${(by[d] || []).map(({p, t, x, i}) => { const nx = t.steps.find(y => !y.done), lv = x.done ? "ok" : t.status === "plan" ? "plan" : x === nx ? ((tsGate(t) || {}).st || "go") : "later";
-      return `<div class="tcc tcc--${lv}"><button type="button" class="tcc__b" data-act="tsOpen" data-p="${p.id}" data-id="${t.id}" title="${esc(x.t)}">${x.check ? "✓ " : x.dup ? "⧉ " : ""}${esc(t.text.length > 34 ? t.text.slice(0, 33) + "…" : t.text)}<small>${L("крок ","шаг ")}${i + 1}/${t.steps.length}</small></button><button type="button" class="tcc__x" data-act="tsDelA" data-p="${p.id}" data-id="${t.id}" aria-label="${L("Прибрати задачу","Убрать задачу")}">${TS.arm === t.id ? "?" : "×"}</button></div>`; }).join("")}</div>`).join("")}</div>
+      return `<div class="tcc tcc--${lv}"><button type="button" class="tcc__b" data-act="tsOpen" data-p="${p.id}" data-id="${t.id}" title="${esc(x.t)}">${x.check ? "✓ " : x.dup ? "⧉ " : ""}${esc(t.text.length > 34 ? t.text.slice(0, 33) + "…" : t.text)}<small>${L("крок ","шаг ")}${i + 1}/${t.steps.length}</small></button><button type="button" class="tcc__x" data-act="tsDelA" data-p="${p.id}" data-id="${t.id}" aria-label="${L("Прибрати задачу","Убрать задачу")}">${TS.arm === t.id ? "?" : "×"}</button></div>`; }).join("")}${(hiro[d] || []).map(({p, x}) => `<div class="tcc tcc--hiro"><span class="tcc__b" title="${esc(x.title)}">🦝🌙 ${esc(x.title)}<small>${esc(((x.payload || {}).name || "").slice(0, 40))}</small></span><button type="button" class="tcc__x" data-act="plDecide" data-p="${p.id}" data-id="${x.id}" data-v="c" aria-label="${L("Прибрати з графіка","Убрать из графика")}">×</button></div>`).join("")}</div>`).join("")}</div>
     ${TS.arm ? `<p class="sub">${L("Натисніть «?» ще раз — задачу буде прибрано.","Нажмите «?» ещё раз — задача будет убрана.")}</p>` : ""}</div>`; }
 function tsPop(){ if (!TS.open) return ""; const p = W.projs.find(x => x.id === TS.open.p), t = p && (p.tasks || []).find(x => x.id === TS.open.id); if (!t) { TS.open = null; return ""; }
   const sn = {small:L("Невелике збільшення в межах навчених кампаній","Небольшое увеличение в рамках обученных кампаний"), steps:L("Плавне збільшення кроками","Плавное увеличение шагами"), dup:L("Збільшення + дубль найкращої кампанії","Увеличение + дубль лучшей кампании")}[t.strategy];
   return `<div class="tsm" role="dialog" aria-modal="true" aria-label="${esc(t.text)}"><button type="button" class="tsm__bg" data-act="tsClose" aria-label="${L("Закрити","Закрыть")}" tabindex="-1"></button><div class="tsm__in">
     <div class="row sp"><span class="tag">${L("Задача","Задача")}${sn ? " · " + esc(sn) : ""}</span><button type="button" class="btn btn--sm" data-act="tsClose">${L("Закрити","Закрыть")} ✕</button></div>
     ${tsCard(p, t)}
-    ${(t.why || []).length ? `<div class="tsw2"><b>${L("Що робитиме платформа","Что будет делать платформа")}</b><ul>${t.why.map(w => `<li>${esc(w)}</li>`).join("")}</ul></div>` : ""}</div></div>`; }
+    ${(t.why || []).length ? `<div class="tsw2"><b>${L("Що робитиме Хіро","Что будет делать Хиро")}</b><ul>${t.why.map(w => `<li>${esc(w)}</li>`).join("")}</ul></div>` : ""}</div></div>`; }
 document.addEventListener("keydown", e => { if (e.key === "Escape" && TS.open) { TS.open = null; render(); } });
 /* на «Сегодня»: охват выбирается из воронок и аккаунтов */
 TS.sc = "";
@@ -249,13 +250,13 @@ function tsToday(){ const ps = (typeof pfProjs === "function" ? pfProjs() : W.pr
     (f.ch || []).forEach(c => prAccs(p, c).forEach(a => opts.push(["co/" + p.id + "/" + f.id + "/" + c + "/" + prAK(String(a.id)), (ps.length > 1 ? p.name + " · " : "") + f.name + " · " + (a.name || a.id)]))); }); });
   if (!opts.some(o => o[0] === TS.sc)) TS.sc = opts[0][0];
   const pick = `<label class="tsw"><span class="lbl">${L("Для чого","Для чего")}</span><select data-tssc="1">${opts.map(o => `<option value="${esc(o[0])}"${o[0] === TS.sc ? " selected" : ""}>${esc(o[1])}</option>`).join("")}</select></label>`;
-  const has = ps.some(p => (p.tasks || []).some(t => t.status === "run" || t.status === "plan"));
+  const has = ps.some(p => (p.tasks || []).some(t => t.status === "run" || t.status === "plan") || ((((typeof PL !== "undefined" && PL.st[p.id]) || {}).log) || []).some(x => x.status === "scheduled"));
   const sw = has ? `<span class="seg" role="group" aria-label="${L("Вигляд задач","Вид задач")}"><button type="button" data-act="tsView" data-v="cal" aria-pressed="${TS.view === "cal"}">${L("Календар","Календарь")}</button><button type="button" data-act="tsView" data-v="list" aria-pressed="${TS.view === "list"}">${L("Список","Список")}</button></span>` : "";
   const list = !has ? "" : TS.view === "cal" ? tsCal(ps) : ps.flatMap(p => (p.tasks || []).filter(t => t.status === "run" || t.status === "plan").map(t => tsCard(p, t))).join("");
   const done = ps.reduce((a, p) => a + (p.tasks || []).filter(t => t.status === "done" || t.status === "stop").length, 0);
-  return `<div class="panel tsk"><div class="row sp"><span class="tag">${L("Задачі для платформи","Задачи для платформы")}</span>${sw}${done ? `<small class="sub">${L("завершено: ","завершено: ")}${done}</small>` : ""}</div>${tsOffers(ps)}${tsBox("today", pick)}${list}${tsPop()}</div>`; }
+  return `<div class="panel tsk"><div class="row sp"><span class="tag">${L("Задачі для Хіро","Задачи для Хиро")}</span>${sw}${done ? `<small class="sub">${L("завершено: ","завершено: ")}${done}</small>` : ""}</div>${tsOffers(ps)}${tsBox("today", pick)}${list}${tsPop()}</div>`; }
 function tsNode(k){ const s = tsScope(k); if (!s || !s.f) return ""; const p = W.projs.find(x => x.id === s.pid), mine = (p.tasks || []).filter(t => tsKey(t.scope) === tsKey(s) && t.status !== "done" && t.status !== "stop");
-  return `<div class="panel tsk"><span class="tag">${L("Задача для платформи","Задача для платформы")} · ${esc(s.label)}</span>${tsBox(k)}${mine.map(t => tsCard(p, t)).join("")}</div>`; }
+  return `<div class="panel tsk"><span class="tag">${L("Задача для Хіро","Задача для Хиро")} · ${esc(s.label)}</span>${tsBox(k)}${mine.map(t => tsCard(p, t)).join("")}</div>`; }
 const tsK = k => k === "today" ? TS.sc : k;
 const tsT = d => { const p = W.projs.find(x => x.id === d.p), t = p && (p.tasks || []).find(x => x.id === d.id); return [p, t]; };
 document.addEventListener("input", e => { const t = e.target; if (t.dataset && t.dataset.tsk) TS.txt[t.dataset.tsk] = t.value; });

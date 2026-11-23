@@ -1007,3 +1007,11 @@ th{border-bottom:2px solid color-mix(in srgb,var(--ink) 10%,transparent)}
 .mtb td{padding-top:9px;padding-bottom:9px}
 .btn.btn--solid{background:var(--play);color:var(--on-play);border-color:transparent}.btn.btn--solid:hover{background:#E84E16}.btn.btn--solid[disabled]{opacity:.55}
 .prv>li{border-top-color:transparent!important;border-right-color:transparent!important;border-bottom-color:transparent!important;background:color-mix(in srgb,var(--ink) 3%,var(--surface))}.prv>li.prv--crit{background:color-mix(in srgb,var(--play) 6%,var(--surface))}.prv>li.prv--warn{background:color-mix(in srgb,#E6B400 8%,var(--surface))}
+
+/* Хиро: режимы */
+.plmode{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px;margin:4px 0 6px}
+.plm{display:flex;flex-direction:column;gap:4px;text-align:left;padding:12px 14px;border-radius:12px;border:1.5px solid transparent;background:color-mix(in srgb,var(--ink) 5%,var(--surface));cursor:pointer;color:inherit;font:inherit}
+.plm b{font-size:14px}.plm span{font-size:12.5px;color:var(--muted);line-height:1.4}
+.plm.on{border-color:var(--play);background:color-mix(in srgb,var(--play) 8%,var(--surface))}
+.tcc--hiro{border-left-color:var(--play);background:color-mix(in srgb,var(--play) 10%,transparent)}
+.pll--scheduled{border-left-color:var(--play)}.pll--canceled{opacity:.6}
