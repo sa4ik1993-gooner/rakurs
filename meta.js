@@ -29,7 +29,7 @@ const mtBroken = p => !!(p.meta && p.meta.conn && p.meta.health && p.meta.health
 /* проверка идёт в фоне: при открытии подключений и карты, не чаще раза в 6 часов на проект, и по кнопке */
 function mtHealth(p, force){ if (!CLOUD || !sb || !p || !p.meta || !p.meta.conn) return; MT.hat = MT.hat || {};
   if (!force && MT.hat[p.id] && Date.now() - MT.hat[p.id] < 6 * 3600 * 1000) return; MT.hat[p.id] = Date.now();
-  mtCall({action:"health", project_id:p.id}).then(d => { if (!d.ok) { if (force) toast(mtErr(d)); return; }
+  mtCall({action:"health", project_id:p.id}).then(d => { if (!d.ok || !d.health) { if (force) toast(mtErr(d)); return; }
     const m = mtMeta(p), was = (m.health || {}).state || "ok"; m.health = {state:d.health.state, detail:d.health.detail || ""};
     if (was !== m.health.state) save(); if (force || was !== m.health.state) render();
     if (force) toast(d.health.state === "ok" ? L("Підключення працює","Подключение работает") : mtHealthInfo(m.health)[0]); }); }
