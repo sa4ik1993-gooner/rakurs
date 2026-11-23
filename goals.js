@@ -11,7 +11,7 @@ function geFact(p, f){ if (typeof prOn !== "function" || !prOn(p)) return null; 
 const geRoas = share => share > 0 ? 100 / share : 0;
 /* проверки экономики: [уровень, заголовок, пояснение] */
 function geChecks(t, share, fact){ const th = geTh(), out = [], k = 1 + Math.max(0, +t.ltv || 0) / 100, cap1 = t.check * t.l2b / 100 * t.b2p / 100 * share / 100, cap = cap1 * k;
-  const noLtv = k > 1 ? "" : L(" Якщо клієнти докуповують, вкажіть допродажі в цілях проєкту — стеля зросте."," Если клиенты докупают, укажите допродажи в целях проекта — потолок вырастет.");
+  const noLtv = k > 1 ? "" : L(" Якщо клієнти докуповують, вкажіть допродажі в цілях воронки — стеля зросте."," Если клиенты докупают, укажите допродажи в целях воронки — потолок вырастет.");
   if (share >= 100) out.push(["crit", L("Збиток за планом","Убыток по плану"), L("Частка маркетингу ","Доля маркетинга ") + share + L("%: реклама коштує більше, ніж приносить виручки.","%: реклама стоит больше, чем приносит выручки.")]);
   else if (share > th.shareCrit) out.push(["crit", L("Погана окупність","Плохая окупаемость"), L("Окупність за планом ","Окупаемость по плану ") + dec(geRoas(share), 1) + L(": реклама забирає більше половини виручки, на решту бізнесу лишається мало.",": реклама забирает больше половины выручки, на остальной бизнес остаётся мало.")]);
   else if (share > th.shareWarn) out.push(["warn", L("Окупність на межі","Окупаемость на грани"), L("Окупність за планом ","Окупаемость по плану ") + dec(geRoas(share), 1) + L(". Перевірте, чи вистачає маржі.",". Проверьте, хватает ли маржи.")]);
@@ -35,7 +35,7 @@ function geProject(p){ const all = []; geChecks({check:p.tg.check, l2b:p.tg.l2b,
   p.funnels.forEach(f => geChecks(geT(f, p), p.tg.share, geFact(p, f)).filter(c => c[3] && c[0] !== "good").forEach(c => all.push([c[0], f.name + ": " + c[1], c[2], c[3]])));
   const bud = p.funnels.reduce((a, f) => a + fT(f, p).bud, 0); if (p.funnels.length && bud > p.tg.budget * 1.05) all.push(["warn", L("Воронкам потрібно більше бюджету","Воронкам нужно больше бюджета"), L("Сума бюджетів воронок ","Сумма бюджетов воронок ") + money(bud) + L(" більша за бюджет проєкту "," больше бюджета проекта ") + money(p.tg.budget) + "."]);
   const bad = all.filter(c => c[0] !== "good"); return bad.length ? bad : all.slice(0, 1); }
-const geT = (f, p) => Object.assign({}, f.tg, {ltv:p.tg.ltv});
+const geT = (f, p) => Object.assign({}, f.tg, {ltv:fLtv(f, p)});
 const geFunnel = (f, p) => geChecks(geT(f, p), p.tg.share, geFact(p, f));
 
 /* цели на карте: видны всем — собственнику, таргетологам, маркетологам */
