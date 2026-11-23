@@ -861,3 +861,12 @@ body.has-tabbar .only-m{display:flex}
 .tsg{font-size:12px;color:var(--muted)}.tsg--wait{color:var(--warn)}.tsg--back{color:#e5531a}
 
 .seg--xs button{padding:3px 8px;font-size:11.5px}
+
+/* пилот */
+.pl .plf{margin:10px 0}.pl .plf .ck{display:flex;gap:8px;align-items:flex-start;font-size:13.5px}.pl .plf .row{gap:14px;flex-wrap:wrap}
+.pl .pltg{gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}.pl .lbl{font:600 11px/1.3 var(--f-mono);color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.pllog{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+.pll{border-left:3px solid var(--line);padding:6px 10px;background:color-mix(in srgb,var(--ink) 3%,transparent)}
+.pll--reco.pll--new{border-left-color:#2f6fdb}.pll--done{border-left-color:var(--good)}.pll--fail{border-left-color:#e5531a}.pll--no,.pll--expired{opacity:.6}
+.pll .plb{white-space:pre-wrap;font-size:13px;margin:4px 0}.plpre{white-space:pre-wrap;font:12.5px/1.5 var(--f-mono);margin:6px 0}
+.pl .plf .ck{flex-wrap:nowrap;min-width:0}.pl .plf .ck span{white-space:normal;min-width:0;overflow-wrap:anywhere}
