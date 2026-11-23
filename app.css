@@ -1106,5 +1106,7 @@ table .chev,.mlt .chev,.tw .ic,.mt .chev{--icon-accent:currentColor}
 .rk .sortb{border:0;background:none;padding:0;font:inherit;color:inherit;letter-spacing:inherit;text-transform:inherit;cursor:pointer}
 .rk .sortb[aria-pressed="true"]{color:var(--ink);text-decoration:underline}
 tr.sum td{background:var(--paper);font-weight:600}
-.hero__n .dd{inset:auto;left:-18px;top:-12px;width:calc(100% + 40px);height:calc(100% + 24px)}
+/* обводка вокруг главной цифры: с запасом со всех сторон, не задевает цифру и подпись под ней */
+.hero__n:has(.dd){margin:var(--s-4) var(--s-6) var(--s-4) var(--s-7)}
+.hero__n .dd{inset:auto;left:-64px;top:-22px;width:calc(100% + 104px);height:calc(100% + 44px)}
 .prv .ic,.tdo .ic,.feed .ic,.pllog .ic{--icon-accent:currentColor}
