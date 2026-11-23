@@ -129,19 +129,26 @@ async function tsOffLoad(p){ if (TS.offBusy[p.id]) return; TS.offBusy[p.id] = tr
       sb.rpc("ad_summary", {p:p.id, d1:tsDay(d2, -29), d2}), sb.rpc("ad_summary", {p:p.id, d1:tsDay(d2, -1), d2}), sb.rpc("ad_creatives", {p:p.id, d1:tsDay(d2, -29), d2}), sb.rpc("ad_creatives", {p:p.id, d1:tsDay(d2, -1), d2})]);
     if (a.error) throw new Error(a.error.message); const x = prOf(p), b3 = {}; (b.data || []).forEach(o => { b3[o.campaign_id] = o; });
     const busy = new Set((p.tasks || []).filter(t => t.status === "run" || t.status === "plan").map(t => t.scope.camp).filter(Boolean)), out = [];
-    (a.data || []).forEach(o => { const fid = fxFunnel(p, {id:o.campaign_id, f:o.funnel_id || "", name:o.campaign_name, prov:tsCh(o.provider)}), f = fid && p.funnels.find(z => z.id === fid); if (!f || busy.has(o.campaign_id)) return;
+    /* советуем только по кампаниям, точно привязанным к воронке (правило аккаунта, ручная привязка, сервер). «Единственная воронка проекта» — не повод:
+       в общем аккаунте могут быть кампании других людей и других продуктов. */
+    const sure = o => { const r = {id:o.campaign_id, f:o.funnel_id || "", name:o.campaign_name, prov:tsCh(o.provider)}; return typeof fxAuto === "function" && fxAuto(p, r) ? "" : fxFunnel(p, r); };
+    (a.data || []).forEach(o => { const fid = sure(o), f = fid && p.funnels.find(z => z.id === fid); if (!f || busy.has(o.campaign_id)) return;
       const l7 = +o.leads || 0, s7 = +o.spend || 0, c7 = l7 ? s7 / l7 : 0, cap = fT(f, p).cap, r3 = b3[o.campaign_id] || {}, l3 = +r3.leads || 0, s3 = +r3.spend || 0, c3 = l3 ? s3 / l3 : 0;
       if (l7 < 10 || !c7 || !cap || c7 > cap * 0.9 || l3 < 3 || c3 > c7 * 1.1 || s3 <= 0) return;
       const ch = tsCh(o.provider), acc = x.am ? prAccOf(x, o.campaign_id, ch) : "";
       out.push({id:o.campaign_id, name:o.campaign_name, f:fid, fname:f.name, ch, acc, c7, c3, cap, day:s3 / 3, l7}); });
     /* эффективные, но не в работе: за 30 дней ≥10 лидов и лид ≤ 90% потолка, за последние 2 дня расхода нет */
     const idle = [], live2 = new Set((m2.data || []).filter(o => +o.spend > 0).map(o => o.campaign_id)), cf = {};
-    (m30.data || []).forEach(o => { const fid = fxFunnel(p, {id:o.campaign_id, f:o.funnel_id || "", name:o.campaign_name, prov:tsCh(o.provider)}), f = fid && p.funnels.find(z => z.id === fid); cf[o.campaign_id] = f;
+    (m30.data || []).forEach(o => { const fid = sure(o), f = fid && p.funnels.find(z => z.id === fid); cf[o.campaign_id] = f;
       if (!f || live2.has(o.campaign_id) || busy.has(o.campaign_id)) return; const l = +o.leads || 0, sp = +o.spend || 0, c = l ? sp / l : 0, cap = fT(f, p).cap;
       if (l >= 10 && c && cap && c <= cap * 0.9) idle.push({kind:"camp", id:o.campaign_id, name:o.campaign_name, f:fid, fname:f.name, ch:tsCh(o.provider), acc:x.am ? prAccOf(x, o.campaign_id, tsCh(o.provider)) : "", cpl:c, cap, l30:l, day:sp / 30}); });
     const base = n => (typeof rsBase === "function" ? rsBase(n) : n) || n, cr = {}, cr2 = new Set((c2.data || []).filter(o => +o.spend > 0).map(o => base(o.ad_name)));
-    (c30.data || []).forEach(o => { const f = cf[o.campaign_id]; if (!f || !o.ad_name) return; const k = base(o.ad_name), t = cr[k] = cr[k] || {name:k, spend:0, leads:0, f}; t.spend += +o.spend || 0; t.leads += +o.leads || 0; });
-    Object.values(cr).forEach(t => { const c = t.leads ? t.spend / t.leads : 0, cap = fT(t.f, p).cap; if (t.leads >= 10 && c && cap && c <= cap * 0.9 && !cr2.has(t.name)) idle.push({kind:"cr", id:"cr:" + t.name, name:t.name, f:t.f.id, fname:t.f.name, cpl:c, cap, l30:t.leads}); });
+    (c30.data || []).forEach(o => { const f = cf[o.campaign_id]; if (!f || !o.ad_name) return; const k = base(o.ad_name), t = cr[k] = cr[k] || {name:k, spend:0, leads:0, f, orig:{}, camps:{}};
+      t.spend += +o.spend || 0; t.leads += +o.leads || 0; t.orig[o.ad_name] = (t.orig[o.ad_name] || 0) + (+o.spend || 0);
+      const cm = t.camps[o.campaign_id] = t.camps[o.campaign_id] || {id:o.campaign_id, name:o.campaign_name || o.campaign_id, spend:0, leads:0, live:live2.has(o.campaign_id), acc:x.am ? prAccOf(x, o.campaign_id, tsCh(o.provider)) : "", ch:tsCh(o.provider)}; cm.spend += +o.spend || 0; cm.leads += +o.leads || 0; });
+    Object.values(cr).forEach(t => { const c = t.leads ? t.spend / t.leads : 0, cap = fT(t.f, p).cap; if (!(t.leads >= 10 && c && cap && c <= cap * 0.9 && !cr2.has(t.name))) return;
+      const full = Object.keys(t.orig).sort((a, b) => t.orig[b] - t.orig[a]), camps = Object.values(t.camps).sort((a, b) => b.leads - a.leads || b.spend - a.spend);
+      idle.push({kind:"cr", id:"cr:" + t.name, name:full[0] || t.name, vers:full, camps, f:t.f.id, fname:t.f.name, cpl:c, cap, l30:t.leads}); });
     TS.off[p.id] = {at:Date.now(), list:out.sort((m, n) => (m.c7 / m.cap) - (n.c7 / n.cap)), idle:idle.sort((m, n) => (m.cpl / m.cap) - (n.cpl / n.cap))}; }
   catch (e) { TS.off[p.id] = {at:Date.now(), list:[], err:String(e.message || e)}; }
   TS.offBusy[p.id] = false; render(); }
@@ -151,6 +158,7 @@ function tsOffers(ps){ if (!CLOUD || typeof sb === "undefined" || !sb) return ""
   TS.cnt = Object.assign(TS.cnt || {}, {off:all.length, idle:idle.length});
   const ib = idle.length ? `<div class="tso tso--idle"><span class="tag">${L("Ефективні, але не в роботі","Эффективные, но не в работе")} · ${idle.length}</span>${idle.slice(0, 3).map(([p, c]) => `<div class="tsoc"><div><b class="mono">${esc(c.name)}</b> <span class="sub">${c.kind === "cr" ? L("креатив · ","креатив · ") : ""}${esc((ps.length > 1 ? p.name + " · " : "") + c.fname)}</span></div>
       <div>${L("За 30 днів ","За 30 дней ")}${num(c.l30)}${L(" лідів по $"," лидов по $")}${dec(c.cpl)}${L(" при стелі $"," при потолке $")}${dec(c.cap)}${L(", а останні 2 дні показів немає. ",", а последние 2 дня показов нет. ")}${c.kind === "cr" ? L("Додати його в робочу групу знову?","Добавить его в рабочую группу снова?") : L("Увімкнути знову?","Включить снова?")}</div>
+      ${c.kind === "cr" ? `<div class="sub tsow">${c.vers.length > 1 ? L("Версії: ","Версии: ") + c.vers.slice(0, 4).map(esc).join(", ") + "<br>" : ""}${L("Крутився в: ","Крутился в: ")}${c.camps.slice(0, 4).map(m => `<button type="button" class="lnk mono" data-act="prGo" data-k="${esc("co/" + p.id + "/" + c.f + "/" + m.ch + "/" + prAK(m.acc) + "/" + m.id)}">${esc(m.name)}</button> — $${num(m.spend)}, ${num(m.leads)}${L(" лідів"," лидов")}${m.acc ? " · " + esc(prAccName(p, m.acc, m.ch)) : ""} ${m.live ? pill("good", L("іде","идёт")) : pill("mute", L("зупинена","остановлена"))}`).join("; ")}${c.camps.length > 4 ? L(" і ще "," и ещё ") + (c.camps.length - 4) : ""}</div>` : ""}
       <div class="row"><button type="button" class="btn btn--sm btn--solid" data-act="ofIdle" data-p="${p.id}" data-id="${esc(c.id)}">${L("Так","Да")}</button><button type="button" class="btn btn--sm" data-act="ofNo" data-id="${esc(c.id)}">${L("Ні","Нет")}</button></div></div>`).join("")}</div>` : "";
   if (!all.length) return ib;
   return ib + `<div class="tso"><span class="tag">${L("Можна масштабувати","Можно масштабировать")} · ${all.length}</span>${all.slice(0, 3).map(([p, c]) => `<div class="tsoc"><div><b class="mono">${esc(c.name)}</b> <span class="sub">${esc((ps.length > 1 ? p.name + " · " : "") + c.fname)}</span></div>
@@ -196,7 +204,8 @@ Object.assign(ACT, {
     const k = "co/" + p.id + "/" + c.f + (c.kind === "camp" ? "/" + c.ch + (c.acc ? "/" + prAK(c.acc) : "/a_") + "/" + c.id : ""), s = Object.assign(tsScope(k) || {}, {pid:p.id, f:c.f, c:c.ch || "", acc:c.acc || "", camp:c.kind === "camp" ? c.id : ""});
     if (!s.label) s.label = c.fname + " · " + c.name;
     const step = c.kind === "camp" ? L("Увімкніть кампанію ","Включите кампанию ") + c.name + L(" знову (раніше витрачала ~$"," снова (раньше тратила ~$") + dec(c.day, 0) + L(" на день). Бюджет — на ваше рішення.","/день). Бюджет — на ваше решение.")
-      : L("Додайте креатив ","Добавьте креатив ") + c.name + L(" у робочу групу знову (Запуск → «+ Оголошення в групу»)."," в рабочую группу снова (Запуск → «+ Объявления в группу»).");
+      : (() => { const live = (c.camps || []).find(m => m.live), best = (c.camps || [])[0];
+          return L("Додайте креатив ","Добавьте креатив ") + c.name + (live ? L(" у групу кампанії "," в группу кампании ") + live.name + L(" — вона зараз іде"," — она сейчас идёт") : best ? L(". Кампанія, де він працював (",". Кампания, где он работал (") + best.name + L("), зупинена — потрібна нова група або її запуск","), остановлена — нужна новая группа или её запуск") : "") + L(" (Запуск → «+ Оголошення в групу»)."," (Запуск → «+ Объявления в группу»)."); })();
     p.tasks = p.tasks || []; p.tasks.unshift({id:uid(), text:(c.kind === "camp" ? L("Повернути в роботу: ","Вернуть в работу: ") : L("Повернути креатив: ","Вернуть креатив: ")) + c.name, type:"scale", o:{guard:"num", cpl:c.cpl * 1.1}, scope:s, status:"run", at:new Date().toISOString(), started:t0, start:t0,
       guard:c.cap, target:0, base:{day:0, cpl:c.cpl, leads:c.l30}, note:"", steps:[{d:t0, t:step, act:c.kind === "cr" ? "launch" : ""}, {d:tsDay(t0, 3), t:L("Перевірка: 3 дні, ціна ліда не вища за стелю $","Проверка: 3 дня, цена лида не выше потолка $") + dec(c.cap) + ".", check:1}]});
     TS.off[p.id].idle = TS.off[p.id].idle.filter(x => x.id !== c.id); save(); toast(L("Задачу поставлено","Задача поставлена")); },

@@ -6,7 +6,7 @@ const RS_DEF = {cplUp:30, payDown:25, minLeads:30, trashRate:50, minCrLeads:20};
 const RS = {busy:{}, err:{}};
 const rsDay = (d, k) => { const t = new Date(d + "T00:00:00Z"); t.setUTCDate(t.getUTCDate() + k); return t.toISOString().slice(0, 10); };
 /* базовое имя креатива: без _v/_v2/_s/_s_v3 и хвоста даты вида П06.26 — версии одного ролика считаются вместе */
-const rsBase = n => String(n || "").normalize("NFC").replace(/(_s)?(_v\d*)?$/i, "").replace(/(_s)?(_v\d*)?$/i, "").replace(/[ПP]\d{2}\.\d{2}$/u, "").replace(/[_\s]+$/, "").toLowerCase() || "—";
+const rsBase = n => String(n || "").normalize("NFC").replace(/_gtv\d*$/i, "").replace(/(_s)?(_v\d*)?$/i, "").replace(/(_s)?(_v\d*)?$/i, "").replace(/[ПP]\d{2}\.\d{2}$/u, "").replace(/[_\s]+$/, "").toLowerCase() || "—";
 function rsTh(){ const o = Object.assign({}, RS_DEF), c = ((W.co || {}).set || {}).rs || {};
   Object.keys(RS_DEF).forEach(k => { const n = parseFloat(String(c[k] == null ? "" : c[k]).replace(",", ".")); if (n > 0) o[k] = n; }); return o; }
 /* поля порогов исследования для «Настроек» компании */
