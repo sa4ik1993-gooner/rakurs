@@ -26,7 +26,7 @@ async function rsRun(p, f){ if (!prOn(p) || RS.busy[f.id]) return; RS.busy[f.id]
     const sales = await Promise.all(wins.map(w => q("sales_summary", {d1:w.d1, d2:w.d2})));
     const crs = await q("ad_creatives", {d1:wins[0].d1, d2:end});
     const mine = new Set(), names = new Set();
-    camps.forEach(rows => rows.forEach(o => { if (fxFunnel(p, {id:o.campaign_id, f:o.funnel_id || ""}) === f.id) { mine.add(o.campaign_id); names.add(fxKey(o.campaign_name)); } }));
+    camps.forEach(rows => rows.forEach(o => { if (fxFunnel(p, {id:o.campaign_id, f:o.funnel_id || "", name:o.campaign_name}) === f.id) { mine.add(o.campaign_id); names.add(fxKey(o.campaign_name)); } }));
     const rate = cur => cur === "USD" || !cur ? 1 : (p.fx || {})[cur];
     const win = wins.map((w, i) => { const t = {d1:w.d1, d2:w.d2, spend:0, leads:0, book:0, pay:0, rev:0};
       camps[i].forEach(o => { if (mine.has(o.campaign_id)) { t.spend += +o.spend || 0; t.leads += +o.leads || 0; } });

@@ -721,3 +721,7 @@ body.has-tabbar .only-m{display:flex}
 .tr .trx{margin:8px 0}.tr .trx summary{cursor:pointer;font-size:13px}
 .tr .trh{border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:6px}
 .tr .trh input{flex:1;min-width:0}
+
+.fm .fml{margin-top:10px}.fm .fml ul{margin:6px 0 0;padding-left:16px;font-size:12.5px;line-height:1.6}.fm .fml li{overflow-wrap:anywhere}
+.fm .opts{margin-top:6px}
+.fm .lbl{display:block;font:600 11px/1.3 var(--f-mono);color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}

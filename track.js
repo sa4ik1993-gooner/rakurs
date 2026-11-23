@@ -45,8 +45,8 @@ async function trRep(p, f){ const k = f.id; if (TK.repBusy[k]) return; TK.repBus
   const r = typeof prRange === "function" ? prRange() : {d1:prToday(), d2:prToday()};
   try { const [a, b, c] = await Promise.all([sb.rpc("track_summary", {p:p.id, d1:r.d1, d2:r.d2}), sb.rpc("ad_creatives", {p:p.id, d1:r.d1, d2:r.d2}), sb.rpc("ad_summary", {p:p.id, d1:r.d1, d2:r.d2})]);
     if (a.error) throw new Error(a.error.message);
-    const cf = {}; (c.data || []).forEach(o => { cf[o.campaign_id] = fxFunnel(p, {id:o.campaign_id, f:o.funnel_id || ""}); });
-    TK.rep[k] = {r, at:Date.now(), rows:(a.data || []).filter(x => trMine(x, f, p)), meta:b.error ? null : (b.data || []).filter(o => o.provider === "meta" && (cf[o.campaign_id] != null ? cf[o.campaign_id] : fxFunnel(p, {id:o.campaign_id, f:""})) === f.id)}; }
+    const cf = {}; (c.data || []).forEach(o => { cf[o.campaign_id] = fxFunnel(p, {id:o.campaign_id, f:o.funnel_id || "", name:o.campaign_name}); });
+    TK.rep[k] = {r, at:Date.now(), rows:(a.data || []).filter(x => trMine(x, f, p)), meta:b.error ? null : (b.data || []).filter(o => o.provider === "meta" && (cf[o.campaign_id] != null ? cf[o.campaign_id] : fxFunnel(p, {id:o.campaign_id, f:"", name:o.campaign_name})) === f.id)}; }
   catch (e) { TK.rep[k] = {err:String(e.message || e)}; }
   TK.repBusy[k] = false; render(); }
 function trReport(p, f){ if (!CLOUD) return ""; const s = TK.st[p.id]; if (s === undefined && !TK.busy[p.id]) setTimeout(() => trLoad(p), 0);

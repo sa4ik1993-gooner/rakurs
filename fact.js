@@ -36,8 +36,41 @@ function fxStart(p){ const x = fxOf(p); if (x.tried || !CLOUD || !sb || !p.meta 
 /* кампания → воронка: ручная привязка в проекте главнее той, что определил сервер по названию */
 /* Если по названию воронка не нашлась, а в проекте она одна — кампания относится к ней: платформа не прячет расход из-за названия.
    Снять можно ручной привязкой «не относится» в проекте. fxAuto — признак, что воронку поставили мы сами. */
-const fxAuto = (p, r) => !(p.campMap || {})[r.id] && !p.funnels.some(f => f.id === r.f) && p.funnels.length === 1;
-const fxFunnel = (p, r) => { const m = (p.campMap || {})[r.id]; return m ? (m === "-" ? "" : m) : (p.funnels.some(f => f.id === r.f) ? r.f : p.funnels.length === 1 ? p.funnels[0].id : ""); };
+/* Правило воронки (f.match): кампании, в названии которых есть одно из слов «содержит» и нет ни одного из «не содержит».
+   Порядок: ручная привязка → правило по названию → воронка от сервера → единственная воронка проекта.
+   Если хоть у одной воронки есть правило, «единственная воронка» не подставляется: не подошло — значит без воронки. */
+const fxWords = s => String(s || "").split(/[,;\n]+/).map(x => fxKey(x)).filter(Boolean);
+const fxAccs = f => ((f.match || {}).acc || []).map(String);
+const fxHasRule = f => !!(f.match && (fxWords(f.match.inc).length || fxWords(f.match.exc).length || fxAccs(f).length));
+/* аккаунт кампании: из строки, иначе из карты аккаунтов периода */
+const fxAccOf = (p, r) => String(r.acc || (typeof prOn === "function" && prOn(p) && typeof prAccOf === "function" ? prAccOf(prOf(p), r.id, r.prov || "meta") : "") || "");
+const fxRuleOk = (f, r, p) => { const n = fxKey(r.name), m = f.match || {}, inc = fxWords(m.inc), exc = fxWords(m.exc), acc = fxAccs(f);
+  if (acc.length && !acc.includes(fxAccOf(p, r))) return false; return (!inc.length || inc.some(w => n.includes(w))) && !exc.some(w => n.includes(w)); };
+const fxByRule = (p, r) => { if (!r.name) return null; const f = p.funnels.find(x => fxHasRule(x) && fxRuleOk(x, r, p)); return f ? f.id : null; };
+const fxAuto = (p, r) => !(p.campMap || {})[r.id] && !fxByRule(p, r) && !p.funnels.some(f => f.id === r.f) && p.funnels.length === 1 && !p.funnels.some(fxHasRule);
+const fxFunnel = (p, r) => { const m = (p.campMap || {})[r.id]; if (m) return m === "-" ? "" : m;
+  const byR = fxByRule(p, r); if (byR) return byR; const rules = p.funnels.some(fxHasRule);
+  const sf = p.funnels.find(f => f.id === r.f); if (sf && (!rules || !fxHasRule(sf) || !r.name)) return sf.id;
+  return !rules && p.funnels.length === 1 ? p.funnels[0].id : ""; };
+/* панель в целях воронки: какие кампании к ней относятся. Платформа сама предлагает слова — частые части названий кампаний. */
+function fxMatchRows(p){ if (typeof prOn === "function" && prOn(p)) { const x = prOf(p); if (x.cur) return x.cur; } const y = typeof fxOf === "function" ? fxOf(p) : null; return (y && y.rows) || []; }
+function fxMatchPanel(p, f){ const m = f.match || {}, rows = fxMatchRows(p).filter(r => r.name), mine = rows.filter(r => fxFunnel(p, r) === f.id), other = rows.filter(r => fxFunnel(p, r) !== f.id);
+  const sp = a => a.reduce((s, r) => s + (+r.spend || 0), 0);
+  const cnt = {}; rows.forEach(r => [...new Set(String(r.name).split(/[_\s|.\-]+/).filter(t => t.length >= 2 && !/^\d+$/.test(t)).map(t => t.toUpperCase()))].forEach(t => { cnt[t] = (cnt[t] || 0) + 1; }));
+  const inc = fxWords(m.inc), sug = Object.keys(cnt).filter(t => cnt[t] >= 2 && cnt[t] < rows.length && !inc.includes(fxKey(t))).sort((a, b) => cnt[b] - cnt[a]).slice(0, 8);
+  const list = (a, n) => a.slice().sort((x, y) => (+y.spend || 0) - (+x.spend || 0)).slice(0, n).map(r => `<li class="mono">${esc(r.name)} <span class="sub">$${num(+r.spend || 0)}</span></li>`).join("");
+  return `<div class="panel fm"><div class="row sp"><span class="tag">${L("Які кампанії належать воронці","Какие кампании относятся к воронке")}</span>${hint(L("Кампанія потрапляє у воронку, якщо вона з позначеного рекламного акаунта (нічого не позначено — з будь-якого), у її назві є одне зі слів «містить» і немає жодного зі слів «не містить». Великі й малі літери не важливі. Кілька слів — через кому. Ручна прив’язка кампанії в проєкті важливіша за правило. Якщо правило є хоч в одної воронки, кампанії, що нікуди не підійшли, йдуть у «без воронки».","Кампания попадает в воронку, если она из отмеченного рекламного аккаунта (ничего не отмечено — из любого), в её названии есть одно из слов «содержит» и нет ни одного из слов «не содержит». Большие и маленькие буквы не важны. Несколько слов — через запятую. Ручная привязка кампании в проекте важнее правила. Если правило есть хоть у одной воронки, кампании, которые никуда не подошли, идут в «без воронки»."), "wide")}</div>
+    ${(() => { const accs = (typeof PR_CH !== "undefined" ? PR_CH : ["meta"]).flatMap(ch => (typeof prAccs === "function" ? prAccs(p, ch) : []).map(a => ({id:String(a.id), name:a.name || a.id, ch}))); const on = fxAccs(f);
+      return accs.length > 1 ? `<div class="field w"><span class="lbl">${L("Рекламні акаунти","Рекламные аккаунты")}</span><div class="opts opts--sm">${accs.map(a => `<button type="button" class="opt" data-act="fmAcc" data-v="${esc(a.id)}" aria-pressed="${on.includes(a.id) ? "true" : "false"}">${esc(a.name)}</button>`).join("")}</div><span class="sub">${on.length ? "" : L("нічого не позначено — враховуємо всі акаунти","ничего не отмечено — учитываем все аккаунты")}</span></div>` : ""; })()}
+    <div class="form"><div class="field"><label for="fm-inc">${L("Назва кампанії містить","Название кампании содержит")}</label><input id="fm-inc" data-fm="inc" value="${esc(m.inc || "")}" placeholder="MOD"></div>
+      <div class="field"><label for="fm-exc">${L("Не містить","Не содержит")}</label><input id="fm-exc" data-fm="exc" value="${esc(m.exc || "")}" placeholder="TEST"></div></div>
+    ${sug.length ? `<div class="opts opts--sm" aria-label="${L("Часті слова в назвах","Частые слова в названиях")}">${sug.map(t => `<button type="button" class="opt" data-act="fmAdd" data-v="${esc(t)}">+ ${esc(t)} <small class="sub">${cnt[t]}</small></button>`).join("")}</div>` : ""}
+    ${rows.length ? `<div class="c2 fml"><div><b>${L("У воронці","В воронке")}: ${mine.length}</b> <span class="sub">$${num(sp(mine))}</span><ul>${list(mine, 8)}</ul></div><div><b>${L("Не в ній","Не в ней")}: ${other.length}</b> <span class="sub">$${num(sp(other))}</span><ul>${list(other, 8)}</ul></div></div>` : `<p class="sub">${L("Кампанії з’являться, коли підтягнеться статистика реклами.","Кампании появятся, когда подтянется статистика рекламы.")}</p>`}</div>`; }
+let fmT = 0;
+document.addEventListener("input", e => { const t = e.target; if (!t.dataset || !t.dataset.fm) return; const f = F(); if (!f) return; f.match = f.match || {}; f.match[t.dataset.fm] = t.value; save();
+  clearTimeout(fmT); fmT = setTimeout(() => { const id = t.id, pos = t.selectionStart; render(); const el = document.getElementById(id); if (el) { el.focus(); try { el.setSelectionRange(pos, pos); } catch (_e) { /* */ } } }, 500); });
+Object.assign(ACT, { fmAcc(d){ const f = F(); if (!f) return false; f.match = f.match || {}; const a = fxAccs(f); f.match.acc = a.includes(d.v) ? a.filter(x => x !== d.v) : a.concat(d.v); save(); },
+  fmAdd(d){ const f = F(); if (!f) return false; f.match = f.match || {}; const w = fxWords(f.match.inc); if (!w.includes(fxKey(d.v))) f.match.inc = [String(f.match.inc || "").trim(), d.v].filter(Boolean).join(", "); save(); } });
 const fxSum = rows => rows.reduce((a, r) => { a.spend += r.spend; a.imp += r.imp; a.clicks += r.clicks; a.leads += r.leads; a.book += r.book || 0; a.pay += r.pay || 0; a.rev += r.rev || 0; return a; }, {spend:0, imp:0, clicks:0, leads:0, book:0, pay:0, rev:0});
 /* название кампании и метка из таблицы приводятся к одному виду: Meta и таблицы хранят одни и те же буквы по-разному */
 const fxKey = t => String(t || "").normalize("NFC").toLowerCase().trim();

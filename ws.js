@@ -375,6 +375,7 @@ function vFunnel(f, p){
         <p class="sub">${L("Конверсії взято з проєкту — змініть, якщо у цієї воронки вони інші. Частка маркетингу спільна: ","Конверсии взяты из проекта — измените, если у этой воронки они другие. Доля маркетинга общая: ")}${p.tg.share}%.</p></div>
         <div class="panel vf"><span class="tag">${L("План воронки","План воронки")}</span><div id="w-calc">${calcF(f,p)}</div></div></div>
       ${chPlanPanel(f, p)}
+      ${typeof fxMatchPanel === "function" ? fxMatchPanel(p, f) : ""}
       ${factPanel(p, f)}
       ${typeof trReport === "function" ? trReport(p, f) : ""}
       <div class="panel"><span class="tag">${L("Аналітика","Аналитика")}</span>
