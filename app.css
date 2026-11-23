@@ -1387,3 +1387,11 @@ td:first-child{font:600 var(--t-body)/1.3 var(--font-ui)}
 .decr__r .decpath b{font:700 var(--t-small)/1.4 var(--font-ui)}
 
 .tsw-cap{display:flex;gap:var(--s-2);align-items:flex-start;background:var(--minus-soft);color:var(--minus);border-radius:var(--r-control);padding:var(--s-2) var(--s-3);font:500 var(--t-small)/1.45 var(--font-ui);margin:0}.tsw-cap .ic{--icon-accent:var(--minus);flex:none;width:16px;height:16px;margin-top:1px}
+/* аналіз акаунту (audit.js) */
+.aud .aud__k{margin:12px 0}
+.aud__l{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.aud__i{padding:12px 14px;border-radius:var(--r-item);background:var(--paper);box-shadow:var(--lift)}
+.aud__i .sub{margin:6px 0 0}
+.aud__todo{margin:6px 0 0;font-size:var(--t-data);display:flex;gap:6px;align-items:flex-start}
+.aud__todo svg{width:14px;height:14px;flex-shrink:0;margin-top:2px;color:var(--signal)}
+.aud__todo svg{transform:rotate(-90deg)}
