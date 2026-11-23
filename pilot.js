@@ -45,8 +45,8 @@ function plPanel(p){ if (!CLOUD) return "";
   /* в ленте — то, что ждёт решения или в графике, и события за сутки; решённое раньше — в «Історія» */
   const vis = (r.log || []).filter(x => x.status !== "dismissed"), day = Date.now() - 24 * 3600e3;
   const act = vis.filter(x => x.status === "new" || x.status === "scheduled" || (x.kind !== "reco" && Date.parse(x.at) > day) || (x.decided_at && Date.parse(x.decided_at) > Date.now() - 3600e3)), old = vis.filter(x => !act.includes(x));
-  const rows = act.map(x => plRow(p, x, dis)).join("") + (old.length ? `<li class="plhist">${more("plh:" + p.id, L("Історія · ","История · ") + old.length, `<ul class="feed">${old.map(x => plRow(p, x, dis)).join("")}</ul>`)}</li>` : "");
-  const feed = rows ? `<ul class="feed pllog">${rows}</ul>` : `<div class="empty empty--sm">${hava("watch", 48)}<div><b>${L("Тут буде все, що я зробив з рекламою.","Здесь будет всё, что я сделал с рекламой.")}</b> <span class="sub">${on ? L("Перевіряю акаунт щогодини, перший звіт надішлю о ","Проверяю аккаунт каждый час, первый отчёт пришлю в ") + String(s.report_hour).padStart(2, "0") + ":00." : L("Увімкни автопілот у налаштуваннях нижче.","Включи автопилот в настройках ниже.")}</span></div></div>`;
+  const rows = act.map(x => plRow(p, x, dis)).join(""), hist = old.length ? `<div class="plhist">${more("plh:" + p.id, L("Історія · ","История · ") + old.length, `<ul class="feed">${old.map(x => plRow(p, x, dis)).join("")}</ul>`)}</div>` : "";
+  const feed = rows || hist ? `${rows ? `<ul class="feed pllog scrl">${rows}</ul>` : `<p class="sub">${L("Нових пропозицій немає. Стежу далі.","Новых предложений нет. Слежу дальше.")}</p>`}${hist}` : `<div class="empty empty--sm">${hava("watch", 48)}<div><b>${L("Тут буде все, що я зробив з рекламою.","Здесь будет всё, что я сделал с рекламой.")}</b> <span class="sub">${on ? L("Перевіряю акаунт щогодини, перший звіт надішлю о ","Проверяю аккаунт каждый час, первый отчёт пришлю в ") + String(s.report_hour).padStart(2, "0") + ":00." : L("Увімкни автопілот у налаштуваннях нижче.","Включи автопилот в настройках ниже.")}</span></div></div>`;
   const accOpts = accs.map(a => `<label class="ck"><input type="checkbox" data-placc="${esc(String(a.id))}"${e.account_ids.includes(String(a.id)) ? " checked" : ""}${dis}> ${esc(a.name || a.id)}</label>`).join("");
   const hours = [...Array(16)].map((_, i) => i + 7);
   const settings = `<div class="form plf">
@@ -64,7 +64,7 @@ function plPanel(p){ if (!CLOUD) return "";
       <button type="button" class="btn btn--sm" data-act="plNow" data-p="${p.id}" data-v="1"${dis}>${L("Надіслати звіт зараз","Отправить отчёт сейчас")}</button></div>
     <div class="row pltg"><span class="lbl">Telegram</span>${(s && s.chats && s.chats.length) ? s.chats.map(c => `<span class="st st--on">${esc(c)}</span>`).join(" ") : `<span class="st st--pause">${L("Не підключено","Не подключено")}</span>`}
       <button type="button" class="btn btn--sm" data-act="plTg" data-p="${p.id}"${dis}${r.bot ? "" : ` title="${esc(plErr({error:"no_bot"}))}"`}>${ico("send")} ${L("Підключити Telegram","Подключить Telegram")}</button>${s && s.chats && s.chats.length ? `<button type="button" class="btn btn--sm" data-act="plTgTest" data-p="${p.id}">${L("Надіслати тест","Отправить тест")}</button>` : ""}</div>`;
-  return `<div class="panel plt">${head(L("Лента автопілота","Лента автопилота"))}${st}</div>
+  return `<div class="panel plt">${head(L("Що пропоную і що зробив","Что предлагаю и что сделал"))}<span class="row"><span class="scrl-cnt sub"></span>${st}</span></div>
     ${feed}
     ${PL.msg[p.id] ? `<p class="sub" role="status">${PL.msg[p.id]}</p>` : ""}
     ${more("pls:" + p.id, L("Налаштування автопілота","Настройки автопилота"), settings)}</div>`; }

@@ -591,3 +591,14 @@ document.addEventListener("keydown", e => {
 });
 window.addEventListener("hashchange", () => { if (route() !== "funnels") S.funnel = null; render(); });
 /* первый render() вызывается в конце setup.js */
+
+/* списки с прокруткой: видно два первых пункта, дальше — прокрутка внутри; счётчик «2 з 7» показывает, сколько уже пролистано */
+function scrlFit(){ document.querySelectorAll(".scrl").forEach(ul => { const li = [...ul.children]; const cnt = ul.closest(".panel") && ul.closest(".panel").querySelector(".scrl-cnt");
+    if (li.length <= 2) { ul.style.maxHeight = ""; ul.classList.remove("scrl--on"); if (cnt) cnt.textContent = ""; return; }
+    ul.classList.add("scrl--on"); ul.style.maxHeight = (li[0].offsetHeight + li[1].offsetHeight + 2) + "px"; scrlCount(ul); }); }
+function scrlCount(ul){ const cnt = ul.closest(".panel") && ul.closest(".panel").querySelector(".scrl-cnt"); if (!cnt) return;
+  const li = [...ul.children], bottom = ul.getBoundingClientRect().bottom + 4, seen = li.filter(x => x.getBoundingClientRect().top < bottom - 8).length;
+  cnt.textContent = Math.min(seen, li.length) + " " + L("з","из") + " " + li.length; }
+document.addEventListener("scroll", e => { const t = e.target; if (t && t.classList && t.classList.contains("scrl")) scrlCount(t); }, true);
+try { new MutationObserver(() => { cancelAnimationFrame(window.__scrlRaf); window.__scrlRaf = requestAnimationFrame(scrlFit); }).observe(document.getElementById("view") || document.body, {childList:true, subtree:true}); } catch (e) { /* */ }
+window.addEventListener("resize", () => requestAnimationFrame(scrlFit));
