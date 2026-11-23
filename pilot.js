@@ -14,7 +14,7 @@ function plDefaults(p, s){ const accs = prAccs(p, "meta").map(a => String(a.id))
 const plStrip = t => String(t || "").replace(/<[^>]+>/g, "");
 function plPanel(p){ if (!CLOUD) return "";
   const r = PL.st[p.id]; if (r === undefined && !PL.busy[p.id]) setTimeout(() => plLoad(p), 0);
-  const head = `<div class="row sp"><span class="tag">🦝 ${L("Хіро · веде акаунт","Хиро · ведёт аккаунт")}</span>`;
+  const head = `<div class="row sp"><span class="tag">${L("Хіро · веде акаунт","Хиро · ведёт аккаунт")}</span>`;
   if (!r) return `<div class="panel plt">${head}</div><p class="sub" role="status">${L("Завантажуємо…","Загружаем…")}</p></div>`;
   if (!r.ok) return `<div class="panel plt">${head}</div><p class="sub">${esc(plErr(r))}</p></div>`;
   const e = PL.edit[p.id], s = r.settings, on = s && s.enabled, accs = prAccs(p, "meta"), dis = r.admin ? "" : " disabled";
