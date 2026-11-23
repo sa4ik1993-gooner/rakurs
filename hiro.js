@@ -23,8 +23,66 @@ const hiroKey = (b) => "co/" + b.p.id + "/" + b.f.id + "/" + b.c + "/" + prAK(pr
 const hiroBtn = (cls, t, attrs, icon) => `<button type="button" class="btn ${cls}" ${attrs}>${icon ? ico(icon) + " " : ""}${t}</button>`;
 const hiroPausedOf = ps => { const r = ps.length === 1 && typeof PL !== "undefined" ? PL.st[ps[0].id] : null; return r && r.ok && r.settings && !r.settings.enabled ? ps[0] : null; };
 
+/* главное в разделе проекта, воронки или компании: из данных этого раздела */
+function hiroSection(scr){ const p = P(), f = F(), m = n => prM(n, "USD"), out = {pose:"watch", keys:[]};
+  const [lvl, tab] = scr.split(":");
+  if (lvl === "p" && p) { const ch = pChain(p), done = ch.filter(c => c[2]).length, step = ch.find(c => c[0] === tab), next = ch.find(c => !c[2]);
+    const nextBtn = next && next[0] !== tab ? hiroBtn("btn--glass", L("Наступний крок: ","Следующий шаг: ") + next[1], `data-act="wsTab" data-v="${next[0]}"`) : "";
+    out.keys = [[L("Заповнено","Заполнено"), done + " / " + ch.length]];
+    if (tab === "about") { out.keys.push([L("Ніша","Ниша"), esc(p.niche || "—")], [L("Гео","Гео"), esc(p.geo || "—")]);
+      if (step && step[2]) { out.title = L("Опис «" + p.name + "» заповнено", "Описание «" + p.name + "» заполнено"); out.text = L("З нього я беру тексти реклами й підбираю аудиторії.","Из него я беру тексты рекламы и подбираю аудитории."); out.sec = nextBtn; }
+      else { out.pose = "idea"; out.title = L("Опиши, що продаєш і кому","Опиши, что продаёшь и кому"); out.text = L("З опису я пишу тексти реклами й підбираю аудиторії. Можу заповнити сам із сайту.","Из описания я пишу тексты рекламы и подбираю аудитории. Могу заполнить сам с сайта.");
+        out.main = hiroBtn("btn--main", L("Заповнити самі","Заполнить сами"), 'data-act="abFill"'); } return out; }
+    if (tab === "aud") { const n = p.segs.length; out.keys.push([L("Сегментів","Сегментов"), num(n)]);
+      out.title = n ? plural(n, L("сегмент ЦА","сегмент ЦА"), L("сегменти ЦА","сегмента ЦА"), L("сегментів ЦА","сегментов ЦА")) : L("Додай хоча б один сегмент ЦА","Добавь хотя бы один сегмент ЦА");
+      out.pose = n ? "watch" : "idea"; out.text = L("Сегменти задають, кому й що я кажу в рекламі. Вони успадковуються всіма воронками.","Сегменты задают, кому и что я говорю в рекламе. Их наследуют все воронки."); out.sec = n ? nextBtn : ""; return out; }
+    if (tab === "kb") { const n = p.kb.length, inh = kbInh(p).length; out.keys.push([L("Матеріалів","Материалов"), num(n)], [L("З компанії","Из компании"), num(inh)]);
+      out.title = n + inh ? L("У базі " + (n + inh) + " матеріалів", "В базе " + (n + inh) + " материалов") : L("Додай матеріали: сайт, кейси, відгуки","Добавь материалы: сайт, кейсы, отзывы");
+      out.pose = n + inh ? "watch" : "idea"; out.text = L("З них я беру факти для текстів і відповідей. Що більше реальних кейсів, то сильніші оголошення.","Из них я беру факты для текстов и ответов. Чем больше реальных кейсов, тем сильнее объявления."); out.sec = n + inh ? nextBtn : ""; return out; }
+    if (tab === "goals") { const t = pT(p), cap = t.cap, e = hiroEv(p);
+      out.keys = [[L("Бюджет на місяць","Бюджет в месяц"), m(p.tg.budget || 0)], [L("Чек","Чек"), m(p.tg.check || 0)], [L("Стеля ліда","Потолок лида"), cap ? m(cap) : "—", e && e.cpl && cap && e.cpl > cap]];
+      if (e && e.cpl && cap && e.cpl > cap) { out.pose = "stop"; out.title = L("Лід " + m(e.cpl) + " дорожчий за стелю " + m(cap), "Лид " + m(e.cpl) + " дороже потолка " + m(cap));
+        out.text = L("За такої ціни реклама не окупиться першою оплатою. Подивись рішення на сьогодні.","При такой цене реклама не окупится первой оплатой. Посмотри решения на сегодня."); out.main = hiroBtn("btn--main", L("Відкрити рішення","Открыть решения"), 'data-act="wsCtab" data-v="today"'); }
+      else if (cap) { out.title = L("Ціль: лід до " + m(cap), "Цель: лид до " + m(cap)); out.text = e && e.cpl ? L("Зараз лід по " + m(e.cpl) + ", у межах стелі.","Сейчас лид по " + m(e.cpl) + ", в пределах потолка.") : L("Стелю рахую з чека, конверсій і частки маркетингу.","Потолок считаю из чека, конверсий и доли маркетинга."); }
+      else { out.pose = "idea"; out.title = L("Задай бюджет і чек","Задай бюджет и чек"); out.text = L("Тоді я порахую стелю ціни ліда й підкажу, коли реклама не окупається.","Тогда я посчитаю потолок цены лида и подскажу, когда реклама не окупается."); }
+      return out; }
+    if (tab === "funnels") { const n = p.funnels.length, wc = p.funnels.filter(x => (x.ch || []).length).length; out.keys.push([L("Воронок","Воронок"), num(n)], [L("З каналами","С каналами"), num(wc)]);
+      out.title = n ? plural(n, L("воронка","воронка"), L("воронки","воронки"), L("воронок","воронок")) + (wc < n ? L(", без каналів: ",", без каналов: ") + (n - wc) : "") : L("Створи першу воронку","Создай первую воронку");
+      out.pose = n && wc === n ? "watch" : "idea"; out.text = L("Воронка — це один офер з ціною. У неї свої канали, креативи й цілі.","Воронка — это один оффер с ценой. У неё свои каналы, креативы и цели.");
+      if (n) out.main = hiroBtn("btn--main", L("Відкрити «","Открыть «") + p.funnels[0].name + "»", `data-act="wsOpenF" data-id="${p.funnels[0].id}"`); return out; }
+    if (tab === "conn") { const c = p.meta && p.meta.conn, acc = c ? (c.accounts || []).length || 1 : 0; out.keys.push([L("Акаунтів Meta","Аккаунтов Meta"), num(acc)]);
+      if (c) { out.title = L("Meta Ads підключено","Meta Ads подключён"); out.text = L("Щогодини читаю витрати, ліди й статус навчання груп.","Каждый час читаю расход, лиды и статус обучения групп."); out.sec = nextBtn; }
+      else { out.pose = "idea"; out.title = L("Підключи рекламний кабінет","Подключи рекламный кабинет"); out.text = L("Без нього я не бачу цифр і не можу вести рекламу.","Без него я не вижу цифр и не могу вести рекламу."); } return out; }
+    if (tab === "exp") { const n = (p.exp || []).length; out.keys.push([L("Тестів","Тестов"), num(n)]);
+      out.title = n ? L("У журналі " + n + " тестів","В журнале " + n + " тестов") : L("Запиши перший тест","Запиши первый тест"); out.pose = n ? "watch" : "idea";
+      out.text = L("Журнал тестів показує, що вже пробували й що з цього вийшло. Я не пропоную те, що вже не спрацювало.","Журнал тестов показывает, что уже пробовали и что из этого вышло. Я не предлагаю то, что уже не сработало."); return out; }
+    return null; }
+  if (lvl === "f" && f && p) { const ch = fChain(f, p), hasConn = Object.values(p.conn || {}).some(Boolean), t = fT(f, p);
+    if (tab === "launch") { const ready = [[L("офер і ціна","оффер и цена"), ch[0][2]], [L("сегмент ЦА","сегмент ЦА"), ch[1][2]], [L("лендинг","лендинг"), ch[2][2]], [L("три креативи","три креатива"), ch[3][2]], [L("цілі","цели"), ch[4][2]], [L("кабінет","кабинет"), hasConn]], rd = ready.filter(r => r[1]).length, miss = ready.filter(r => !r[1]).map(r => r[0]);
+      out.keys = [[L("Готовність","Готовность"), rd + " / " + ready.length], [L("Ціна","Цена"), m(f.tg.check || 0)], [L("Стеля ліда","Потолок лида"), t.cap ? m(t.cap) : "—"]];
+      out.pose = miss.length ? "idea" : "watch"; out.title = miss.length ? L("До запуску не вистачає " + miss.length + " з " + ready.length, "До запуска не хватает " + miss.length + " из " + ready.length) : L("Воронка готова до запуску","Воронка готова к запуску");
+      out.text = miss.length ? L("Додай: ","Добавь: ") + miss.join(", ") + "." : L("Зберу кампанію вимкненою, ти перевіриш і ввімкнеш.","Соберу кампанию выключенной, ты проверишь и включишь.");
+      out.main = hiroBtn("btn--main", L("Зібрати кампанію в Meta","Собрать кампанию в Meta"), `data-act="bdOpen" data-id="${f.id}"`, "launch"); return out; }
+    if (tab === "set") { const miss = [[L("офер","оффер"), !!(f.an && f.an.offer)], [L("ціна","цена"), !!f.tg.check], [L("канали","каналы"), (f.ch || []).length > 0]].filter(x => !x[1]).map(x => x[0]);
+      out.keys = [[L("Ціна","Цена"), m(f.tg.check || 0)], [L("Каналів","Каналов"), num((f.ch || []).length)], [L("Стеля ліда","Потолок лида"), t.cap ? m(t.cap) : "—"]];
+      out.pose = miss.length ? "idea" : "watch"; out.title = miss.length ? L("Заповни: ","Заполни: ") + miss.join(", ") : L("Налаштування «" + f.name + "» заповнені","Настройки «" + f.name + "» заполнены");
+      out.text = L("З цих полів я рахую стелю ціни ліда й пишу тексти реклами для воронки.","Из этих полей я считаю потолок цены лида и пишу тексты рекламы для воронки."); return out; }
+    return null; }
+  if (lvl === "c") {
+    if (tab === "kb") { const n = (W.co.kb || []).length; out.keys = [[L("Матеріалів","Материалов"), num(n)], [L("Проєктів","Проектов"), num(W.projs.length)]];
+      out.pose = n ? "watch" : "idea"; out.title = n ? L("У базі компанії " + n + " матеріалів","В базе компании " + n + " материалов") : L("Додай айдентику, правила й кейси компанії","Добавь айдентику, правила и кейсы компании");
+      out.text = L("Ці матеріали успадковують усі проєкти. Я беру з них голос бренду й факти.","Эти материалы наследуют все проекты. Я беру из них голос бренда и факты."); return out; }
+    if (tab === "team") { const n = Math.max(1, typeof CL !== "undefined" && CL.members ? CL.members.length : 1); out.keys = [[L("Людей","Людей"), num(n)]];
+      out.title = L("У команді " + n + (n === 1 ? " людина" : " людей"), "В команде " + n + (n === 1 ? " человек" : " человек")); out.pose = n > 1 ? "watch" : "idea";
+      out.text = L("Запроси таргетолога чи менеджера: кожен бачить лише свої проєкти, а пропозиції Хіро приходять тим, хто вирішує.","Пригласи таргетолога или менеджера: каждый видит только свои проекты, а предложения Хиро приходят тем, кто решает."); return out; }
+    if (tab === "set") { out.title = L("Налаштування компанії","Настройки компании"); out.text = L("Мова, режим Lite чи Pro і період за замовчуванням. Зміни діють для всіх проєктів.","Язык, режим Lite или Pro и период по умолчанию. Изменения действуют для всех проектов."); out.keys = [[L("Проєктів","Проектов"), num(W.projs.length)]]; return out; }
+    if (tab === "me") { out.title = L("Привіт, ","Привет, ") + (ME.name || (W.user && W.user.name) || L("колего","коллега")); out.text = L("Тут твоє ім’я, посада й період, який я показую за замовчуванням.","Здесь твоё имя, должность и период, который я показываю по умолчанию."); return out; }
+    return null; }
+  return null; }
+
 /* что сказать на этом экране: поза, заголовок, фраза, две кнопки, до трёх цифр */
 function hiroSay(scr){
+  const sec = scr.indexOf(":") > 0 ? hiroSection(scr) : null; if (sec) return sec;
   const p = P(), e = hiroEv(p || null), out = {pose:"watch", keys:[]};
   if (scr === "projects" && W.projs.length) { const todo = W.projs.map(x => { const ch = pChain(x); return {x, ch, done:ch.filter(c => c[2]).length}; }).filter(o => o.done < o.ch.length).sort((a, b) => a.done - b.done)[0];
     out.keys = [[L("Проєктів","Проектов"), num(W.projs.length)], [L("Воронок","Воронок"), num(W.projs.reduce((a, x) => a + x.funnels.length, 0))], [L("Кабінетів","Кабинетов"), num(W.projs.filter(x => x.meta && x.meta.conn).length)]];

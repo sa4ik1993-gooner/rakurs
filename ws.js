@@ -475,7 +475,7 @@ function ownShell(){
 function ownView(){ const p = P(), f = F(); if (CLOUD && (!CL.ready || CL.entering || CL.opening)) return skelCab();
   if (!W.user) return vAuth(); if (!W.co) return vWelcome();
   /* панель Хиро — первым блоком на основных экранах (DESIGN.md v2 п. 6) */
-  const hp = typeof hiroPanel !== "function" ? "" : !p ? (["today", "map", "ads", "projects"].includes(W.ctab) ? hiroPanel(W.ctab) : "") : hiroPanel(f ? "funnel" : "project");
+  const hp = typeof hiroPanel !== "function" ? "" : !p ? hiroPanel(["today", "map", "ads", "projects"].includes(W.ctab) ? W.ctab : "c:" + W.ctab) : hiroPanel(f ? "f:" + ftNorm(W.ftab) : "p:" + W.tab);
   return hp + (!p ? vCompany() : f ? vFunnel(f, p) : vProject(p)); }
 let ownKey = "";
 const _rs = renderShell, _rv = renderView, _ra = renderAsst, _mf = modalFunnel;
