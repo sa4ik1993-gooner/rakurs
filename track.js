@@ -39,8 +39,15 @@ function trPanel(p){
 
 /* отчёт в воронке: лиды трекера против лидов Meta по объявлениям за период карты */
 const trPath = u => { try { const x = new URL(/^https?:/.test(u) ? u : "https://" + u); return [x.hostname.replace(/^www\./, ""), x.pathname.replace(/\/$/, "") || "/"]; } catch (e) { return ["", ""]; } };
-function trMine(r, f, p){ if (r.funnel_id) return r.funnel_id === f.id;
-  const pg = [r.host, (r.path || "/").replace(/\/$/, "") || "/"]; return (f.lands || []).some(l => { const t = trPath(l.url || ""); return t[0] === pg[0] && (pg[1] === t[1] || pg[1].indexOf(t[1] + "/") === 0); }); }
+/* какой воронке принадлежит событие трекера: 1) код воронки (data-f); 2) адрес страницы из «Лендингов» воронки;
+   3) название кампании из метки utm_campaign по правилам аккаунтов; 4) единственная воронка проекта. Иначе — «не определено». */
+function trFunnelOf(r, p){ if (r.funnel_id && p.funnels.some(f => f.id === r.funnel_id)) return r.funnel_id;
+  const pg = [r.host, (r.path || "/").replace(/\/$/, "") || "/"];
+  const byPage = p.funnels.find(f => (f.lands || []).some(l => { const t = trPath(l.url || ""); return t[0] === pg[0] && (pg[1] === t[1] || pg[1].indexOf(t[1] + "/") === 0); }));
+  if (byPage) return byPage.id;
+  const byName = typeof fxByName === "function" ? fxByName(p, r.utm_campaign) : ""; if (byName) return byName;
+  return p.funnels.length === 1 ? p.funnels[0].id : ""; }
+const trMine = (r, f, p) => trFunnelOf(r, p) === f.id;
 async function trRep(p, f){ const k = f.id; if (TK.repBusy[k]) return; TK.repBusy[k] = true;
   const r = typeof prRange === "function" ? prRange() : {d1:prToday(), d2:prToday()};
   try { const [a, b, c] = await Promise.all([sb.rpc("track_summary", {p:p.id, d1:r.d1, d2:r.d2}), sb.rpc("ad_creatives", {p:p.id, d1:r.d1, d2:r.d2}), sb.rpc("ad_summary", {p:p.id, d1:r.d1, d2:r.d2})]);
