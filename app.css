@@ -1373,3 +1373,15 @@ td:first-child{font:600 var(--t-body)/1.3 var(--font-ui)}
 .crumb__a{border:0;background:none;padding:0;font:inherit;color:var(--muted);cursor:pointer}
 .crumb__a:hover{color:var(--ink);text-decoration:underline}
 .crumb b{font-weight:700;color:var(--ink)}
+.decr{grid-template-columns:minmax(0,1fr) minmax(200px,auto)}
+.decr__m{display:flex;flex-direction:column;gap:var(--s-2);min-width:0}
+.decno{width:var(--badge-col);height:var(--badge-col);border-radius:var(--r-pill);background:var(--ink);color:var(--on-dark);display:inline-grid;place-items:center;font:700 var(--t-small)/1 var(--font-display);flex:none}
+.decr__r{grid-row:auto;justify-content:center;text-align:right}
+.decpath{font:500 var(--t-small)/1.4 var(--font-ui);color:var(--muted);font-variant-numeric:tabular-nums}
+.decpath b{color:var(--ink)}
+.decper{font:700 var(--t-key)/1.1 var(--font-display);color:var(--ink)}.decper small{font:500 var(--t-small) var(--font-ui);color:var(--muted)}
+.decform{margin:0 0 var(--s-3);font:500 var(--t-body)/1.4 var(--font-ui);color:var(--muted)}.decform b{color:var(--signal)}
+.decsn::placeholder,.decn::placeholder{color:var(--line-strong);font-weight:400}
+.decr__h,.decs{grid-column:auto}.decr__h .decn{flex:1 1 260px}
+.decr{grid-template-columns:minmax(0,1fr) 240px}.decr__r{min-width:0}.decpath{white-space:normal}@media (max-width:760px){.decr{grid-template-columns:1fr}.decr__r{text-align:left;align-items:flex-start}}
+.decr__r .decpath b{font:700 var(--t-small)/1.4 var(--font-ui)}

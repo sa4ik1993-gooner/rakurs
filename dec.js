@@ -5,7 +5,7 @@
    Пока таблицу не трогали, строка 1 берётся из старых целей воронки (лид→бронь, бронь→оплата, чек) — расчёт не меняется.
    Подключается после ws.js? Нет — до ws.js: ws.js вызывает decRows/decView. */
 const decPct = v => { const n = +String(v == null ? "" : v).replace(",", "."); return isFinite(n) && n > 0 ? n : 0; };
-const decConv = r => r.s.length ? r.s.reduce((a, s) => a * decPct(s[1]) / 100, 1) : 0;
+const decConv = r => { const f = (r.s || []).filter(s => decPct(s[1])); return f.length ? f.reduce((a, s) => a * decPct(s[1]) / 100, 1) : 0; };
 const decRows = f => f && f.dec && Array.isArray(f.dec.rows) && f.dec.rows.length ? f.dec.rows : null;
 /* строки по умолчанию — из старых целей воронки, чтобы ничего не поменялось, пока человек не правит */
 const decBase = f => [{n:L("Купили на вебінарі","Купили на вебинаре"), s:[[L("Лід → бронь","Лид → бронь"), f.tg.l2b], [L("Бронь → оплата","Бронь → оплата"), f.tg.b2p]], c:f.tg.check}];
@@ -29,21 +29,25 @@ function decOwn(f){ if (!decRows(f)) f.dec = {rows:JSON.parse(JSON.stringify(dec
 function decSync(f){ const r = (decRows(f) || [])[0]; if (!r) return; if (decPct(r.c)) f.tg.check = decPct(r.c); if (r.s.length === 2) { if (decPct(r.s[0][1])) f.tg.l2b = decPct(r.s[0][1]); if (decPct(r.s[1][1])) f.tg.b2p = decPct(r.s[1][1]); } }
 
 function decView(f, p){ const x = decCalc(f, p), m = v => (v >= 100 ? num(v) : dec(v)) + " $", own = !!decRows(f);
-  const rowH = (r, i) => `<div class="decr">
-    <div class="decr__h"><input class="decn" data-dec="${i}:n" value="${esc(r.n)}" aria-label="${L("Назва шляху","Название пути")}">
+  const rowH = (r, i) => `<div class="decr"><div class="decr__m">
+    <div class="decr__h"><span class="decno">${i + 1}</span><input class="decn" data-dec="${i}:n" value="${esc(r.n)}" placeholder="${L("Як лід приносить гроші? Напр.: купили на акції","Как лид приносит деньги? Напр.: купили на акции")}" aria-label="${L("Назва шляху","Название пути")}">
       <span class="decr__c"><label>${L("Чек","Чек")}<input class="tin" data-dec="${i}:c" value="${esc(String(r.c == null ? "" : r.c))}" inputmode="decimal" placeholder="0"> $</label></span>
       ${i ? `<button type="button" class="x x--sm x--del" data-act="decDelRow" data-i="${i}" aria-label="${L("Прибрати шлях","Убрать путь")}" title="${L("Прибрати шлях","Убрать путь")}">${ico("trash")}</button>` : ""}</div>
-    <div class="decs">${r.s.map((s, j) => `<span class="decst"><input class="decsn" data-dec="${i}:s:${j}:0" value="${esc(s[0])}" aria-label="${L("Крок","Шаг")}"><input class="tin" data-dec="${i}:s:${j}:1" value="${esc(String(s[1] == null ? "" : s[1]))}" inputmode="decimal" placeholder="—"> %${r.s.length > 1 ? `<button type="button" class="decx" data-act="decDelStep" data-i="${i}" data-j="${j}" aria-label="${L("Прибрати крок","Убрать шаг")}">${ico("close")}</button>` : ""}</span>${j < r.s.length - 1 ? '<i class="decar">→</i>' : ""}`).join("")}
+    <div class="decs">${r.s.map((s, j) => `<span class="decst"><input class="decsn" data-dec="${i}:s:${j}:0" value="${esc(s[0])}" placeholder="${L("що сталося, напр.: прийшли","что произошло, напр.: пришли")}" aria-label="${L("Крок","Шаг")}"><input class="tin" data-dec="${i}:s:${j}:1" value="${esc(String(s[1] == null ? "" : s[1]))}" inputmode="decimal" placeholder="—"> %${r.s.length > 1 ? `<button type="button" class="decx" data-act="decDelStep" data-i="${i}" data-j="${j}" aria-label="${L("Прибрати крок","Убрать шаг")}">${ico("close")}</button>` : ""}</span>${j < r.s.length - 1 ? '<i class="decar">→</i>' : ""}`).join("")}
       <button type="button" class="btn btn--sm btn--text" data-act="decAddStep" data-i="${i}">${ico("plus")} ${L("крок","шаг")}</button></div>
-    <div class="decr__r" id="dec-r${i}">${decRowRes(x, i)}</div></div>`;
+    </div><div class="decr__r" id="dec-r${i}">${decRowRes(x, i)}</div></div>`;
   return `<div class="panel decp"><div class="row sp"><span class="tag">${L("Звідки гроші з одного ліда","Откуда деньги с одного лида")}</span>
       <span class="seg" role="group" aria-label="${L("Шаблон","Шаблон")}">${Object.entries(DEC_TPL()).map(([k, t]) => `<button type="button" data-act="decTpl" data-v="${k}" aria-pressed="${own && f.dec.tpl === k}">${t[0]}</button>`).join("")}</span></div>
-    <p class="sub">${L("Кожен рядок — шлях, яким лід приносить гроші: покупка на вебінарі, акція після, продажі тим, хто не прийшов, допродажі. Відсотки — від усіх лідів, крок за кроком.","Каждая строка — путь, которым лид приносит деньги: покупка на вебинаре, акция после, продажи тем, кто не пришёл, допродажи. Проценты — от всех лидов, шаг за шагом.")}</p>
+    <p class="sub">${L("Уяви 1 000 лідів. Кожен рядок — шлях, яким вони приносять гроші. На кожному кроці впиши, скільки відсотків переходить далі (від попереднього кроку), і чек. Я порахую, скільки грошей дає один лід і скільки можна за нього платити.","Представь 1 000 лидов. Каждая строка — путь, которым они приносят деньги. На каждом шаге впиши, сколько процентов переходит дальше (от предыдущего шага), и чек. Я посчитаю, сколько денег даёт один лид и сколько можно за него платить.")}</p>
     ${x.rows.map(rowH).join("")}
     <button type="button" class="btn btn--sm" data-act="decAddRow">${ico("plus")} ${L("Додати шлях до грошей","Добавить путь к деньгам")}</button>
     <div class="decsum" id="dec-sum">${decSumH(x, p)}</div></div>`; }
-const decRowRes = (x, i) => { const c = decConv(x.rows[i]); return `<span class="sub">${L("з ліда","с лида")} ${c ? dec(c * 100, c * 100 < 1 ? 2 : 1) + "%" : "—"}</span><b class="num">${x.per[i] ? dec(x.per[i]) + " $" : "—"}</b>`; };
-const decSumH = (x, p) => `<dl class="decsum__k"><div><dt>${L("Виручка з 1 ліда","Выручка с 1 лида")}</dt><dd class="num">${dec(x.rpl)} $</dd></div>
+const decRowRes = (x, i) => { const r = x.rows[i], ch = decPct(r.c); let cur = 1000; const path = [num(1000) + " " + L("лідів","лидов")];
+  (r.s || []).forEach(s => { if (decPct(s[1])) { cur = cur * decPct(s[1]) / 100; path.push(cur >= 10 ? num(cur) : dec(cur, 1)); } });
+  const money = cur * ch, ok = path.length > 1 && ch;
+  return ok ? `<span class="decpath">${path.join(" → ")} × ${num(ch)} $ = <b>${num(money)} $</b></span><span class="decper">${dec(x.per[i])} $ <small>${L("з ліда","с лида")}</small></span>`
+    : `<span class="decpath sub">${L("Заповни відсотки й чек — тут з’явиться, скільки грошей дає цей шлях.","Заполни проценты и чек — здесь появится, сколько денег даёт этот путь.")}</span>`; };
+const decSumH = (x, p) => `<p class="decform">${x.rpl ? L("Виручка з ліда ","Выручка с лида ") + dec(x.rpl) + " $ × " + L("частка на рекламу ","доля на рекламу ") + (+p.tg.share || 0) + "% = " + L("стеля ","потолок ") + "<b>" + dec(x.cap) + " $</b>" : L("Поки шляхи не заповнені, стелю рахую за старими цілями воронки.","Пока пути не заполнены, потолок считаю по старым целям воронки.")}</p><dl class="decsum__k"><div><dt>${L("Виручка з 1 ліда","Выручка с 1 лида")}</dt><dd class="num">${dec(x.rpl)} $</dd></div>
   <div><dt>${L("Частка на рекламу","Доля на рекламу")} ${hint(L("Береться з цілей проєкту: скільки виручки готові віддати на рекламу.","Берётся из целей проекта: сколько выручки готовы отдать на рекламу."))}</dt><dd class="num">${+p.tg.share || 0}%</dd></div>
   <div class="decsum__cap"><dt>${L("Стеля ціни ліда","Потолок цены лида")}</dt><dd class="num">${x.cap ? dec(x.cap) + " $" : "—"}</dd></div></dl>`;
 /* живой пересчёт без перерисовки экрана — фокус в поле не теряется */
@@ -54,8 +58,8 @@ document.addEventListener("input", e => { const t = e.target; if (!t.dataset || 
   const sm = $("dec-sum"); if (sm) sm.innerHTML = decSumH(x, p); const c = $("w-calc"); if (c) c.innerHTML = calcF(f, p); });
 Object.assign(ACT, {
   decTpl(d){ const f = F(); if (!f) return false; const t = DEC_TPL()[d.v]; if (!t) return false; f.dec = {tpl:d.v, rows:JSON.parse(JSON.stringify(t[1](f)))}; decSync(f); save(); },
-  decAddRow(){ const f = F(); if (!f) return false; decOwn(f).push({n:L("Новий шлях","Новый путь"), s:[[L("Крок","Шаг"), ""]], c:""}); save(); },
+  decAddRow(){ const f = F(); if (!f) return false; decOwn(f).push({n:"", s:[["", ""]], c:""}); save(); },
   decDelRow(d){ const f = F(); if (!f) return false; const rows = decOwn(f); if (+d.i > 0) rows.splice(+d.i, 1); save(); },
-  decAddStep(d){ const f = F(); if (!f) return false; const r = decOwn(f)[+d.i]; if (r) r.s.push([L("Крок","Шаг"), ""]); save(); },
+  decAddStep(d){ const f = F(); if (!f) return false; const r = decOwn(f)[+d.i]; if (r) r.s.push(["", ""]); save(); },
   decDelStep(d){ const f = F(); if (!f) return false; const r = decOwn(f)[+d.i]; if (r && r.s.length > 1) r.s.splice(+d.j, 1); decSync(f); save(); },
 });

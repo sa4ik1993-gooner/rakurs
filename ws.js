@@ -70,7 +70,7 @@ const fLtvOwn = f => { const v = (f.tg || {}).ltv; return v != null && v !== "" 
 const fLtv = (f, p) => fLtvOwn(f) ? Math.max(0, +f.tg.ltv) : Math.max(0, +((p.tg || {}).ltv) || 0);
 const pT = p => { const t = p.tg, k = ltvK(p), rv = t.budget / (t.share/100), pay = rv / (t.check * k), c1 = t.l2b/100*t.b2p/100*t.check*t.share/100; return {rev:rv, pay, leads: pay/(t.b2p/100)/(t.l2b/100), cap: c1 * k, cap1: c1, k, roas:100/t.share}; };
 const fT = (f, p) => { const t = f.tg, dr = typeof decRows === "function" ? decRows(f) : null;
-  if (dr) { /* своя декомпозиция воронки: выручка с лида по всем путям к деньгам (dec.js) */
+  if (dr && decCalc(f, p).rpl > 0) { /* пустая или недозаполненная таблица ничего не ломает: считаем по старым целям */ /* своя декомпозиция воронки: выручка с лида по всем путям к деньгам (dec.js) */
     const x = decCalc(f, p), c1 = x.conv1, leads = c1 ? t.pay / c1 : 0, rev1 = t.pay * x.c1, rev = leads * x.rpl, k = c1 && x.c1 ? x.rpl / (c1 * x.c1) : 1;
     return {pay:t.pay, rev, rev1, bud:rev * x.share, leads, cap:x.cap, cap1:c1 * x.c1 * x.share, k}; }
   const k = 1 + fLtv(f, p) / 100, rv1 = t.pay * t.check, rv = rv1 * k, bud = rv * p.tg.share/100, leads = t.pay/(t.b2p/100)/(t.l2b/100), c1 = t.l2b/100*t.b2p/100*t.check*p.tg.share/100; return {pay:t.pay, rev:rv, rev1:rv1, bud, leads, cap: c1 * k, cap1: c1, k}; };
