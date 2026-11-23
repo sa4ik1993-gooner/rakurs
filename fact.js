@@ -58,18 +58,7 @@ const fxFunnel = (p, r) => { const m = (p.campMap || {})[r.id]; if (m) return m 
 
 function fxMatchRows(p){ if (typeof prOn === "function" && prOn(p)) { const x = prOf(p); if (x.cur) return x.cur; } const y = typeof fxOf === "function" ? fxOf(p) : null; return (y && y.rows) || []; }
 const fxSp = a => a.reduce((s, r) => s + (+r.spend || 0), 0);
-/* редактор правил одного аккаунта: строки правил, слова-подсказки, куда попала каждая кампания */
-function fxAccRules(p, c, acc){ const k = fxRK(c, acc), rs = fxRules(p, c, acc), fs = p.funnels, rows = fxMatchRows(p).filter(r => r.name && (r.prov || "meta") === c && fxAccOf(p, r) === acc);
-  const cnt = {}; rows.forEach(r => [...new Set(String(r.name).split(/[_\s|.\-]+/).filter(t => t.length >= 2 && !/^\d+$/.test(t)).map(t => t.toUpperCase()))].forEach(t => { cnt[t] = (cnt[t] || 0) + 1; }));
-  const used = rs.flatMap(ru => fxWords(ru.inc)), sug = Object.keys(cnt).filter(t => cnt[t] >= 2 && !used.includes(fxKey(t))).sort((a, b) => cnt[b] - cnt[a]).slice(0, 8);
-  const sel = (i, v) => `<select data-ar="${esc(k)}|${i}|f" aria-label="${L("Воронка","Воронка")}"><option value="">${L("— воронка —","— воронка —")}</option>${fs.map(f => `<option value="${f.id}"${f.id === v ? " selected" : ""}>${esc(f.name)}</option>`).join("")}</select>`;
-  const by = {}; rows.forEach(r => { const id = fxFunnel(p, r), t = by[id] = by[id] || []; t.push(r); });
-  const grp = Object.keys(by).sort((a, b) => fxSp(by[b]) - fxSp(by[a])).map(id => { const f = fs.find(x => x.id === id), a = by[id].slice().sort((x, y) => (+y.spend || 0) - (+x.spend || 0));
-    return `<div><b>${f ? esc(f.name) : L("Без воронки","Без воронки")}: ${a.length}</b> <span class="sub">$${num(fxSp(a))}</span><ul>${a.slice(0, 8).map(r => `<li class="mono">${esc(r.name)} <span class="sub">$${num(+r.spend || 0)}</span></li>`).join("")}${a.length > 8 ? `<li class="sub">${L("ще ","ещё ")}${a.length - 8}</li>` : ""}</ul></div>`; }).join("");
-  return `<div class="ar" data-p="${p.id}" data-k="${esc(k)}">${rs.length ? `<div class="arl">${rs.map((ru, i) => `<div class="arr"><input data-ar="${esc(k)}|${i}|inc" value="${esc(ru.inc || "")}" placeholder="${L("містить: MOD","содержит: MOD")}" aria-label="${L("Назва містить","Название содержит")}"><input data-ar="${esc(k)}|${i}|exc" value="${esc(ru.exc || "")}" placeholder="${L("не містить: TEST","не содержит: TEST")}" aria-label="${L("Не містить","Не содержит")}"><span class="sub">→</span>${sel(i, ru.f)}<button type="button" class="lnk" data-act="arDel" data-p="${p.id}" data-k="${esc(k)}" data-v="${i}" aria-label="${L("Прибрати правило","Убрать правило")}">×</button></div>`).join("")}</div>` : `<p class="sub">${L("Правил немає: усі кампанії акаунта йдуть у воронку за замовчуванням.","Правил нет: все кампании аккаунта идут в воронку по умолчанию.")}</p>`}
-    <div class="opts opts--sm"><button type="button" class="opt" data-act="arAdd" data-p="${p.id}" data-k="${esc(k)}" data-v="">+ ${L("Правило","Правило")}</button>${sug.map(t => `<button type="button" class="opt" data-act="arAdd" data-p="${p.id}" data-k="${esc(k)}" data-v="${esc(t)}">+ ${esc(t)} <small class="sub">${cnt[t]}</small></button>`).join("")}</div>
-    ${rows.length ? `<div class="c2 fml">${grp}</div>` : ""}</div>`; }
-const fxHelp = () => hint(L("У кожного акаунта (підрядника) свої назви кампаній, тому правила задаються в акаунті. Правило: у назві кампанії є одне зі слів «містить» (порожньо — будь-яка кампанія) і немає слів «не містить» → кампанія йде в обрану воронку. Кілька слів — через кому, регістр не важливий. Перше правило, що підійшло, перемагає. Якщо правила є, а кампанія не підійшла під жодне — вона «без воронки». Ручна прив’язка кампанії важливіша за правила.","У каждого аккаунта (подрядчика) свои названия кампаний, поэтому правила задаются в аккаунте. Правило: в названии кампании есть одно из слов «содержит» (пусто — любая кампания) и нет слов «не содержит» → кампания идёт в выбранную воронку. Несколько слов — через запятую, регистр не важен. Первое подошедшее правило выигрывает. Если правила есть, а кампания не подошла ни под одно — она «без воронки». Ручная привязка кампании важнее правил."), "wide");
+const fxHelp = () => hint(L("У кожного акаунта (підрядника) свої назви кампаній, тому правила задаються в акаунті. Оберіть воронку, впишіть слово з назви кампанії, оберіть «містить» або «не містить» і натисніть «+». Кампанія йде у воронку, якщо в назві є хоча б одне слово зі «Містить» (порожньо — будь-яка) і немає жодного з «Не містить». Регістр не важливий. Якщо правила є, а кампанія не підійшла під жодне — вона «без воронки». Ручна прив’язка кампанії важливіша за правила.","У каждого аккаунта (подрядчика) свои названия кампаний, поэтому правила задаются в аккаунте. Выберите воронку, впишите слово из названия кампании, выберите «содержит» или «не содержит» и нажмите «+». Кампания идёт в воронку, если в названии есть хотя бы одно слово из «Содержит» (пусто — любая) и нет ни одного из «Не содержит». Регистр не важен. Если правила есть, а кампания не подошла ни под одно — она «без воронки». Ручная привязка кампании важнее правил."), "wide");
 /* на карте, в панели аккаунта */
 function fxAccPanel(p, c, acc){ if (!acc || !own()) return ""; return `<div class="panel fm"><div class="row sp"><span class="tag">${L("Які кампанії акаунта в яку воронку","Какие кампании аккаунта в какую воронку")}</span>${fxHelp()}</div>${fxAccRules(p, c, acc)}</div>`; }
 /* в целях воронки: правила всех аккаунтов проекта */
@@ -78,16 +67,48 @@ function fxMatchPanel(p, f){ if (typeof PR_CH === "undefined" || typeof prAccs !
   const mine = fxMatchRows(p).filter(r => r.name && fxFunnel(p, r) === f.id);
   return `<div class="panel fm"><div class="row sp"><span class="tag">${L("Які кампанії належать воронці","Какие кампании относятся к воронке")} · ${mine.length} · $${num(fxSp(mine))}</span>${fxHelp()}</div>
     ${accs.map(a => { const n = fxRules(p, a.c, a.id).length; return `<details class="ard"${accs.length === 1 ? " open" : ""}><summary><b>${esc(a.name)}</b> <span class="sub">${n ? n + L(" правил"," правил") : L("без правил","без правил")}</span></summary>${fxAccRules(p, a.c, a.id)}</details>`; }).join("")}</div>`; }
-let arT = 0;
-const arP = el => { const w = el.closest && el.closest(".ar"), id = w ? w.dataset.p : el.dataset.p; return W.projs.find(x => x.id === id) || P(); };
-function arSet(t){ const [k, i, fld] = t.dataset.ar.split("|"), p = arP(t); if (!p) return; const rs = (p.accRules || {})[k]; if (!rs || !rs[+i]) return; rs[+i][fld] = t.value; save(); }
-document.addEventListener("input", e => { const t = e.target; if (!t.dataset || !t.dataset.ar || t.tagName === "SELECT") return; arSet(t);
-  clearTimeout(arT); arT = setTimeout(() => { const ks = t.dataset.ar, pos = t.selectionStart; render(); const el = document.querySelector(`[data-ar="${CSS.escape(ks)}"]`); if (el) { el.focus(); try { el.setSelectionRange(pos, pos); } catch (_e) { /* */ } } }, 600); });
-document.addEventListener("change", e => { const t = e.target; if (!t.dataset || !t.dataset.ar || t.tagName !== "SELECT") return; arSet(t); render(); });
+/* редактор правил аккаунта: выбрали воронку → ввели слово → «містить» или «не містить» → «+» (или Enter) — слово попало в столбец.
+   Подсказки — частые слова из названий кампаний аккаунта; добавляются в тот столбец, что выбран переключателем. */
+const AR = {f:{}, mode:{}};
+function arRule(p, k, fid, make){ p.accRules = p.accRules || {}; const rs = p.accRules[k] = p.accRules[k] || []; let r = rs.find(x => x.f === fid);
+  if (!r && make) { r = {inc:"", exc:"", f:fid}; rs.push(r); } return r; }
+function arTidy(p, k){ const rs = (p.accRules || {})[k]; if (!rs) return; const keep = rs.filter(r => fxWords(r.inc).length || fxWords(r.exc).length); if (keep.length) p.accRules[k] = keep; else delete p.accRules[k]; }
+function fxAccRules(p, c, acc){ const k = fxRK(c, acc), rs = fxRules(p, c, acc), fs = p.funnels, rows = fxMatchRows(p).filter(r => r.name && (r.prov || "meta") === c && fxAccOf(p, r) === acc);
+  if (!fs.length) return `<p class="sub">${L("Спершу додайте воронку.","Сначала добавьте воронку.")}</p>`;
+  const fid = fs.some(f => f.id === AR.f[k]) ? AR.f[k] : ((rs.find(r => fs.some(f => f.id === r.f)) || {}).f || fs[0].id), mode = AR.mode[k] || "inc", ru = rs.find(r => r.f === fid) || {inc:"", exc:""};
+  const inc = fxWords(ru.inc), exc = fxWords(ru.exc), used = inc.concat(exc);
+  const cnt = {}; rows.forEach(r => [...new Set(String(r.name).split(/[_\s|.\-]+/).filter(t => t.length >= 2 && !/^\d+$/.test(t)).map(t => t.toUpperCase()))].forEach(t => { cnt[t] = (cnt[t] || 0) + 1; }));
+  const sug = Object.keys(cnt).filter(t => cnt[t] >= 2 && !used.includes(fxKey(t))).sort((a, b) => cnt[b] - cnt[a]).slice(0, 10);
+  const chip = (w, fld) => `<span class="arc arc--${fld}">${esc(w.toUpperCase())}<button type="button" data-act="arWordDel" data-p="${p.id}" data-k="${esc(k)}" data-f="${fid}" data-fld="${fld}" data-v="${esc(w)}" aria-label="${L("Прибрати слово ","Убрать слово ")}${esc(w)}">×</button></span>`;
+  const inF = rows.filter(r => fxFunnel(p, r) === fid), outF = rows.filter(r => fxFunnel(p, r) !== fid);
+  const list = (a, other) => `<ul>${a.slice().sort((x, y) => (+y.spend || 0) - (+x.spend || 0)).slice(0, 10).map(r => { const f2 = other ? fs.find(f => f.id === fxFunnel(p, r)) : null;
+    return `<li class="mono">${esc(r.name)} <span class="sub">$${num(+r.spend || 0)}${f2 ? " · " + esc(f2.name) : ""}</span></li>`; }).join("")}${a.length > 10 ? `<li class="sub">${L("ще ","ещё ")}${a.length - 10}</li>` : ""}</ul>`;
+  const other = rs.filter(r => r.f !== fid && fs.some(f => f.id === r.f));
+  return `<div class="ar" data-p="${p.id}" data-k="${esc(k)}">
+    ${fs.length > 1 ? `<div class="row arf"><span class="lbl">${L("Воронка","Воронка")}</span><div class="opts opts--sm">${fs.map(f => { const n = (rs.find(r => r.f === f.id) ? fxWords(rs.find(r => r.f === f.id).inc).length + fxWords(rs.find(r => r.f === f.id).exc).length : 0);
+      return `<button type="button" class="opt" data-act="arPickF" data-k="${esc(k)}" data-v="${f.id}" aria-pressed="${f.id === fid}">${esc(f.name)}${n ? ` <small class="sub">${n}</small>` : ""}</button>`; }).join("")}</div></div>` : ""}
+    <div class="row ari"><input id="ar-w-${esc(k)}" data-arw="${esc(k)}" placeholder="${L("слово з назви кампанії, напр. MOD","слово из названия кампании, напр. MOD")}" aria-label="${L("Слово","Слово")}" autocomplete="off">
+      <span class="seg" role="group" aria-label="${L("Умова","Условие")}"><button type="button" data-act="arMode" data-k="${esc(k)}" data-v="inc" aria-pressed="${mode === "inc"}">${L("містить","содержит")}</button><button type="button" data-act="arMode" data-k="${esc(k)}" data-v="exc" aria-pressed="${mode === "exc"}">${L("не містить","не содержит")}</button></span>
+      <button type="button" class="btn btn--sm btn--solid" data-act="arWordAdd" data-p="${p.id}" data-k="${esc(k)}" data-f="${fid}">+ ${L("Додати","Добавить")}</button></div>
+    ${sug.length ? `<div class="opts opts--sm ars"><small class="sub">${mode === "inc" ? L("підказки → містить:","подсказки → содержит:") : L("підказки → не містить:","подсказки → не содержит:")}</small>${sug.map(t => `<button type="button" class="opt" data-act="arWordAdd" data-p="${p.id}" data-k="${esc(k)}" data-f="${fid}" data-v="${esc(t)}">+ ${esc(t)} <small class="sub">${cnt[t]}</small></button>`).join("")}</div>` : ""}
+    <div class="c2 arw"><div><b>${L("Містить","Содержит")}</b> <small class="sub">${L("хоча б одне","хотя бы одно")}</small><div class="arcs">${inc.length ? inc.map(w => chip(w, "inc")).join("") : `<span class="sub">${L("порожньо — будь-яка кампанія акаунта","пусто — любая кампания аккаунта")}</span>`}</div></div>
+      <div><b>${L("Не містить","Не содержит")}</b> <small class="sub">${L("жодного","ни одного")}</small><div class="arcs">${exc.length ? exc.map(w => chip(w, "exc")).join("") : `<span class="sub">—</span>`}</div></div></div>
+    ${inc.length || exc.length ? "" : `<p class="sub">${L("Слів ще немає — кампанії акаунта розподіляються як раніше.","Слов ещё нет — кампании аккаунта распределяются как раньше.")}</p>`}
+    ${rows.length ? `<div class="c2 fml"><div><b>${L("Входить у ","Входит в ")}${esc((fs.find(f => f.id === fid) || {}).name || "")}: ${inF.length}</b> <span class="sub">$${num(fxSp(inF))}</span>${list(inF, false)}</div><div><b>${L("Не входить","Не входит")}: ${outF.length}</b> <span class="sub">$${num(fxSp(outF))}</span>${list(outF, true)}</div></div>` : ""}
+    ${other.length ? `<p class="sub">${L("Інші воронки цього акаунта: ","Другие воронки этого аккаунта: ")}${other.map(r => esc((fs.find(f => f.id === r.f) || {}).name) + " (" + [fxWords(r.inc).join(", "), fxWords(r.exc).length ? L("крім ","кроме ") + fxWords(r.exc).join(", ") : ""].filter(Boolean).join("; ") + ")").join(" · ")}</p>` : ""}</div>`; }
+const arProj = id => W.projs.find(x => x.id === id) || P();
+function arAddWord(pid, k, fid, w){ const p = arProj(pid); w = String(w || "").trim(); if (!p || !w) return false; const mode = AR.mode[k] || "inc", r = arRule(p, k, fid, true), cur = fxWords(r[mode]);
+  w.split(/[,;]+/).map(x => x.trim()).filter(Boolean).forEach(x => { if (!cur.includes(fxKey(x))) { cur.push(fxKey(x)); } });
+  r[mode] = cur.join(", "); arTidy(p, k); save(); return true; }
+document.addEventListener("keydown", e => { const t = e.target; if (e.key !== "Enter" || !t.dataset || !t.dataset.arw) return; e.preventDefault();
+  const w = t.closest(".ar"), btn = w && w.querySelector("[data-act=arWordAdd]:not([data-v])"); if (!btn) return; const k = t.dataset.arw;
+  if (arAddWord(btn.dataset.p, k, btn.dataset.f, t.value)) { render(); setTimeout(() => { const el = document.getElementById("ar-w-" + k); if (el) el.focus(); }, 0); } });
 Object.assign(ACT, {
-  arAdd(d){ const p = W.projs.find(x => x.id === d.p) || P(); if (!p) return false; p.accRules = p.accRules || {}; const rs = p.accRules[d.k] = p.accRules[d.k] || [];
-    rs.push({inc:d.v || "", exc:"", f:p.funnels.length === 1 ? p.funnels[0].id : ""}); save(); },
-  arDel(d){ const p = W.projs.find(x => x.id === d.p) || P(), rs = p && (p.accRules || {})[d.k]; if (!rs) return false; rs.splice(+d.v, 1); if (!rs.length) delete p.accRules[d.k]; save(); },
+  arPickF(d){ AR.f[d.k] = d.v; },
+  arMode(d){ AR.mode[d.k] = d.v; setTimeout(() => { const el = document.getElementById("ar-w-" + d.k); if (el) el.focus(); }, 0); },
+  arWordAdd(d){ const v = d.v || ((document.getElementById("ar-w-" + d.k) || {}).value || ""); if (!v.trim()) { const el = document.getElementById("ar-w-" + d.k); if (el) el.focus(); return false; }
+    arAddWord(d.p, d.k, d.f, v); setTimeout(() => { const el = document.getElementById("ar-w-" + d.k); if (el && !d.v) el.focus(); }, 0); },
+  arWordDel(d){ const p = arProj(d.p); if (!p) return false; const r = arRule(p, d.k, d.f, false); if (!r) return false; r[d.fld] = fxWords(r[d.fld]).filter(w => w !== d.v).join(", "); arTidy(p, d.k); save(); },
 });
 const fxSum = rows => rows.reduce((a, r) => { a.spend += r.spend; a.imp += r.imp; a.clicks += r.clicks; a.leads += r.leads; a.book += r.book || 0; a.pay += r.pay || 0; a.rev += r.rev || 0; return a; }, {spend:0, imp:0, clicks:0, leads:0, book:0, pay:0, rev:0});
 /* название кампании и метка из таблицы приводятся к одному виду: Meta и таблицы хранят одни и те же буквы по-разному */

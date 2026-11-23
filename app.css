@@ -760,3 +760,12 @@ body.has-tabbar .only-m{display:flex}
 @keyframes mpopIn{from{transform:translateX(24px);opacity:.4}to{transform:none;opacity:1}}
 @media (max-width:640px){.mpop{align-items:flex-end}.mpop__in{height:88%;border-radius:12px 12px 0 0;animation:none}}
 @media (prefers-reduced-motion:reduce){.mpop__in{animation:none}}
+
+.ar .arf{gap:10px;align-items:center;margin-bottom:8px}.ar .lbl{font:600 11px/1.3 var(--f-mono);color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.ar .ari{gap:8px;flex-wrap:wrap;align-items:center}.ar .ari input{flex:1 1 220px;min-width:0}
+.ar .ars{margin-top:8px;align-items:center}.ar .ars>small{margin-right:4px}
+.ar .arw{margin-top:12px;gap:12px}.ar .arw>div{border:1px solid var(--line);padding:10px;min-height:64px}
+.ar .arcs{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.ar .arc{display:inline-flex;align-items:center;gap:4px;font:600 12.5px/1 var(--f-mono);padding:5px 4px 5px 9px;border-radius:2px;border:1px solid}
+.ar .arc--inc{color:var(--good);border-color:currentColor}.ar .arc--exc{color:#e5531a;border-color:currentColor}
+.ar .arc button{border:0;background:none;color:inherit;cursor:pointer;font-size:15px;line-height:1;padding:0 4px}
