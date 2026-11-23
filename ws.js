@@ -128,16 +128,22 @@ function pathsPanel(){
       : empty(L("Своїх шляхів ще немає","Своих путей пока нет"), L("Додайте тут або під час створення воронки: «Як відбувається продаж» → «+ Свій шлях…».","Добавьте здесь или при создании воронки: «Как происходит продажа» → «+ Свой путь…»."))}
     ${adm ? `<div class="pathrow"><div class="form">${saleNew("kp")}</div><div class="row"><button class="btn btn--sm btn--solid" data-act="wsPathNew">${L("Додати шлях","Добавить путь")}</button></div></div>` : ""}</div>`;
 }
+/* строка состояния под заголовком «Сегодня»: цветные точки и счётчики */
+function todayLine(){ const a = [], d = (lv, t) => `<span class="dot dot--${lv}">${t}</span>`;
+  if (PR.cnt != null) a.push(d(PR.cnt ? "crit" : "good", PR.cnt ? plural(PR.cnt, L("рішення","решение"), L("рішення","решения"), L("рішень","решений")) + L(" на сьогодні"," на сегодня") : L("рішень немає","решений нет")));
+  if (TS.cnt) { if (TS.cnt.due) a.push(d("warn", plural(TS.cnt.due, L("крок","шаг"), L("кроки","шага"), L("кроків","шагов")) + L(" задач сьогодні"," задач сегодня"))); if (TS.cnt.run) a.push(d("info", plural(TS.cnt.run, L("задача","задача"), L("задачі","задачи"), L("задач","задач")) + L(" в роботі"," в работе"))); if (TS.cnt.off) a.push(d("good", TS.cnt.off + L(" можна масштабувати"," можно масштабировать"))); if (TS.cnt.idle) a.push(d("good", TS.cnt.idle + L(" ефективних без показів"," эффективных без показов"))); }
+  return a.length ? `<p class="stl">${a.join("")}</p>` : ""; }
 /* «Сегодня» — главная: пульс за период и решения на сегодня, ниже — цели на месяц. Карта — отдельно. */
 const railMore = () => { try { return localStorage.getItem("rakurs_rail_more") === "1"; } catch (e) { return false; } };
 function vToday(){ const on = W.projs.some(p => typeof prOn === "function" && prOn(p));
   if (!W.projs.length) return empty(L("Проєктів ще немає","Проектов ещё нет"), L("Додайте проєкт на карті — тут з’являться рішення на сьогодні.","Добавьте проект на карте — здесь появятся решения на сегодня.")) + `<div class="row"><button class="btn btn--solid" data-act="wsCtab" data-v="map">${L("Відкрити карту","Открыть карту")}</button></div>`;
-  return `<div class="map today">${typeof tsToday === "function" ? tsToday() : ""}${on ? prBar() + prOverview(null) : `<div class="panel"><span class="tag">${L("Рішення на сьогодні","Решения на сегодня")}</span><p class="sub">${L("З’являться, коли підключите рекламний кабінет.","Появятся, когда подключите рекламный кабинет.")}</p><div class="row"><button class="btn btn--sm btn--solid" data-act="mapConn" data-id="${W.projs[0].id}">${L("Підключити кабінет","Подключить кабинет")}</button></div></div>`}${typeof goalsBoard === "function" ? goalsBoard(null) : ""}</div>`; }
+  return `<div class="map today">${typeof tsToday === "function" ? tsToday() : ""}${on ? prOverview(pfOne()) : `<div class="panel"><span class="tag">${L("Рішення на сьогодні","Решения на сегодня")}</span><p class="sub">${L("З’являться, коли підключите рекламний кабінет.","Появятся, когда подключите рекламный кабинет.")}</p><div class="row"><button class="btn btn--sm btn--solid" data-act="mapConn" data-id="${W.projs[0].id}">${L("Підключити кабінет","Подключить кабинет")}</button></div></div>`}${typeof goalsBoard === "function" ? goalsBoard(pfOne()) : ""}</div>`; }
 let todayBoot = false;
 function vCompany(){ if (!todayBoot && W.co) { todayBoot = true; if (W.ctab === "map") W.ctab = "today"; }
-  const t = W.ctab, tabs = [["today",L("Сьогодні","Сегодня")],["map",L("Карта","Карта")],["projects",L("Проєкти","Проекты")],["kb",L("База знань компанії","База знаний компании")],["team",L("Команда","Команда")],["set",L("Налаштування","Настройки")],["me",L("Профіль","Профиль")]];
+  const t = W.ctab, tabs = [["today",L("Сьогодні","Сегодня")],["map",L("Карта","Карта")],["ads",L("Реклама","Реклама")],["projects",L("Проєкти","Проекты")],["kb",L("База знань компанії","База знаний компании")],["team",L("Команда","Команда")],["set",L("Налаштування","Настройки")],["me",L("Профіль","Профиль")]];
   const body = {
     today: () => vToday(),
+    ads: () => vAds(),
     map: () => vMap(),
     projects: () => `${W.projs.length ? `<div class="cols">${W.projs.map(p=>{ const ch = pChain(p), done = ch.filter(c=>c[2]).length; return `<div class="panel">
       <div class="row sp"><h2>${esc(p.name)}</h2>${canAdmin()?del2("wsDelP", p.id, "p:" + p.id):""}</div><p class="sub">${esc([p.niche,p.geo].filter(Boolean).join(" · "))}</p>
@@ -200,9 +206,13 @@ function vCompany(){ if (!todayBoot && W.co) { todayBoot = true; if (W.ctab === 
             <dt>${L("Режим","Режим")}</dt><dd>${seg("tier", [["lite","Lite"],["pro","Pro"]], S.tier)}</dd>
             ${nh ? `<dt>${L("Сховані картки на карті","Скрытые карточки на карте")}</dt><dd><button class="btn btn--sm" data-act="mapShowAll">${L("Показати всі","Показать все")} · ${nh}</button></dd>` : ""}</dl></div></div>`; },
   }[t]();
+  const big = ["today","map","ads"].includes(t), ttl = {today:L("Сьогодні","Сегодня"), map:L("Карта","Карта"), ads:L("Реклама","Реклама")}[t];
+  const stl = t === "today" ? todayLine() : t === "ads" ? `<p class="sub">${L("Кампанії, креативи, вебінари й звіти за період","Кампании, креативы, вебинары и отчёты за период")}</p>` : "";
+  if (big) return `<div class="head head--pg"><div><span class="tag">${esc(W.co.name)}${pfOne() ? " · " + esc(pfOne().name) : ""}</span><h1>${ttl}</h1>${stl}</div>${typeof prHeadR === "function" ? prHeadR() : ""}</div>
+  ${body}`;
   return `<div class="head"><div><span class="tag">${t==="me"?L("Профіль","Профиль"):t==="set"?L("Налаштування компанії","Настройки компании"):W.co.kind==="agency"?L("Агентство","Агентство"):L("Компанія","Компания")}</span><h1>${esc(t==="me" ? ME.name || W.user.name || W.user.id : W.co.name)}</h1></div>
     </div>
-  ${["kb","team","set"].includes(t) ? `<div class="seg seg--co" role="group" aria-label="${L("Налаштування компанії","Настройки компании")}">${[["kb",L("База знань","База знаний")],["team",L("Команда","Команда")],["set",L("Налаштування","Настройки")]].map(x=>`<button type="button" data-act="wsCtab" data-v="${x[0]}" aria-pressed="${t===x[0]}">${x[1]}</button>`).join("")}</div>` : ""}
+  ${["kb","team","set","me"].includes(t) ? `<div class="seg seg--co" role="group" aria-label="${L("Налаштування компанії","Настройки компании")}">${[["kb",L("База знань","База знаний")],["team",L("Команда","Команда")],["set",L("Налаштування","Настройки")],["me",L("Профіль","Профиль")]].map(x=>`<button type="button" data-act="wsCtab" data-v="${x[0]}" aria-pressed="${t===x[0]}">${x[1]}</button>`).join("")}</div>` : ""}
   ${body}`;
 }
 function segList(segs, act, tag){ return segs.length ? `<div class="segs">${segs.map(s=>`<div class="seg3"><div class="row sp"><b>${esc(s.name)}</b><span class="row">${tag?tag(s):""}${del(act, s.id)}</span></div><span class="sub">${esc(s.pain)}</span>${s.say?`<span class="mono">→ ${esc(s.say)}</span>`:""}</div>`).join("")}</div>` : ""; }
@@ -437,6 +447,7 @@ function ownAudStep(o){ return `<p class="sub">${L("Хто купує. Можн�
 /* ---------- оболочка ---------- */
 /* нижняя навигация на телефоне: разделы компании под большим пальцем; разделы проекта остаются полосой сверху */
 const TBI = {
+  ads:'<path d="M3 16.5V9M8 16.5V4M13 16.5v-6M18 16.5V7"/>',
   today:'<circle cx="10" cy="10" r="7.5"/><path d="M10 5.5V10l3 2"/>',
   map:'<rect x="1.5" y="8" width="4" height="4"/><path d="M5.5 10h3M8.5 5v10M8.5 5h3M8.5 15h3"/><rect x="11.5" y="3" width="6" height="4"/><rect x="11.5" y="13" width="6" height="4"/>',
   projects:'<path d="M2.5 5h5l1.5 2h8.5v9h-15z"/>',
@@ -449,19 +460,19 @@ function tabBar(){
   const on = own() && !!W.user && !!W.co && !(CLOUD && (!CL.ready || CL.entering)); tb.hidden = !on; document.body.classList.toggle("has-tabbar", on); if (!on) { tb.innerHTML = ""; return; }
   tb.setAttribute("aria-label", L("Розділи компанії","Разделы компании"));
   const cur = P() ? "projects" : W.ctab;
-  tb.innerHTML = [["today",L("Сьогодні","Сегодня")],["map",L("Карта","Карта")],["projects",L("Проєкти","Проекты")],["set",L("Ще","Ещё")],["me",L("Профіль","Профиль")]].map(x =>
+  tb.innerHTML = [["today",L("Сьогодні","Сегодня")],["map",L("Карта","Карта")],["ads",L("Реклама","Реклама")],["projects",L("Проєкти","Проекты")],["set",L("Ще","Ещё")]].map(x =>
     `<button type="button" data-act="wsCtab" data-v="${x[0]}"${cur === x[0] ? ' aria-current="page"' : ""}><svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${TBI[x[0]]}</svg><span>${x[1]}</span></button>`).join("");
 }
 function ownShell(){
   const p = P(), f = F(), nb = (act, v, t, on) => `<a role="button" tabindex="0" data-act="${act}" data-v="${v}" ${on?'aria-current="page"':""}>${t}</a>`;
   $("rail").innerHTML = `<a class="logo" href="index.html">${brandLogo("rail")}</a>
     ${W.user&&W.co?`<button type="button" class="ws" data-act="wsBackP"><small>${L("Компанія","Компания")}</small><b>${esc(W.co.name)}</b></button>
-    <nav class="navg navg--co"><span>${L("Компанія","Компания")}</span>${nb("wsCtab","today",L("Сьогодні","Сегодня"),!p&&W.ctab==="today")}${nb("wsCtab","map",L("Карта","Карта"),!p&&W.ctab==="map")}${nb("wsCtab","projects",L("Проєкти","Проекты")+(W.projs.length?` <b class="cnt">${W.projs.length}</b>`:""),!p&&W.ctab==="projects")}${(() => { const inMore = !p && ["kb","team","set"].includes(W.ctab), open = inMore || railMore(); return `<button type="button" class="navmore" data-act="railMore" aria-expanded="${open}">${open ? L("Менше","Меньше") : L("Ще: база знань, команда, налаштування","Ещё: база знаний, команда, настройки")} <span aria-hidden="true">${open ? "▴" : "▾"}</span></button>${open ? nb("wsCtab","kb",L("База знань","База знаний")+(W.co.kb.length?` <b class="cnt">${W.co.kb.length}</b>`:""),!p&&W.ctab==="kb")+nb("wsCtab","team",L("Команда","Команда"),!p&&W.ctab==="team")+nb("wsCtab","set",L("Налаштування компанії","Настройки компании"),!p&&W.ctab==="set") : ""}`; })()}</nav>`:""}
+    <nav class="navg navg--co"><span>${L("Компанія","Компания")}</span>${nb("wsCtab","today",L("Сьогодні","Сегодня"),!p&&W.ctab==="today")}${nb("wsCtab","map",L("Карта","Карта"),!p&&W.ctab==="map")}${nb("wsCtab","ads",L("Реклама","Реклама"),!p&&W.ctab==="ads")}${nb("wsCtab","projects",L("Проєкти","Проекты")+(W.projs.length?` <b class="cnt">${W.projs.length}</b>`:""),!p&&W.ctab==="projects")}${(() => { const inMore = !p && ["kb","team","set"].includes(W.ctab), open = inMore || railMore(); return `<button type="button" class="navmore" data-act="railMore" aria-expanded="${open}">${open ? L("Менше","Меньше") : L("Ще: база знань, команда, налаштування","Ещё: база знаний, команда, настройки")} <span aria-hidden="true">${open ? "▴" : "▾"}</span></button>${open ? nb("wsCtab","kb",L("База знань","База знаний")+(W.co.kb.length?` <b class="cnt">${W.co.kb.length}</b>`:""),!p&&W.ctab==="kb")+nb("wsCtab","team",L("Команда","Команда"),!p&&W.ctab==="team")+nb("wsCtab","set",L("Налаштування компанії","Настройки компании"),!p&&W.ctab==="set") : ""}`; })()}</nav>`:""}
     ${W.user&&p?`<nav class="navg"><span>${esc(p.name)}</span>${pChain(p).map(c=>nb("wsTab",c[0],c[1]+(c[2]?"":" <em>·</em>"),!f&&W.tab===c[0])).join("")}</nav>`:""}
     ${W.user&&f?`<nav class="navg"><span>${esc(f.name)}</span>${FTABS().map(c=>nb("wsFtab",c[0],c[1],ftNorm(W.ftab)===c[0])).join("")}</nav>`:""}
     <div class="rail__foot">${W.user&&W.co?`<button type="button" class="me me--btn" data-act="wsCtab" data-v="me"${!p&&W.ctab==="me"?' aria-current="page"':""} title="${L("Профіль","Профиль")}"><b>${esc(ME.name || W.user.name || W.user.id)}</b><small>${esc(ME.title || (ME.name ? W.user.name || W.user.id : L("профіль","профиль")))}</small></button>`:""}
       <div class="rail__ico"><button type="button" class="ib" data-act="theme" aria-label="${L("Тема: світла / темна","Тема: светлая / тёмная")}" title="${L("Тема: світла / темна","Тема: светлая / тёмная")}">${isDark() ? ICO.moon : ICO.sun}</button>${W.user?`<button type="button" class="ib" data-act="wsLogout" aria-label="${L("Вийти","Выйти")}" title="${L("Вийти","Выйти")}">${ICO.exit}</button>`:""}<a href="index.html" title="${L("На сайт","На сайт")}">← ${L("сайт","сайт")}</a></div></div>`;
-  $("bar").innerHTML = `<span class="crumb">${[W.co&&W.co.name, p&&p.name, f&&f.name].filter(Boolean).map(esc).join(" › ") || (W.user?L("Нова компанія","Новая компания"):L("Реєстрація","Регистрация"))}</span><span id="sync" role="status">${CLOUD ? cloudBadgeHTML() : `<span class="badge">${L("прототип · дані у браузері","прототип · данные в браузере")}</span>`}</span>
+  $("bar").innerHTML = `<span class="crumb">${[W.co&&W.co.name, p&&p.name, f&&f.name].filter(Boolean).map(esc).join(" › ") || (W.user?L("Нова компанія","Новая компания"):L("Реєстрація","Регистрация"))}</span>${W.co && !p && typeof pfSel === "function" ? pfSel() : ""}<span id="sync" role="status">${CLOUD ? cloudBadgeHTML() : `<span class="badge">${L("прототип · дані у браузері","прототип · данные в браузере")}</span>`}</span>
     <div class="bar__r"><div class="seg tier" role="group" aria-label="${L("Режим","Режим")}"><button type="button" data-act="tier" data-v="lite" aria-pressed="${S.tier==="lite"}">Lite</button><button type="button" data-act="tier" data-v="pro" aria-pressed="${S.tier==="pro"}">Pro</button></div><div class="lang" role="group" aria-label="${L("Мова","Язык")}"><button type="button" data-lang="uk" aria-pressed="${lang==="uk"}">UA</button><button type="button" data-lang="ru" aria-pressed="${lang==="ru"}">RU</button></div></div>`;
   $("frozen").hidden = true; $("fab").hidden = true; document.documentElement.lang = lang;
 }

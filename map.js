@@ -123,7 +123,7 @@ function mapTree(){
   mapFactLoad();
   const many = mapMany();
   const co = {k:"co", lv:0, t:W.co.name, s:plural(W.projs.length, L("проєкт","проект"), L("проєкти","проекта"), L("проєктів","проектов")) + (CLOUD ? " · " + plural(CL.members.length, L("людина","человек"), L("людини","человека"), L("людей","человек")) : ""), fx:mapFxCo(), kids:[]};
-  W.projs.forEach(p => {
+  (typeof pfProjs === "function" ? pfProjs() : W.projs).forEach(p => {
     mtHealth(p);
     const nch = p.funnels.reduce((a, f) => a + (f.ch || []).length, 0);
     const pn = {k:"co/" + p.id, lv:1, t:p.name, s:[p.niche, p.geo].filter(Boolean).join(" · "), m:p.tg && p.tg.budget ? L("бюджет ","бюджет ") + money(p.tg.budget) : "", fx:mapFx(p), kids:[]};
@@ -251,7 +251,7 @@ const mapPop = () => { if (!MP.sel) return ""; const body = mapInfo(); if (!body
 document.addEventListener("keydown", e => { if (e.key === "Escape" && MP.sel && document.querySelector(".mpop")) { MP.sel = null; render(); } });
 const vMap = () => { const t = mapTree(), s = MP.sel;
   const view = MP.view === "list" ? mapList(t, s) : MP.view === "table" ? mapTable(t, s) : mapBoard(t, s);
-  return `<div class="map map--${MP.view}">${prBar()}${mapBar()}${view}${s ? mapPop() : mapInfo()}</div>`; };
+  return `<div class="map map--${MP.view}">${mapBar()}${view}${s ? mapPop() : mapInfo()}</div>`; };
 const vMapDemo = () => `<div class="map">${mapBoard(mapDemoTree(), MP.demo)}${mapDemoInfo()}</div>`;
 
 Object.assign(ACT, {

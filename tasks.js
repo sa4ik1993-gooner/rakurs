@@ -125,7 +125,8 @@ const OF_KEY = "rakurs_offers";
 const ofSeen = () => { try { const o = JSON.parse(localStorage.getItem(OF_KEY) || "{}"), now = Date.now(); Object.keys(o).forEach(k => { if (o[k] < now) delete o[k]; }); return o; } catch (e) { return {}; } };
 TS.off = {}; TS.offBusy = {};
 async function tsOffLoad(p){ if (TS.offBusy[p.id]) return; TS.offBusy[p.id] = true;
-  try { const d2 = tsDay(prToday(), -1), [a, b] = await Promise.all([sb.rpc("ad_summary", {p:p.id, d1:tsDay(d2, -6), d2}), sb.rpc("ad_summary", {p:p.id, d1:tsDay(d2, -2), d2})]);
+  try { const d2 = tsDay(prToday(), -1), [a, b, m30, m2, c30, c2] = await Promise.all([sb.rpc("ad_summary", {p:p.id, d1:tsDay(d2, -6), d2}), sb.rpc("ad_summary", {p:p.id, d1:tsDay(d2, -2), d2}),
+      sb.rpc("ad_summary", {p:p.id, d1:tsDay(d2, -29), d2}), sb.rpc("ad_summary", {p:p.id, d1:tsDay(d2, -1), d2}), sb.rpc("ad_creatives", {p:p.id, d1:tsDay(d2, -29), d2}), sb.rpc("ad_creatives", {p:p.id, d1:tsDay(d2, -1), d2})]);
     if (a.error) throw new Error(a.error.message); const x = prOf(p), b3 = {}; (b.data || []).forEach(o => { b3[o.campaign_id] = o; });
     const busy = new Set((p.tasks || []).filter(t => t.status === "run" || t.status === "plan").map(t => t.scope.camp).filter(Boolean)), out = [];
     (a.data || []).forEach(o => { const fid = fxFunnel(p, {id:o.campaign_id, f:o.funnel_id || "", name:o.campaign_name, prov:tsCh(o.provider)}), f = fid && p.funnels.find(z => z.id === fid); if (!f || busy.has(o.campaign_id)) return;
@@ -133,16 +134,30 @@ async function tsOffLoad(p){ if (TS.offBusy[p.id]) return; TS.offBusy[p.id] = tr
       if (l7 < 10 || !c7 || !cap || c7 > cap * 0.9 || l3 < 3 || c3 > c7 * 1.1 || s3 <= 0) return;
       const ch = tsCh(o.provider), acc = x.am ? prAccOf(x, o.campaign_id, ch) : "";
       out.push({id:o.campaign_id, name:o.campaign_name, f:fid, fname:f.name, ch, acc, c7, c3, cap, day:s3 / 3, l7}); });
-    TS.off[p.id] = {at:Date.now(), list:out.sort((m, n) => (m.c7 / m.cap) - (n.c7 / n.cap))}; }
+    /* эффективные, но не в работе: за 30 дней ≥10 лидов и лид ≤ 90% потолка, за последние 2 дня расхода нет */
+    const idle = [], live2 = new Set((m2.data || []).filter(o => +o.spend > 0).map(o => o.campaign_id)), cf = {};
+    (m30.data || []).forEach(o => { const fid = fxFunnel(p, {id:o.campaign_id, f:o.funnel_id || "", name:o.campaign_name, prov:tsCh(o.provider)}), f = fid && p.funnels.find(z => z.id === fid); cf[o.campaign_id] = f;
+      if (!f || live2.has(o.campaign_id) || busy.has(o.campaign_id)) return; const l = +o.leads || 0, sp = +o.spend || 0, c = l ? sp / l : 0, cap = fT(f, p).cap;
+      if (l >= 10 && c && cap && c <= cap * 0.9) idle.push({kind:"camp", id:o.campaign_id, name:o.campaign_name, f:fid, fname:f.name, ch:tsCh(o.provider), acc:x.am ? prAccOf(x, o.campaign_id, tsCh(o.provider)) : "", cpl:c, cap, l30:l, day:sp / 30}); });
+    const base = n => (typeof rsBase === "function" ? rsBase(n) : n) || n, cr = {}, cr2 = new Set((c2.data || []).filter(o => +o.spend > 0).map(o => base(o.ad_name)));
+    (c30.data || []).forEach(o => { const f = cf[o.campaign_id]; if (!f || !o.ad_name) return; const k = base(o.ad_name), t = cr[k] = cr[k] || {name:k, spend:0, leads:0, f}; t.spend += +o.spend || 0; t.leads += +o.leads || 0; });
+    Object.values(cr).forEach(t => { const c = t.leads ? t.spend / t.leads : 0, cap = fT(t.f, p).cap; if (t.leads >= 10 && c && cap && c <= cap * 0.9 && !cr2.has(t.name)) idle.push({kind:"cr", id:"cr:" + t.name, name:t.name, f:t.f.id, fname:t.f.name, cpl:c, cap, l30:t.leads}); });
+    TS.off[p.id] = {at:Date.now(), list:out.sort((m, n) => (m.c7 / m.cap) - (n.c7 / n.cap)), idle:idle.sort((m, n) => (m.cpl / m.cap) - (n.cpl / n.cap))}; }
   catch (e) { TS.off[p.id] = {at:Date.now(), list:[], err:String(e.message || e)}; }
   TS.offBusy[p.id] = false; render(); }
 function tsOffers(ps){ if (!CLOUD || typeof sb === "undefined" || !sb) return ""; const seen = ofSeen(), all = [];
   ps.filter(p => typeof prOn === "function" && prOn(p)).forEach(p => { const o = TS.off[p.id]; if ((!o || Date.now() - o.at > 30 * 60000) && !TS.offBusy[p.id]) setTimeout(() => tsOffLoad(p), 0); ((o || {}).list || []).filter(c => !seen[c.id]).forEach(c => all.push([p, c])); });
-  if (!all.length) return "";
-  return `<div class="tso"><span class="tag">${L("Можна масштабувати","Можно масштабировать")} · ${all.length}</span>${all.slice(0, 3).map(([p, c]) => `<div class="tsoc"><div><b class="mono">${esc(c.name)}</b> <span class="sub">${esc((ps.length > 1 ? p.name + " · " : "") + c.fname)}</span></div>
+  const idle = []; ps.filter(p => typeof prOn === "function" && prOn(p)).forEach(p => (((TS.off[p.id] || {}).idle) || []).filter(c => !seen[c.id]).forEach(c => idle.push([p, c])));
+  TS.cnt = Object.assign(TS.cnt || {}, {off:all.length, idle:idle.length});
+  const ib = idle.length ? `<div class="tso tso--idle"><span class="tag">${L("Ефективні, але не в роботі","Эффективные, но не в работе")} · ${idle.length}</span>${idle.slice(0, 3).map(([p, c]) => `<div class="tsoc"><div><b class="mono">${esc(c.name)}</b> <span class="sub">${c.kind === "cr" ? L("креатив · ","креатив · ") : ""}${esc((ps.length > 1 ? p.name + " · " : "") + c.fname)}</span></div>
+      <div>${L("За 30 днів ","За 30 дней ")}${num(c.l30)}${L(" лідів по $"," лидов по $")}${dec(c.cpl)}${L(" при стелі $"," при потолке $")}${dec(c.cap)}${L(", а останні 2 дні показів немає. ",", а последние 2 дня показов нет. ")}${c.kind === "cr" ? L("Додати його в робочу групу знову?","Добавить его в рабочую группу снова?") : L("Увімкнути знову?","Включить снова?")}</div>
+      <div class="row"><button type="button" class="btn btn--sm btn--solid" data-act="ofIdle" data-p="${p.id}" data-id="${esc(c.id)}">${L("Так","Да")}</button><button type="button" class="btn btn--sm" data-act="ofNo" data-id="${esc(c.id)}">${L("Ні","Нет")}</button></div></div>`).join("")}</div>` : "";
+  if (!all.length) return ib;
+  return ib + `<div class="tso"><span class="tag">${L("Можна масштабувати","Можно масштабировать")} · ${all.length}</span>${all.slice(0, 3).map(([p, c]) => `<div class="tsoc"><div><b class="mono">${esc(c.name)}</b> <span class="sub">${esc((ps.length > 1 ? p.name + " · " : "") + c.fname)}</span></div>
       <div>${L("Ефективна: лід $","Эффективна: лид $")}${dec(c.c7)}${L(" за 7 днів при стелі $"," за 7 дней при потолке $")}${dec(c.cap)}${L(", останні 3 дні стабільно ($",", последние 3 дня стабильно ($")}${dec(c.c3)}). ${L("Рекомендую підняти бюджет на 15% — з $","Рекомендую поднять бюджет на 15% — с $")}${dec(c.day, 0)}${L(" до $"," до $")}${dec(c.day * 1.15, 0)}${L(" на день; показники не мають просісти. Бажаєте?","/день; показатели не должны просесть. Желаете?")}</div>
       <div class="row"><button type="button" class="btn btn--sm btn--solid" data-act="ofYes" data-p="${p.id}" data-id="${esc(c.id)}">${L("Так","Да")}</button><button type="button" class="btn btn--sm" data-act="ofNo" data-id="${esc(c.id)}">${L("Ні","Нет")}</button></div></div>`).join("")}</div>`; }
-function tsToday(){ const ps = W.projs.filter(p => p.funnels.length); if (!ps.length) return "";
+function tsToday(){ const ps = (typeof pfProjs === "function" ? pfProjs() : W.projs).filter(p => p.funnels.length); TS.cnt = {}; if (!ps.length) return "";
+  const today = prToday(), act = ps.flatMap(p => (p.tasks || []).filter(t => t.status === "run")); TS.cnt.run = act.length; TS.cnt.due = act.filter(t => { const n = t.steps.find(x => !x.done); return n && n.d <= today; }).length;
   const opts = []; ps.forEach(p => { p.funnels.forEach(f => { opts.push(["co/" + p.id + "/" + f.id, (ps.length > 1 ? p.name + " · " : "") + f.name]);
     (f.ch || []).forEach(c => prAccs(p, c).forEach(a => opts.push(["co/" + p.id + "/" + f.id + "/" + c + "/" + prAK(String(a.id)), (ps.length > 1 ? p.name + " · " : "") + f.name + " · " + (a.name || a.id)]))); }); });
   if (!opts.some(o => o[0] === TS.sc)) TS.sc = opts[0][0];
@@ -177,6 +192,14 @@ Object.assign(ACT, {
       guard:c.c7 * 1.1, target:c.day * 1.15, base:{day:c.day, cpl:c.c7, leads:c.l7}, note:"",
       steps:[{d:t0, t:L("Підніміть бюджет кампанії ","Поднимите бюджет кампании ") + c.name + L(" на 15%: з $"," на 15%: с $") + dec(c.day, 0) + L(" до $"," до $") + dec(c.day * 1.15, 0) + L(" на день.","/день.")}, {d:tsDay(t0, 3), t:L("Перевірка: 3 дні на новому бюджеті, ціна ліда не вища за $","Проверка: 3 дня на новом бюджете, цена лида не выше $") + dec(c.c7 * 1.1) + ".", check:1}]});
     TS.off[p.id].list = TS.off[p.id].list.filter(x => x.id !== c.id); save(); toast(L("Задачу поставлено — бюджет змініть у кабінеті й відмітьте «Зроблено»","Задача поставлена — бюджет измените в кабинете и отметьте «Сделано»")); },
+  ofIdle(d){ const p = W.projs.find(x => x.id === d.p), c = p && (((TS.off[p.id] || {}).idle) || []).find(x => x.id === d.id); if (!c) return false; const t0 = prToday();
+    const k = "co/" + p.id + "/" + c.f + (c.kind === "camp" ? "/" + c.ch + (c.acc ? "/" + prAK(c.acc) : "/a_") + "/" + c.id : ""), s = Object.assign(tsScope(k) || {}, {pid:p.id, f:c.f, c:c.ch || "", acc:c.acc || "", camp:c.kind === "camp" ? c.id : ""});
+    if (!s.label) s.label = c.fname + " · " + c.name;
+    const step = c.kind === "camp" ? L("Увімкніть кампанію ","Включите кампанию ") + c.name + L(" знову (раніше витрачала ~$"," снова (раньше тратила ~$") + dec(c.day, 0) + L(" на день). Бюджет — на ваше рішення.","/день). Бюджет — на ваше решение.")
+      : L("Додайте креатив ","Добавьте креатив ") + c.name + L(" у робочу групу знову (Запуск → «+ Оголошення в групу»)."," в рабочую группу снова (Запуск → «+ Объявления в группу»).");
+    p.tasks = p.tasks || []; p.tasks.unshift({id:uid(), text:(c.kind === "camp" ? L("Повернути в роботу: ","Вернуть в работу: ") : L("Повернути креатив: ","Вернуть креатив: ")) + c.name, type:"scale", o:{guard:"num", cpl:c.cpl * 1.1}, scope:s, status:"run", at:new Date().toISOString(), started:t0, start:t0,
+      guard:c.cap, target:0, base:{day:0, cpl:c.cpl, leads:c.l30}, note:"", steps:[{d:t0, t:step, act:c.kind === "cr" ? "launch" : ""}, {d:tsDay(t0, 3), t:L("Перевірка: 3 дні, ціна ліда не вища за стелю $","Проверка: 3 дня, цена лида не выше потолка $") + dec(c.cap) + ".", check:1}]});
+    TS.off[p.id].idle = TS.off[p.id].idle.filter(x => x.id !== c.id); save(); toast(L("Задачу поставлено","Задача поставлена")); },
   ofNo(d){ const o = ofSeen(); o[d.id] = Date.now() + 7 * 864e5; try { localStorage.setItem(OF_KEY, JSON.stringify(o)); } catch (e) { /* */ } },
   tsGo(d){ W.cur = d.p; W.fun = d.f; W.ftab = "launch"; MP.sel = null; save(); },
 });

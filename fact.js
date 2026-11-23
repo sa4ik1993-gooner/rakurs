@@ -169,7 +169,7 @@ function fxSales(p, x, rows){ const by = {}, other = {book:0, pay:0, rev:0}, nam
     const t = names.has(s.k) ? (by[s.k] = by[s.k] || {book:0, pay:0, rev:0}) : other;
     if (s.kind === "booking") t.book += s.ev; else if (s.kind === "payment") { t.pay += s.ev; t.rev += rate ? s.amt / rate : 0; } });
   return {by, other, noRate, any:(x.sales || []).length > 0}; }
-const fxCpl = (s, cap) => s.leads > 0 ? `<span class="mono">${dec(s.spend / s.leads)}</span> ${cap ? pill(s.spend / s.leads <= cap ? "good" : s.spend / s.leads <= cap * 1.2 ? "warn" : "crit", s.spend / s.leads <= cap ? L("у стелі","в потолке") : L("вище стелі","выше потолка")) : ""}` : "—";
+const fxCpl = (s, cap) => s.leads > 0 && typeof cplCell === "function" ? cplCell(s.spend / s.leads, cap, "") : s.leads > 0 ? `<span class="mono">${dec(s.spend / s.leads)}</span> ${cap ? pill(s.spend / s.leads <= cap ? "good" : s.spend / s.leads <= cap * 1.2 ? "warn" : "crit", s.spend / s.leads <= cap ? L("у стелі","в потолке") : L("вище стелі","выше потолка")) : ""}` : "—";
 function factPanel(p, f){
   const head = t => `<div class="panel" id="fact"><div class="row sp"><span class="tag">${L("Факт реклами","Факт рекламы")}</span></div>${t}</div>`;
   if (!CLOUD) return head(`<p class="sub proto">${L("Прототип: факт з’явиться після входу на сервер і підключення рекламного кабінету.","Прототип: факт появится после входа на сервер и подключения рекламного кабинета.")}</p>`);

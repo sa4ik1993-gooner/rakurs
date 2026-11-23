@@ -807,3 +807,29 @@ body.has-tabbar .only-m{display:flex}
 
 .tso{border:1px solid var(--line);background:color-mix(in srgb,var(--good) 6%,transparent);padding:10px 12px;margin:6px 0 12px}
 .tso .tsoc{display:flex;flex-direction:column;gap:6px;padding:10px 0;border-top:1px solid var(--line);font-size:13.5px}.tso .tsoc:first-of-type{border-top:0}
+
+/* шапка экрана: заголовок слева, период и «Обновить» справа */
+.head--pg{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.phr{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}.phr select,.phr input{min-width:0}
+.stl{display:flex;gap:14px;flex-wrap:wrap;margin:6px 0 0;font-size:13px}
+.dot{display:inline-flex;align-items:center;gap:6px}.dot::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.dot--crit{color:#e5531a}.dot--warn{color:var(--warn)}.dot--good{color:var(--good)}.dot--info{color:#2f6fdb}
+.pfsel{margin-left:10px;max-width:200px}
+/* цена лида цветом */
+.cpl{display:inline-block;padding:1px 6px;border-radius:2px;font-family:var(--f-mono)}
+.cpl--good{background:color-mix(in srgb,var(--good) 14%,transparent);color:var(--good)}
+.cpl--warn{background:color-mix(in srgb,var(--warn) 16%,transparent);color:var(--warn)}
+.cpl--crit{background:color-mix(in srgb,#e5531a 14%,transparent);color:#e5531a}
+.cplg{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;margin:4px 0 8px}
+/* раздел «Реклама» */
+.rkf{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}.rkf select,.rkf input{min-width:0;max-width:220px}
+.rktw{max-height:70vh;overflow:auto}.rktw thead th,.rktw thead tr.sum td{position:sticky;background:var(--bg);z-index:1}
+.rktw thead tr:first-child th{top:0}.rktw thead tr.sum td{top:34px;background:color-mix(in srgb,var(--ink) 6%,var(--bg))}
+.rktw td:first-child{min-width:260px}.rk .rkk td{font-size:12.5px;background:color-mix(in srgb,var(--ink) 3%,transparent)}.rk .rkk td:first-child{padding-left:34px}
+.rkt{font:600 10px/1 var(--f-mono);text-transform:uppercase;color:var(--muted);letter-spacing:.04em}
+.sortb{border:0;background:none;color:inherit;font:inherit;cursor:pointer;padding:0;white-space:nowrap}.sortb[aria-pressed="true"]{color:var(--ink);text-decoration:underline}
+.rkr{gap:8px;flex-wrap:wrap}.rkpre{white-space:pre-wrap;font:12.5px/1.55 var(--f-mono);background:color-mix(in srgb,var(--ink) 4%,transparent);padding:12px;max-height:60vh;overflow:auto}
+.rktr{margin-bottom:14px}
+
+.tso--idle{background:color-mix(in srgb,#2f6fdb 6%,transparent)}
+.rktw td.n,.rktw th{white-space:nowrap}
