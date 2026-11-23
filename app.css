@@ -870,3 +870,4 @@ body.has-tabbar .only-m{display:flex}
 .pll--reco.pll--new{border-left-color:#2f6fdb}.pll--done{border-left-color:var(--good)}.pll--fail{border-left-color:#e5531a}.pll--no,.pll--expired{opacity:.6}
 .pll .plb{white-space:pre-wrap;font-size:13px;margin:4px 0}.plpre{white-space:pre-wrap;font:12.5px/1.5 var(--f-mono);margin:6px 0}
 .pl .plf .ck{flex-wrap:nowrap;min-width:0}.pl .plf .ck span{white-space:normal;min-width:0;overflow-wrap:anywhere}
+.pll--alert{border-left-color:var(--warn)}
