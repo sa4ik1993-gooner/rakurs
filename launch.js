@@ -72,11 +72,16 @@ function bdDraft(l){ if (!l) return null; const heads = l.heads || [], bl = (l.b
 function bdVariants(f){ const v = [], tx = BD.tx, cur = ((bdAccs(bdConn(P())).find(a => a.id === BD.form.account)) || {}).currency || "USD", past = tx.past || [];
   const pv = (t, i) => ({k:"p" + i, label:(t.same ? L("Вже вели на цей лендинг","Уже вели на этот лендинг") : L("З оголошень акаунта","Из объявлений аккаунта")) + (t.res ? " · " + t.res + L(" рез. по "," рез. по ") + bdM(t.spend / t.res, cur) : t.spend ? " · " + L("витрачено ","потрачено ") + bdM(t.spend, cur) : ""), body:t.body, title:t.title || ""});
   if ((f.launch || {}).text) v.push({k:"last", label:L("Минулий запуск воронки","Прошлый запуск воронки"), body:f.launch.text, title:f.launch.headline || ""});
+  bdTx(f).own.forEach(o => v.push({k:o.k, label:L("Ваш текст","Ваш текст"), body:o.body, title:o.title || "", own:true}));
   past.forEach((t, i) => { if (t.same && v.length < 4) v.push(pv(t, i)); });
   const d = bdDraft(tx.land); if (d) v.push({k:"land", label:L("Чернетка з лендингу","Черновик с лендинга"), body:d.body, title:d.title});
   past.forEach((t, i) => { if (!t.same && v.length < 6) v.push(pv(t, i)); });
   [...new Set(f.crs.map(c => (c.text || "").trim()).filter(Boolean))].slice(0, 2).forEach((t, i) => v.push({k:"c" + i, label:L("З креативів воронки","Из креативов воронки"), body:t, title:""}));
-  const seen = {}; return v.filter(x => { const b = x.body.trim(); if (!b || seen[b]) return false; seen[b] = 1; return true; }); }
+  const seen = {}, del = bdTx(f).del; return v.filter(x => { const b = x.body.trim(); if (!b || seen[b] || (!x.own && del.includes(bdTK(b)))) return false; seen[b] = 1; return true; }); }
+/* Свои тексты и скрытые варианты хранятся в воронке: платформа предлагает сама, человек проверяет, правит, убирает лишнее. */
+const bdTK = b => String(b || "").replace(/\s+/g, " ").trim().slice(0, 200);
+function bdTx(f){ const t = f.bdtx = f.bdtx || {}; t.own = t.own || []; t.del = t.del || []; return t; }
+
 function bdVarSet(v){ const F0 = BD.form; F0.text = v.body; F0.vark = v.k; if (v.title && !F0.headSet) F0.headline = v.title; }
 function bdHeads(){ const tx = BD.tx, a = []; (tx.past || []).forEach(t => { if (t.title) a.push(t.title); }); ((tx.land || {}).heads || []).slice(0, 1).forEach(h => { if (h.length <= 90) a.push(h); }); return [...new Set(a)].slice(0, 5); }
 /* Тексты подставляются сами: общий — первый вариант; отдельному ролику — текст прошлого объявления с тем же роликом. */
@@ -178,7 +183,8 @@ function bdForm(f, p, c){ const F0 = BD.form, accs = bdAccs(c), pages = bdPages(
   /* 2. текст */
   const vs = bdVariants(f), heads = bdHeads(), loadingTx = tx.past === null || tx.land === null;
   const s2 = `<div class="bdq"><b class="bdn">2 · ${L("Текст і заголовок","Текст и заголовок")}</b>
-      ${vs.length ? `<div class="bdvs">${vs.map(v => `<button type="button" class="bdv" data-act="bdVar" data-v="${v.k}" aria-pressed="${F0.vark === v.k && F0.text === v.body ? "true" : "false"}"${dis}><small>${esc(v.label)}</small><span>${esc(v.body.replace(/\s+/g, " ").slice(0, 110))}${v.body.length > 110 ? "…" : ""}</span></button>`).join("")}</div>` : ""}
+      <div class="bdvs">${vs.map(v => `<div class="bdvw"><button type="button" class="bdv" data-act="bdVar" data-v="${v.k}" aria-pressed="${F0.vark === v.k && F0.text === v.body ? "true" : "false"}"${dis}><small>${esc(v.label)}</small><span>${esc(v.body.replace(/\s+/g, " ").slice(0, 110))}${v.body.length > 110 ? "…" : ""}</span></button><button type="button" class="bdvx" data-act="bdVarDel" data-v="${v.k}" title="${L("Прибрати варіант","Убрать вариант")}" aria-label="${L("Прибрати варіант","Убрать вариант")}"${dis}>×</button></div>`).join("")}<button type="button" class="bdv bdv--add" data-act="bdVarAdd" aria-pressed="${F0.vark === "new" ? "true" : "false"}"${dis}><small>${L("Свій текст","Свой текст")}</small><span>+ ${L("написати з нуля","написать с нуля")}</span></button></div>
+      ${bdTx(f).del.length ? `<p class="sub"><button type="button" class="lnk" data-act="bdVarBack"${dis}>${L("Повернути приховані варіанти","Вернуть скрытые варианты")} (${bdTx(f).del.length})</button></p>` : ""}
       ${loadingTx ? `<p class="sub" role="status">${L("Шукаємо варіанти: тексти минулих оголошень акаунта й зміст лендингу…","Ищем варианты: тексты прошлых объявлений аккаунта и содержание лендинга…")}</p>` : vs.length ? "" : `<p class="sub">${tx.old ? esc(bdDrNote({error:"old"})) : L("Готових варіантів немає: в акаунті ще не було оголошень на цей лендинг, а зі сторінки текст прочитати не вдалося. Напишіть свій.","Готовых вариантов нет: в аккаунте ещё не было объявлений на этот лендинг, а со страницы текст прочитать не удалось. Напишите свой.")}</p>`}
       <div class="field w"><label for="bd-text">${L("Спільний текст оголошень","Общий текст объявлений")}</label><textarea id="bd-text" data-bd="text" rows="6"${dis}>${esc(F0.text)}</textarea></div>
       <div class="field w"><label for="bd-headline">${L("Заголовок","Заголовок")}</label><input id="bd-headline" data-bd="headline" value="${esc(F0.headline)}" placeholder="${L("можна залишити порожнім","можно оставить пустым")}"${dis}>
@@ -296,6 +302,12 @@ Object.assign(ACT, {
   bdAdv(){ BD.adv = !BD.adv; },
   bdAud(d){ const f = F(), p = P(), v = f && p && BD.form ? bdAuds(f, p).find(a => a.k === d.v) : null; if (!v) return false; bdAudSet(v); },
   bdVar(d){ const f = F(), v = f && BD.form ? bdVariants(f).find(x => x.k === d.v) : null; if (!v) return false; bdVarSet(v); BD.form.textSet = true; },
+  bdVarDel(d){ const f = F(), F0 = BD.form; if (!f || !F0) return false; const v = bdVariants(f).find(x => x.k === d.v); if (!v) return false; const t = bdTx(f);
+    if (v.own) t.own = t.own.filter(o => o.k !== v.k); else t.del.push(bdTK(v.body));
+    if (F0.vark === v.k) { const vs = bdVariants(f); F0.textSet = false; if (vs.length) bdVarSet(vs[0]); else { F0.text = ""; F0.vark = ""; } }
+    save(); },
+  bdVarAdd(){ const F0 = BD.form; if (!F0) return false; F0.text = ""; F0.vark = "new"; F0.textSet = true; setTimeout(() => { const el = document.getElementById("bd-text"); if (el) el.focus(); }, 30); },
+  bdVarBack(){ const f = F(); if (!f) return false; bdTx(f).del = []; save(); },
   bdHead(d){ if (!BD.form) return false; BD.form.headline = BD.form.headline === d.v ? "" : d.v; BD.form.headSet = true; },
   bdBud(d){ if (!BD.form) return false; BD.form.budget = +d.v; },
   bdAdOwn(d){ const a = BD.form && BD.form.ads.find(x => x.id === d.id); if (!a) return false;
@@ -308,9 +320,13 @@ Object.assign(ACT, {
     if (d.v === "co") { if (!canAdmin()) return false; W.co.utm = v; if (utmClean(p.utm) === v) delete p.utm; if (utmClean(f.utm) === v) delete f.utm; } else if (d.v === "p") { p.utm = v; if (utmClean(f.utm) === v) delete f.utm; } else f.utm = v;
     save(); toast({co:L("Збережено як шаблон компанії","Сохранено как шаблон компании"), p:L("Збережено як шаблон проєкту","Сохранено как шаблон проекта"), f:L("Збережено як шаблон воронки","Сохранено как шаблон воронки")}[d.v]); },
 });
+/* Правка текста: выбранный «свой» вариант меняется, а правка готового варианта становится новым «своим» — исходник остаётся в списке. */
+function bdTextEdit(val){ const F0 = BD.form, f = F(); F0.textSet = true; if (!f) return; const t = bdTx(f); let o = t.own.find(x => x.k === F0.vark);
+  if (!o) { if (!val.trim()) return; o = {k:"o" + uid(), body:"", title:F0.headline || ""}; t.own.unshift(o); F0.vark = o.k; }
+  o.body = val; }
 document.addEventListener("input", e => { const t = e.target; if (!t.dataset || !t.dataset.bd || !BD.form) return; const k = t.dataset.bd;
   if (k.indexOf("ad:") === 0) { const [, id, fk] = k.split(":"), a = BD.form.ads.find(x => x.id === id); if (a && fk !== "on") a[fk] = t.value; return; }
-  if (t.type !== "checkbox" && t.tagName !== "SELECT") { BD.form[k] = t.value; if (k === "text") { BD.form.textSet = true; BD.form.vark = "own"; } if (k === "headline") BD.form.headSet = true; } });
+  if (t.type !== "checkbox" && t.tagName !== "SELECT") { BD.form[k] = t.value; if (k === "text") bdTextEdit(t.value); if (k === "headline") BD.form.headSet = true; } });
 document.addEventListener("change", e => { const t = e.target; if (!t.dataset || !BD.form) return;
   if (t.dataset.bdm) { const files = [...(t.files || [])].filter(x => /^(image|video)\//.test(x.type || "") || mediaExt(x.name)); if (!files.length) return; const F0 = BD.form;
     Promise.all(files.map(async file => { const d = await bdDims(file); return {t:"file", name:file.name, kind:(file.type || "").indexOf("video") === 0 || mediaExt(file.name) === "video" ? "video" : "img", w:d.w, h:d.h, size:file.size, key:"f:" + file.name + ":" + file.size, file}; }))
@@ -322,6 +338,7 @@ document.addEventListener("change", e => { const t = e.target; if (!t.dataset ||
   if (k === "account") { BD.form.pixel = ""; BD.form.pixelSet = false; BD.form.eventSet = false; BD.run = null; } if (k === "pixel") BD.form.pixelSet = true; if (k === "event") BD.form.eventSet = true;
   if (k === "countries" || k === "lang" || k === "advantage" || k === "age_min" || k === "age_max" || k === "gender") BD.form.aud = "";
   if (k === "link") BD.form.link = bdUrl(t.value);
+  if (k === "text") save();
   render(); });
 const mediaExt = n => /\.(mp4|mov|m4v|webm)$/i.test(n || "") ? "video" : /\.(jpe?g|png|gif|webp)$/i.test(n || "") ? "img" : "";
 

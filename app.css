@@ -563,6 +563,12 @@ h1[tabindex="-1"]:focus,h2[tabindex="-1"]:focus,#view[tabindex="-1"]:focus,.moda
 #bd .bdv[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
 #bd .bdv small{font:600 11px/1.3 var(--f-mono);color:var(--muted);letter-spacing:.02em}
 #bd .bdv span{font-size:13px;line-height:1.4;overflow-wrap:anywhere}
+#bd .bdvw{position:relative;display:flex;min-width:0}
+#bd .bdvw .bdv{flex:1;padding-right:30px}
+#bd .bdvx{position:absolute;top:4px;right:4px;width:24px;height:24px;border:0;background:none;color:var(--muted);font-size:17px;line-height:1;cursor:pointer;border-radius:2px}
+#bd .bdvx:hover{color:var(--ink);background:var(--line)}
+#bd .bdv--add{border-style:dashed;justify-content:center}
+#bd .bdv--add span{color:var(--muted)}
 #bd .bdbud{width:110px;min-height:42px;padding:8px 12px;border:1.5px solid var(--line);border-radius:2px;background:var(--bg);font:inherit;color:inherit}
 #bd .bdsum{display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line);padding-top:14px;min-width:0}
 #bd .bdsum .kv{font-size:13.5px}
