@@ -1,6 +1,6 @@
 /* Трекер HEYROW в кабинете: код для сайта (свой у каждого проекта и каждой воронки), проверка, что он стоит, и отчёт «трекер против Meta».
    Сам трекер — t.js (ставится на сайт клиента), приём событий — серверная функция track. Подключается после goals.js. */
-const TK = {st:{}, busy:{}, rep:{}, repBusy:{}, hostsEdit:null};
+const TK = {st:{}, busy:{}, rep:{}, repBusy:{}, hostsEdit:null, pages:{}, learn:{}};
 const TR_SRC = () => { const b = location.origin + location.pathname.replace(/[^/]*$/, ""); return /localhost|127\.0\.0\.1/.test(b) ? "https://sa4ik1993-gooner.github.io/rakurs/" : b; };
 async function trCall(body){ if (!CLOUD || !sb) return {ok:false, error:"offline"};
   try { const r = await sb.functions.invoke("track", {body}); if (r.error || !r.data) return {ok:false, error:"net", detail:(r.error && r.error.message) || ""}; return r.data; }
@@ -33,7 +33,7 @@ function trPanel(p){
       <p class="sub">${L("Загальний код без воронки: ","Общий код без воронки: ")}<code class="mono">${esc(trTag(s.key, ""))}</code> — ${L("воронку визначимо за адресою сторінки з розділу «Лендинги».","воронку определим по адресу страницы из раздела «Лендинги».")}</p>
       <p class="sub">${L("Сторінка «дякуємо» після оплати: ","Страница «спасибо» после оплаты: ")}<code class="mono">heyrow.pay(650, "USD")</code>. ${L("Якщо оплати вже рахує CRM — не ставте, щоб не задвоїти.","Если оплаты уже считает CRM — не ставьте, чтобы не задвоить.")}</p>
       <p class="sub">${L("Для ЄС: додайте ","Для ЕС: добавьте ")}<code class="mono">data-consent="1"</code>${L(" і викликайте "," и вызывайте ")}<code class="mono">heyrow.consent()</code>${L(" після згоди на cookie."," после согласия на cookie.")}</p></details>
-    <div class="trh"><span class="tag">${L("Звідки приходять події","Откуда приходят события")}</span> ${seen.length ? seen.map(h => `<span class="mono">${esc(h)}</span>`).join(", ") : `<span class="sub">—</span>`}
+    ${trPagesBox(p)}<div class="trh"><span class="tag">${L("Звідки приходять події","Откуда приходят события")}</span> ${seen.length ? seen.map(h => `<span class="mono">${esc(h)}</span>`).join(", ") : `<span class="sub">—</span>`}
       ${adm ? `<div class="row"><input id="tr-hosts" value="${esc((s.hosts || []).join(", "))}" placeholder="${L("свої домени через кому — інші відкидаємо","свои домены через запятую — остальные отбрасываем")}" aria-label="${L("Дозволені домени","Разрешённые домены")}"><button type="button" class="btn btn--sm" data-act="trHosts">${L("Зберегти","Сохранить")}</button></div>` : ""}
       ${foreign.length > 1 ? `<p class="sub">${L("Домени не обмежено: події приймаються з будь-якого сайту з цим кодом. Впишіть свої.","Домены не ограничены: события принимаются с любого сайта с этим кодом. Впишите свои.")}</p>` : ""}</div></div>`; }
 
@@ -41,12 +41,48 @@ function trPanel(p){
 const trPath = u => { try { const x = new URL(/^https?:/.test(u) ? u : "https://" + u); return [x.hostname.replace(/^www\./, ""), x.pathname.replace(/\/$/, "") || "/"]; } catch (e) { return ["", ""]; } };
 /* какой воронке принадлежит событие трекера: 1) код воронки (data-f); 2) адрес страницы из «Лендингов» воронки;
    3) название кампании из метки utm_campaign по правилам аккаунтов; 4) единственная воронка проекта. Иначе — «не определено». */
+/* Страницы сайта → воронка (p.trPages["host/path"] = {f, auto}). Платформа узнаёт сама: на страницу без кода воронки
+   приходят люди с рекламы — по их кампаниям (правила аккаунтов, привязка кампаний) видно, чья это воронка. Если ≥70% из ≥10 человек
+   из одной воронки — страница её («поставили сами»). Человек может поменять. «Спасибо» воронку не голосует: берёт с лендинга до неё. */
+const trPK = (h, p) => (h || "") + ((p || "/").replace(/\/$/, "") || "/");
+function trPageF(p, h, path){ const k = trPK(h, path), m = (p.trPages || {})[k]; if (m && m.f && p.funnels.some(f => f.id === m.f)) return m.f;
+  const pg = [h, (path || "/").replace(/\/$/, "") || "/"];
+  const f = p.funnels.find(f => (f.lands || []).some(l => { const t = trPath(l.url || ""); return t[0] === pg[0] && (pg[1] === t[1] || pg[1].indexOf(t[1] + "/") === 0); }));
+  return f ? f.id : ""; }
+/* какой воронке принадлежит событие: 1) код воронки; 2) страница (своя карта страниц, «Лендинги» воронок);
+   3) для «Спасибо» — лендинг, с которого пришёл человек; 4) кампания из метки по правилам аккаунтов; 5) единственная воронка. */
 function trFunnelOf(r, p){ if (r.funnel_id && p.funnels.some(f => f.id === r.funnel_id)) return r.funnel_id;
-  const pg = [r.host, (r.path || "/").replace(/\/$/, "") || "/"];
-  const byPage = p.funnels.find(f => (f.lands || []).some(l => { const t = trPath(l.url || ""); return t[0] === pg[0] && (pg[1] === t[1] || pg[1].indexOf(t[1] + "/") === 0); }));
-  if (byPage) return byPage.id;
+  const pf = trPageF(p, r.host, r.path); if (pf) return pf;
+  if (r.lp_host) { const lf = trPageF(p, r.lp_host, r.lp_path); if (lf) return lf; }
   const byName = typeof fxByName === "function" ? fxByName(p, r.utm_campaign) : ""; if (byName) return byName;
   return p.funnels.length === 1 ? p.funnels[0].id : ""; }
+async function trLearn(p){ if (!sb || TK.learn[p.id]) return; TK.learn[p.id] = 1;
+  const d2 = prToday(), d1 = typeof rsDay === "function" ? rsDay(d2, -30) : d2;
+  try { const [a, c] = await Promise.all([sb.rpc("track_summary", {p:p.id, d1, d2}), sb.rpc("ad_summary", {p:p.id, d1, d2})]); if (a.error) throw new Error(a.error.message);
+    const byName = {}; (c.data || []).forEach(o => { const f = fxFunnel(p, {id:o.campaign_id, f:o.funnel_id || "", name:o.campaign_name}); if (f && o.campaign_name) byName[fxKey(o.campaign_name)] = f; });
+    const pages = {}, votes = {};
+    (a.data || []).forEach(r => { const k = trPK(r.host, r.path), g = pages[k] = pages[k] || {k, host:r.host, path:r.path, views:0, leads:0, thx:false, lp:{}, code:""};
+      if (r.kind === "view") g.views += +r.people; else if (r.kind === "lead") g.leads += +r.people;
+      if (r.lp_host) { g.thx = true; const lk = trPK(r.lp_host, r.lp_path); g.lp[lk] = (g.lp[lk] || 0) + +r.people; }
+      if (r.funnel_id) g.code = r.funnel_id;
+      if (r.kind === "view" && !r.lp_host && !r.funnel_id && r.utm_campaign) { const f = byName[fxKey(r.utm_campaign)] || (typeof fxByName === "function" ? fxByName(p, r.utm_campaign) : ""); if (f) { const v = votes[k] = votes[k] || {}; v[f] = (v[f] || 0) + +r.people; } } });
+    p.trPages = p.trPages || {}; let ch = false;
+    Object.keys(votes).forEach(k => { const m = p.trPages[k]; if (m && !m.auto) return; const v = votes[k], tot = Object.values(v).reduce((x, y) => x + y, 0), top = Object.keys(v).sort((x, y) => v[y] - v[x])[0];
+      if (tot >= 10 && v[top] / tot >= 0.7) { if (!m || m.f !== top) { p.trPages[k] = {f:top, auto:1}; ch = true; } } });
+    if (ch) save();
+    TK.pages[p.id] = Object.values(pages).sort((x, y) => (y.views + y.leads) - (x.views + x.leads)); }
+  catch (e) { TK.pages[p.id] = {err:String(e.message || e)}; }
+  render(); }
+const trThxF = (p, g) => { const top = Object.keys(g.lp || {}).sort((x, y) => g.lp[y] - g.lp[x])[0]; if (!top) return ""; const i = top.indexOf("/"); return trPageF(p, top.slice(0, i), top.slice(i)); };
+function trPagesBox(p){ const ps = TK.pages[p.id]; if (!ps) { if (!TK.learn[p.id]) setTimeout(() => trLearn(p), 0); return ""; } if (ps.err || !ps.length) return "";
+  const how = g => { const m = (p.trPages || {})[g.k]; if (g.code) return L("код воронки","код воронки"); if (m && m.f) return m.auto ? L("за рекламою — поставили самі","по рекламе — поставили сами") : L("вручну","вручную");
+    if (g.thx) { const top = Object.keys(g.lp).sort((x, y) => g.lp[y] - g.lp[x])[0]; return L("«Дякуємо» — з лендингу ","«Спасибо» — с лендинга ") + (top || ""); } return trPageF(p, g.host, g.path) ? L("з «Лендингів» воронки","из «Лендингов» воронки") : L("не визначено","не определено"); };
+  const fOf = g => g.code || trPageF(p, g.host, g.path) || (g.thx ? "" : "");
+  return `<div class="trp"><span class="tag">${L("Сторінки сайту","Страницы сайта")} · 30 ${L("дн.","дн.")}</span>${hint(L("Платформа сама визначає воронку сторінки за рекламою, з якої на неї приходять люди (правила акаунтів). Сторінка «Дякуємо» бере воронку з лендингу, з якого прийшла людина. Можна змінити вручну.","Платформа сама определяет воронку страницы по рекламе, с которой на неё приходят люди (правила аккаунтов). Страница «Спасибо» берёт воронку с лендинга, с которого пришёл человек. Можно изменить вручную."), "wide")}
+    <div class="tw tw--in"><table><thead><tr><th>${L("Сторінка","Страница")}</th><th class="n">${L("Відвідувачі","Посетители")}</th><th class="n">${L("Ліди","Лиды")}</th><th>${L("Воронка","Воронка")}</th></tr></thead><tbody>
+    ${ps.slice(0, 15).map(g => `<tr><td class="mono">${esc(g.host + g.path)}${g.thx ? " " + pill("mute", L("дякуємо","спасибо")) : ""}</td><td class="n mono">${num(g.views)}</td><td class="n mono">${num(g.leads)}</td><td>${g.code || g.thx ? `<span class="sub">${esc((p.funnels.find(f => f.id === (g.code || trThxF(p, g))) || {}).name || L("не визначено","не определено"))}</span> <small class="sub">${esc(how(g))}</small>` : `<select data-trp="${esc(g.k)}" aria-label="${L("Воронка сторінки","Воронка страницы")}"><option value="">— ${L("не визначено","не определено")} —</option>${p.funnels.map(f => `<option value="${f.id}"${fOf(g) === f.id ? " selected" : ""}>${esc(f.name)}</option>`).join("")}</select> <small class="sub">${esc(how(g))}</small>`}</td></tr>`).join("")}</tbody></table></div></div>`; }
+document.addEventListener("change", e => { const t = e.target; if (!t.dataset || !t.dataset.trp) return; const p = P(); if (!p) return; p.trPages = p.trPages || {};
+  if (t.value) p.trPages[t.dataset.trp] = {f:t.value, auto:0}; else p.trPages[t.dataset.trp] = {f:"", auto:0}; save(); render(); });
 const trMine = (r, f, p) => trFunnelOf(r, p) === f.id;
 async function trRep(p, f){ const k = f.id; if (TK.repBusy[k]) return; TK.repBusy[k] = true;
   const r = typeof prRange === "function" ? prRange() : {d1:prToday(), d2:prToday()};

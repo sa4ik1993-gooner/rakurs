@@ -2,6 +2,8 @@
    <script async src="https://…/t.js" data-k="hr_КЛЮЧ_ПРОЕКТА" data-f="ID_ВОРОНКИ"></script>
    data-k — ключ проекта (школы, компании), data-f — воронка (необязательно: без него воронку определит кабинет по адресу страницы).
    data-consent="1" — ничего не сохранять и не отправлять, пока сайт не вызовет heyrow.consent() (баннер согласия, ЕС).
+   data-t="thanks" — страница «Спасибо за заявку» (считается лидом), data-t="pay" — «Спасибо за оплату» (не лид). Без атрибута «Спасибо»
+   узнаётся по адресу (thank, spasibo, dyakuyu, success…). Воронку и рекламу такая страница берёт с лендинга, с которого пришёл человек.
    Что делает:
    1) запоминает в браузере, с какой рекламы пришёл человек (UTM, id клика Facebook/Google/TikTok, id объявления) — первое и последнее касание, 90 дней;
    2) отправляет «просмотр» страницы;
@@ -16,6 +18,7 @@
   var END = me.getAttribute("data-e") || "https://otmvxtdhaqodkmizutbo.supabase.co/functions/v1/track";
   if (!/^hr_[a-z0-9]{8,24}$/.test(K)) return;
   var DAY = 864e5, TTL = 90 * DAY, ok = !WAIT, sent = {};
+  var TA = me.getAttribute("data-t") || "", THX = TA === "thanks" || TA === "pay" || (!TA && /(^|[\/_-])(thank|thanks|thank-?you|spasibo|spasybi|dyakuyu|dyakuiemo|diakuiemo|success|tnx|danke|merci|gracias|obrigado)([\/_.-]|$)/i.test(location.pathname));
 
   function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { return null; } }
   function ck(k, v) { try { if (v === undefined) { var m = document.cookie.match(new RegExp("(?:^|; )" + k + "=([^;]*)")); return m ? decodeURIComponent(m[1]) : null; }
@@ -40,15 +43,19 @@
     if (ok) { var j = JSON.stringify(st); ls("hr_t", j); ck("hr_t", j); }
     return st;
   }
-  var V = "", T = {};
-  function start() { V = vid(); T = touch(); send("view"); }
+  var V = "", T = {}, LP = null;
+  /* последний лендинг (не «Спасибо»): с него страница «Спасибо» берёт воронку — 6 часов */
+  function lpRead() { try { var x = JSON.parse(ls("hr_lp") || "null"); return x && Date.now() - x.at < 6 * 36e5 ? x : null; } catch (e) { return null; } }
+  function start() { V = vid(); T = touch(); LP = lpRead();
+    if (!THX) { LP = null; ls("hr_lp", JSON.stringify({h: location.hostname, p: location.pathname, f: F, at: Date.now()})); }
+    send("view"); if (THX && TA !== "pay") send("lead", {fm: "thanks"}); }
 
   function send(kind, x) {
     if (!ok) return; x = x || {};
     var l = T.l || {}, f = T.f || {}, ref = "";
     try { ref = document.referrer ? new URL(document.referrer).hostname : ""; } catch (e) { ref = ""; }
     if (ref === location.hostname) ref = "";
-    var b = {action: "e", k: K, t: kind, v: V, f: F, h: location.hostname, p: location.pathname, r: ref,
+    var b = {action: "e", k: K, t: kind, v: V, f: F || (LP && LP.f) || "", h: location.hostname, p: location.pathname, r: ref, lp: LP ? {h: LP.h, p: LP.p} : null,
       q: {s: l.s, m: l.m, c: l.c, n: l.n, tm: l.tm, click: l.click, ad: l.ad}, ft: {s: f.s, c: f.c, n: f.n, at: f.at},
       ch: x.ch || "", a: x.a || 0, cu: x.cu || "", fm: x.fm || ""};
     var body = JSON.stringify(b);
