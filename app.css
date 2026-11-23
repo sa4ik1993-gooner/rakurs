@@ -804,3 +804,6 @@ body.has-tabbar .only-m{display:flex}
 .tsc .tss li.ok{opacity:.55;text-decoration:line-through}.tsc .tss li.now{font-weight:600}.tsc .tss li .row{display:inline-flex;gap:6px;margin-left:6px;vertical-align:middle}
 .tsc .tss .mono{color:var(--muted);margin-right:4px}
 .mpop__in .tsk{margin-bottom:12px}
+
+.tso{border:1px solid var(--line);background:color-mix(in srgb,var(--good) 6%,transparent);padding:10px 12px;margin:6px 0 12px}
+.tso .tsoc{display:flex;flex-direction:column;gap:6px;padding:10px 0;border-top:1px solid var(--line);font-size:13.5px}.tso .tsoc:first-of-type{border-top:0}
