@@ -202,7 +202,7 @@ funnel(f){
     <div class="panel"><span class="tag">${L("Режим автономії","Режим автономии")}</span>
       <div class="seg" role="group">${["adv","btn","auto"].map(m=>`<button type="button" data-act="mode" data-id="${f.id}" data-v="${m}" aria-pressed="${f.mode===m}" ${S.frozen&&m==="auto"?"disabled":""}>${modeName(m)}</button>`).join("")}</div>
       <p class="sub">${{adv:L("Бот тільки радить. Усе робить людина.","Бот только советует. Всё делает человек."),btn:L("Бот готує дію і виконує після підтвердження.","Бот готовит действие и выполняет после подтверждения."),auto:L("Бот діє сам у коридорі нижче. Вихід за коридор повертає до кнопки.","Бот действует сам в коридоре ниже. Выход за коридор возвращает к кнопке.")}[f.mode]}</p>
-      <dl class="kv"><dt>${L("Стеля ціни ліда","Потолок цены лида")}</dt><dd class="mono">${dec(f.cap)} $</dd><dt>${L("Денний ліміт","Дневной лимит")}</dt><dd class="mono">${f.limit} $</dd><dt>${L("Крок бюджету","Шаг бюджета")}</dt><dd class="mono">${L("до 30%, кулдаун 24 год","до 30%, кулдаун 24 ч")}</dd></dl>
+      <dl class="kv"><dt>${L("Стеля ціни ліда","Потолок цены лида")}</dt><dd class="mono">${dec(f.cap)} $</dd><dt>${L("Денний ліміт","Дневной лимит")}</dt><dd class="mono">${f.limit} $</dd><dt>${L("Крок бюджету","Шаг бюджета")}</dt><dd class="nm">${L("до 30%, кулдаун 24 год","до 30%, кулдаун 24 ч")}</dd></dl>
     </div>
     <div class="panel"><span class="tag">${L("Офер","Оффер")}</span>
       <dl class="kv"><dt>${L("Продукт","Продукт")}</dt><dd>${L("Курс 3D-візуалізації","Курс 3D-визуализации")}</dd><dt>${L("Ціна","Цена")}</dt><dd>$680</dd>
@@ -340,7 +340,7 @@ function drawerLaunch(l){
     <div class="row">${st(l.st)}</div>
     <div class="panel"><span class="tag">${L("Налаштування","Настройки")}</span>
       <dl class="kv"><dt>${L("Ціль","Цель")}</dt><dd>${L("Ліди, подія «реєстрація»","Лиды, событие «регистрация»")}</dd><dt>${L("Гео і вік","Гео и возраст")}</dt><dd>${l.n.includes("_PL_")?L("Польща","Польша"):L("Україна","Украина")}, 25–54</dd>
-      <dt>${L("Бюджет","Бюджет")}</dt><dd class="mono">${l.bud} $ ${L("на день","в день")}</dd><dt>${L("Старт","Старт")}</dt><dd class="mono">${L("00:40 за Києвом","00:40 по Киеву")}</dd>
+      <dt>${L("Бюджет","Бюджет")}</dt><dd class="mono">${l.bud} $ ${L("на день","в день")}</dd><dt>${L("Старт","Старт")}</dt><dd class="nm">${L("00:40 за Києвом","00:40 по Киеву")}</dd>
       <dt>UTM</dt><dd class="mono">utm_campaign={{campaign.name}}&amp;utm_content={{ad.name}}&amp;utm_term={{adset.name}}</dd></dl></div>
     <div class="panel"><span class="tag">${L("Структура","Структура")}</span>
       <div class="tree"><b>${l.n}</b>${fams.map(f=>`<div>${L("група","группа")} ${f.id} · ${Math.round(l.bud/fams.length)} $<div>${f.id}_v${f.v}</div></div>`).join("")}</div></div>

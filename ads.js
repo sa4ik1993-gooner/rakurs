@@ -41,7 +41,7 @@ function adCard(p, prov, hintText){ const k = adK(p, prov), st = AD.st[k], a = (
     <div class="row"><button class="btn btn--sm btn--solid" data-act="adSave" data-id="${p.id}" data-v="${prov}"${busy || !(AD.pick[k] || []).length ? " disabled" : ""}>${L("Зберегти й завантажити 30 днів","Сохранить и загрузить 30 дней")}</button><button class="btn btn--sm" data-act="adPickClose" data-id="${p.id}" data-v="${prov}">${L("Скасувати","Отмена")}</button></div>`;
   if (st.connected) { const accs = (a && a.accounts) || [];
     return `${accs.length ? `<ul class="adl">${accs.map(x => `<li><b>${esc(x.name)}</b> <small class="sub mono">${esc(x.id)}${x.currency ? " · " + esc(x.currency) : ""}</small></li>`).join("")}</ul>` : `<p class="sub">${L("Кабінет підключено. Обери акаунти проєкту.","Кабинет подключён. Выбери аккаунты проекта.")}</p>`}
-      ${a && a.synced ? `<small class="sub mono">${L("оновлено: ","обновлено: ")}${esc(fxWhen(a.synced))}</small>` : ""}
+      ${a && a.synced ? `<small class="sub">${L("оновлено: ","обновлено: ")}${esc(fxWhen(a.synced))}</small>` : ""}
       <div class="row">${accs.length ? `<button class="btn btn--sm btn--solid" data-act="adSync" data-id="${p.id}" data-v="${prov}"${busy}>${AD.busy[k] ? L("Завантажуємо…","Загружаем…") : L("Оновити дані","Обновить данные")}</button>` : ""}
         <button class="btn btn--sm${accs.length ? "" : " btn--solid"}" data-act="adPick" data-id="${p.id}" data-v="${prov}"${busy}>${L("Акаунти","Аккаунты")}</button>
         <button class="btn btn--sm" data-act="adOff" data-id="${p.id}" data-v="${prov}"${busy}>${AD.sure[k] ? L("Точно відключити?","Точно отключить?") : L("Відключити","Отключить")}</button></div>`; }

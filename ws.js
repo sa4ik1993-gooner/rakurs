@@ -50,14 +50,14 @@ const skelCab = () => `<div class="skel" role="status"><span class="skel__note">
 /* пустой экран (DESIGN.md п. 6, 12): маленький — аватар Хиро empty; большой — Хиро в полный рост 220px, одна фраза, одна главная кнопка */
 const empty = (t, s, btn, big) => big ? `<div class="empty"><img class="hiro3d" src="ui/hiro3d/empty.webp" alt="" width="220" height="220"><h2>${t}</h2><p class="sub">${s}</p>${btn ? `<div class="row">${btn}</div>` : ""}</div>`
   : `<div class="empty empty--sm"><img class="hava hava--48" src="ui/hiro/empty.webp" alt="" width="48" height="48"><div><b>${t}</b> <span class="sub">${s}</span>${btn ? `<div class="row">${btn}</div>` : ""}</div></div>`;
-const del = (act, id) => `<button type="button" class="x x--sm" data-act="${act}" data-id="${id}" aria-label="delete">${ico("close")}</button>`;
+const del = (act, id) => `<button type="button" class="x x--sm x--del" data-act="${act}" data-id="${id}" aria-label="${L("Видалити","Удалить")}" title="${L("Видалити","Удалить")}">${ico("trash")}</button>`;
 /* Удаление проекта и воронки — в два нажатия: первое спрашивает, второе (в течение 6 секунд) удаляет.
    Файлы удалённого стираются из хранилища, изменение уходит на сервер сразу, без обычной паузы. */
 const DELQ = {k:"", t:0, h:0};
 const delOn = k => DELQ.k === k && Date.now() - DELQ.t < 6000;
 function delAsk(k){ if (delOn(k)) { DELQ.k = ""; clearTimeout(DELQ.h); return true; } DELQ.k = k; DELQ.t = Date.now(); clearTimeout(DELQ.h); DELQ.h = setTimeout(() => { if (DELQ.k === k) { DELQ.k = ""; render(); } }, 6000); return false; }
 const delSure = (act, id, k, text, extra = "") => `<button type="button" class="btn btn--sm${delOn(k) ? " btn--del" : ""}" data-act="${act}" data-id="${id}"${extra}>${delOn(k) ? L("Точно видалити?","Точно удалить?") : text}</button>`;
-const del2 = (act, id, k, extra = "") => delOn(k) ? delSure(act, id, k, "", extra) : `<button type="button" class="x x--sm" data-act="${act}" data-id="${id}"${extra} aria-label="${L("Видалити","Удалить")}">${ico("close")}</button>`;
+const del2 = (act, id, k, extra = "") => delOn(k) ? delSure(act, id, k, "", extra) : `<button type="button" class="x x--sm x--del" data-act="${act}" data-id="${id}"${extra} aria-label="${L("Видалити","Удалить")}" title="${L("Видалити","Удалить")}">${ico("trash")}</button>`;
 function storedPaths(o, out = []){ if (o && typeof o === "object") for (const [k, v] of Object.entries(o)) { if ((k === "path" || k === "p") && typeof v === "string" && W.co && W.co.id && v.indexOf(W.co.id + "/") === 0) out.push(v); else storedPaths(v, out); } return out; }
 function saveNow(){ save(); if (CLOUD && typeof cloudSync === "function") { clearTimeout(CL.timer); cloudSync(); } }
 const PATHS = () => ({web:L("реклама → лендинг → вебінар → бронь → оплата","реклама → лендинг → вебинар → бронь → оплата"),call:L("реклама → лендинг → заявка → дзвінок → оплата","реклама → лендинг → заявка → звонок → оплата"),site:L("реклама → лендинг → оплата","реклама → лендинг → оплата")});
@@ -199,7 +199,7 @@ function vCompany(){ if (!todayBoot && W.co) { todayBoot = true; if (W.ctab === 
       return `<div class="c2"><div class="panel"><span class="tag">${L("Про тебе","О тебя")}</span>
           <div class="form"><div class="field w"><label for="me-name">${L("Ім’я","Имя")}</label><input id="me-name" data-me="name" value="${esc(ME.name)}" autocomplete="name"></div>
             <div class="field w"><label for="me-title">${L("Посада або роль у команді","Должность или роль в команде")}</label><input id="me-title" data-me="title" value="${esc(ME.title)}" placeholder="${L("таргетолог, маркетолог, власник","таргетолог, маркетолог, собственник")}"></div></div>
-          <dl class="kv"><dt>${L("Вхід","Вход")}</dt><dd>${u.via==="tg"?"Telegram":L("Пошта","Почта")} · <span class="mono">${esc(u.name || u.id)}</span></dd>${TG()&&u.via!=="tg"?`<dt>Telegram</dt><dd>${CL.tg?esc(CL.tg.username||CL.tg.name||""):`<button class="btn btn--sm" data-act="wsTgLink">${L("Прив’язати","Привязать")}</button>`}</dd>`:""}${CLOUD?`<dt>${L("Роль у компанії","Роль в компании")}</dt><dd>${ROLES()[CL.role]||"—"}</dd>`:""}</dl>
+          <dl class="kv"><dt>${L("Вхід","Вход")}</dt><dd>${u.via==="tg"?"Telegram":L("Пошта","Почта")} · <span class="nm">${esc(u.name || u.id)}</span></dd>${TG()&&u.via!=="tg"?`<dt>Telegram</dt><dd>${CL.tg?esc(CL.tg.username||CL.tg.name||""):`<button class="btn btn--sm" data-act="wsTgLink">${L("Прив’язати","Привязать")}</button>`}</dd>`:""}${CLOUD?`<dt>${L("Роль у компанії","Роль в компании")}</dt><dd>${ROLES()[CL.role]||"—"}</dd>`:""}</dl>
           <div class="row"><button class="btn" data-act="wsLogout">${L("Вийти","Выйти")}</button></div></div>
         <div class="panel"><span class="tag">${L("Особисті налаштування","Личные настройки")} </span>
           <dl class="kv kv--set"><dt>${L("Мова","Язык")}</dt><dd><span class="lang" role="group"><button type="button" data-lang="uk" aria-pressed="${lang==="uk"}">UA</button><button type="button" data-lang="ru" aria-pressed="${lang==="ru"}">RU</button></span></dd>
