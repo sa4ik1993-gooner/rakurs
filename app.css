@@ -923,3 +923,87 @@ h1{font-weight:800;font-size:30px;letter-spacing:-.02em}
 .ws,.rail__foot button{border-radius:var(--r)}
 .navg a b{border-radius:999px;font-family:var(--f-body)}
 .map__heads{font-family:var(--f-body);letter-spacing:.05em}
+
+/* ===== Цвет и иерархия (23.11.2026): меньше серых рамок, у каждого уровня свой цвет ===== */
+:root{--lv0:#0D1424;--lv1:#4F46E5;--lv2:#FF5A1F;--lv3:#0E9AA7;--lv4:#7C3AED;--lv5:#64748B;--c-spend:#2F6FDB;--c-leads:#7C3AED;--c-cpl:#FF5A1F;--c-ctr:#0E9AA7;--c-pay:#1FC28B}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--lv0:#EEF1F7;--lv1:#8B85FF;--lv3:#38C6CF;--lv4:#A78BFA;--lv5:#94A3B8}}
+:root[data-theme="dark"]{--lv0:#EEF1F7;--lv1:#8B85FF;--lv3:#38C6CF;--lv4:#A78BFA;--lv5:#94A3B8}
+/* без серых обводок: мягкие заливки «Туман» */
+.btn{border-color:transparent;background:color-mix(in srgb,var(--ink) 6%,var(--surface))}
+.btn:hover{border-color:transparent;background:color-mix(in srgb,var(--ink) 11%,var(--surface))}
+.btn--solid,.btn--solid:hover{border-color:transparent}
+.seg{border-color:transparent;background:color-mix(in srgb,var(--ink) 6%,var(--surface))}
+.opt{border-color:transparent;background:color-mix(in srgb,var(--ink) 5%,var(--surface))}
+.opt:hover{background:color-mix(in srgb,var(--ink) 10%,var(--surface))}
+.opt[aria-pressed="true"]{background:var(--ink);color:var(--on-ink);box-shadow:none}
+.field input,.field select,.field textarea,:where(.phr,.rkf,.rkr,.tsk,.ar,.trp,.trh,.tsw,.rk) :is(select,input:not([type=checkbox]):not([type=radio])),.pfsel{border-color:transparent;background:color-mix(in srgb,var(--ink) 5%,var(--surface))}
+.field input:focus,.field select:focus,.field textarea:focus{outline:2px solid var(--play);outline-offset:0;background:var(--surface)}
+.tw{border:0;border-radius:12px;background:var(--surface)}
+td{border-bottom-color:color-mix(in srgb,var(--line) 60%,transparent)}
+th{border-bottom:2px solid color-mix(in srgb,var(--ink) 10%,transparent)}
+/* заголовки блоков — контрастнее, с оранжевой точкой */
+.panel>.tag,.panel>.row>.tag,.panel>.row.sp>.tag,.fold>summary .tag{color:var(--ink);display:inline-flex;align-items:center;gap:8px}
+.panel>.tag::before,.panel>.row>.tag::before,.fold>summary .tag::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--play);flex:none}
+/* плитки показателей: цвет по смыслу */
+.kpis{gap:8px;background:transparent;border:0;overflow:visible}
+.kpi{border-radius:12px;background:color-mix(in srgb,var(--k,var(--ink)) 7%,var(--surface));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--k,var(--ink)) 12%,transparent)}
+.kpi>.tag:first-child,.kpi>span:first-child{color:var(--k,var(--muted))}
+.kpis>.kpi:nth-child(1){--k:var(--c-spend)}.kpis>.kpi:nth-child(2){--k:var(--c-leads)}.kpis>.kpi:nth-child(3){--k:var(--c-cpl)}.kpis>.kpi:nth-child(4){--k:var(--c-ctr)}.kpis>.kpi:nth-child(5){--k:var(--c-pay)}
+/* акцентные блоки */
+.plt{background:linear-gradient(180deg,color-mix(in srgb,var(--play) 8%,var(--surface)) 0,var(--surface) 120px)}
+.plt::before,.tsk::before{content:"";position:absolute;left:16px;right:16px;top:0;height:3px;border-radius:0 0 3px 3px;background:var(--play)}
+.tsk::before{background:var(--lv1)}
+.prv>li{border-radius:12px}
+/* карточки карты: цвет уровня полосой сверху */
+.nd{border:0;position:relative;overflow:hidden}
+.nd::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--lvc,var(--line))}
+.nd--l0{--lvc:var(--play)}.nd--l1{--lvc:var(--lv1)}.nd--l2{--lvc:var(--lv2)}.nd--l3{--lvc:var(--lv3)}.nd--l4{--lvc:var(--lv4)}.nd--l5{--lvc:var(--lv5)}
+.nd--add,.nd--more,.nd--fold{background:color-mix(in srgb,var(--ink) 4%,transparent);box-shadow:none}
+.nd--add::before,.nd--more::before,.nd--fold::before{display:none}
+/* значок уровня */
+.lvb{display:inline-flex;align-items:center;padding:2px 7px;border-radius:999px;font:700 9.5px/1.2 var(--f-body)!important;letter-spacing:.06em;text-transform:uppercase;color:#fff!important;background:var(--lvc,var(--lv5))}
+.lvb--0{--lvc:var(--lv0)}.lvb--1{--lvc:var(--lv1)}.lvb--2{--lvc:var(--lv2)}.lvb--3{--lvc:var(--lv3)}.lvb--4{--lvc:var(--lv4)}.lvb--5{--lvc:var(--lv5)}
+:root[data-theme="dark"] .lvb--0{color:#0D1424!important}
+/* список: дерево с цветными направляющими, верхние уровни — заголовками */
+.ml{border:0;background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--sh);padding:6px 0;overflow:hidden}
+.ml ul ul{margin-left:22px;border-left:2px solid color-mix(in srgb,var(--lvp,var(--line)) 35%,transparent)}
+.ml li.lvl0>ul{--lvp:var(--lv1)}.ml li.lvl1>ul{--lvp:var(--lv2)}.ml li.lvl2>ul{--lvp:var(--lv3)}.ml li.lvl3>ul{--lvp:var(--lv4)}.ml li.lvl4>ul{--lvp:var(--lv5)}
+.ml .mlr{padding-left:12px!important;border-bottom:0;border-radius:10px;margin:2px 8px}
+.ml li>.mlr{padding-left:12px!important}
+.ml .mlr:hover{background:color-mix(in srgb,var(--ink) 4%,transparent)}
+.ml .mlr--l0 .mln b{font:800 16px/1.2 var(--f-display)}.ml .mlr--l1 .mln b{font:700 15px/1.25 var(--f-display)}.ml .mlr--l2 .mln b{font-size:15px;font-weight:700}
+.ml .mlr--l0{background:color-mix(in srgb,var(--lv0) 6%,transparent)}.ml .mlr--l1{background:color-mix(in srgb,var(--lv1) 6%,transparent)}.ml .mlr--l2{background:color-mix(in srgb,var(--lv2) 6%,transparent)}
+.ml .mlr--l4 .mln b,.ml .mlr--l5 .mln b{font-weight:600}.ml .mlr--l5 .mln b{font-family:var(--f-mono);font-size:12.5px}
+.ml .mlr.sel{background:color-mix(in srgb,var(--play) 12%,transparent)}
+/* таблица: строки верхних уровней — как заголовки разделов */
+.mtb tr.mtr--l0 td{background:color-mix(in srgb,var(--lv0) 7%,var(--surface));font-weight:700}
+.mtb tr.mtr--l1 td{background:color-mix(in srgb,var(--lv1) 6%,var(--surface));font-weight:700}
+.mtb tr.mtr--l2 td{background:color-mix(in srgb,var(--lv2) 6%,var(--surface));font-weight:600}
+.mtb tr.mtr--l3 td{background:color-mix(in srgb,var(--lv3) 5%,var(--surface))}
+.mtb tr.mtr--l0 .mln b,.mtb tr.mtr--l1 .mln b{font-family:var(--f-display)}
+.mtb .mtn{position:relative}
+.mtb .mtn::before{content:"";position:absolute;left:calc(var(--d) * 18px - 10px);top:-12px;bottom:50%;width:8px;border-left:2px solid color-mix(in srgb,var(--ink) 15%,transparent);border-bottom:2px solid color-mix(in srgb,var(--ink) 15%,transparent);border-bottom-left-radius:6px}
+.mtb tr.mtr--l0 .mtn::before{display:none}
+/* канбан вертикально: сверху вниз, уровни строками */
+.mdir{margin-left:6px}.mdir button{font-size:15px;padding:4px 10px}
+.map--vert .map__heads{display:none}
+.map--vert .mt,.map--vert .mt ul{flex-direction:row;align-items:flex-start;gap:14px}
+.map--vert .mt li{flex-direction:column;align-items:center;padding-top:22px}
+.map--vert .mt>li{padding-top:0}
+.map--vert .mt ul{margin:0;padding-top:0;position:relative}
+.map--vert .mt li>ul{margin-top:22px}
+.map--vert .mt ul::before{left:50%;top:-22px;width:0;height:22px;border-top:0;border-left:1.5px solid var(--line)}
+.map--vert .mt ul>li::before{left:-7px;right:-7px;top:0;width:auto;border-top:1.5px solid var(--line)}
+.map--vert .mt ul>li:first-child::before{left:50%}
+.map--vert .mt ul>li:last-child::before{right:50%}
+.map--vert .mt ul>li:only-child::before{left:50%;right:auto;width:0}
+.map--vert .mt ul>li::after{left:50%;top:0;bottom:auto;height:22px;border-left:1.5px solid var(--line)}
+.map--vert .mt ul>li:first-child::after,.map--vert .mt ul>li:last-child::after{top:0;bottom:auto}
+.map--vert .mt ul>li:only-child::after{display:block}
+.map--vert .mt li>.fold{left:50%;top:auto;bottom:auto;transform:translate(-50%,-50%) rotate(-90deg);position:relative;margin-top:-2px}
+.map--vert .mt li>.hide{left:auto;right:4px}
+.mtb .mtn{min-width:340px}.mtb .mln{flex-wrap:nowrap;align-items:center;gap:8px}.mtb .mln b{white-space:nowrap}
+.mtb .mln .sub{font-size:12px;font-weight:400;font-family:var(--f-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px}
+.mtb td{padding-top:9px;padding-bottom:9px}
+.btn.btn--solid{background:var(--play);color:var(--on-play);border-color:transparent}.btn.btn--solid:hover{background:#E84E16}.btn.btn--solid[disabled]{opacity:.55}
+.prv>li{border-top-color:transparent!important;border-right-color:transparent!important;border-bottom-color:transparent!important;background:color-mix(in srgb,var(--ink) 3%,var(--surface))}.prv>li.prv--crit{background:color-mix(in srgb,var(--play) 6%,var(--surface))}.prv>li.prv--warn{background:color-mix(in srgb,#E6B400 8%,var(--surface))}

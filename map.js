@@ -223,9 +223,10 @@ function mapDemoInfo(){
 }
 /* Виды карты: канбан (дерево карточек слева направо), список (дерево вниз с раскрытием), таблица (все уровни строками).
    Нажатие на карточку/строку открывает окно с настройками и выводами — не нужно листать вниз. Вид запоминается в браузере. */
+MP.dir = (() => { try { return localStorage.getItem("rakurs_map_dir") === "v" ? "v" : "h"; } catch (e) { return "h"; } })();
 MP.view = (() => { try { const v = localStorage.getItem("rakurs_map_view"); return ["board", "list", "table"].includes(v) ? v : "board"; } catch (e) { return "board"; } })();
 const MAP_VIEWS = () => [["board", L("Канбан","Канбан")], ["list", L("Список","Список")], ["table", L("Таблиця","Таблица")]];
-const mapViewSw = () => `<span class="seg mvs" role="group" aria-label="${L("Вигляд карти","Вид карты")}">${MAP_VIEWS().map(v => `<button type="button" data-act="mapView" data-v="${v[0]}" aria-pressed="${MP.view === v[0]}">${v[1]}</button>`).join("")}</span>`;
+const mapViewSw = () => `<span class="seg mvs" role="group" aria-label="${L("Вигляд карти","Вид карты")}">${MAP_VIEWS().map(v => `<button type="button" data-act="mapView" data-v="${v[0]}" aria-pressed="${MP.view === v[0]}">${v[1]}</button>`).join("")}</span>${MP.view === "board" ? `<span class="seg mdir" role="group" aria-label="${L("Напрямок канбану","Направление канбана")}"><button type="button" data-act="mapDir" data-v="h" aria-pressed="${MP.dir !== "v"}" title="${L("Горизонтально","Горизонтально")}">⇢</button><button type="button" data-act="mapDir" data-v="v" aria-pressed="${MP.dir === "v"}" title="${L("Вертикально","Вертикально")}">⇣</button></span>` : ""}`;
 const mapKids = n => (n.kids || []).filter(x => !mapHidden(x) && !x.ghost);
 const mapOpen = n => !n.can || !n.fold;
 const mapTog = n => n.can ? `<button type="button" class="mlt" data-act="mapFold" data-on="${n.fold ? 1 : 0}" data-k="${esc(n.k)}" aria-expanded="${!n.fold}" aria-label="${n.fold ? L("Розгорнути: ","Развернуть: ") : L("Згорнути: ","Свернуть: ")}${esc(n.t)}">${n.fold ? "▸" : "▾"}</button>` : `<span class="mlt" aria-hidden="true"></span>`;
@@ -235,7 +236,7 @@ function mapLi(n, sel, d){ if (mapHidden(n) || n.ghost) return "";
   if (n.add) return `<li style="--d:${d}"><div class="mlr mlr--add"><span class="mlt"></span><button type="button" class="mln" data-act="mapAdd" data-k="${esc(n.k)}" data-what="${n.add}">+ ${esc(n.t)}</button></div></li>`;
   if (n.more) return `<li style="--d:${d}"><div class="mlr"><span class="mlt"></span><button type="button" class="mln" data-act="mapSel" data-k="${esc(n.k)}"><b>${esc(n.t)}</b></button></div></li>`;
   const lv = LEVELS()[n.lv] || [""], kids = mapKids(n);
-  return `<li style="--d:${d}"><div class="mlr${n.k === sel ? " sel" : ""}${n.v ? " mlr--v-" + n.v : ""}">${mapTog(n)}<button type="button" class="mln" data-act="mapSel" data-k="${esc(n.k)}" aria-pressed="${n.k === sel}"><small class="lv">${lv[0]}</small><b>${n.ic ? chIcon(n.ic) : ""}${esc(n.t)}</b>${n.s ? `<span class="sub">${esc(n.s)}</span>` : ""}</button><span class="mlk">${mapKpiTxt(n)}</span>${n.m ? `<em>${esc(n.m)}</em>` : ""}</div>
+  return `<li style="--d:${d}" class="lvl${n.lv}"><div class="mlr mlr--l${n.lv}${n.k === sel ? " sel" : ""}${n.v ? " mlr--v-" + n.v : ""}">${mapTog(n)}<button type="button" class="mln" data-act="mapSel" data-k="${esc(n.k)}" aria-pressed="${n.k === sel}"><small class="lv lvb lvb--${n.lv}">${lv[0]}</small><b>${n.ic ? chIcon(n.ic) : ""}${esc(n.t)}</b>${n.s ? `<span class="sub">${esc(n.s)}</span>` : ""}</button><span class="mlk">${mapKpiTxt(n)}</span>${n.m ? `<em>${esc(n.m)}</em>` : ""}</div>
     ${mapOpen(n) && kids.length ? `<ul>${kids.map(x => mapLi(x, sel, d + 1)).join("")}</ul>` : ""}</li>`; }
 const mapList = (tree, sel) => `<div class="ml"><ul>${mapLi(tree, sel, 0)}</ul></div>`;
 /* таблица: все уровни строками, колонки — показатели карточек */
@@ -244,19 +245,20 @@ function mapTable(tree, sel){ const rows = [], cols = [];
   walk(tree, 0);
   return `<div class="tw mtb"><table><thead><tr><th>${L("Назва","Название")}</th>${cols.map(c => `<th class="n">${c}</th>`).join("")}<th>${L("Висновок","Вывод")}</th></tr></thead><tbody>
     ${rows.map(({n, d}) => { const kv = {}; (n.kpi || []).forEach(q => { kv[q[0]] = q[1]; }); const lv = LEVELS()[n.lv] || [""];
-      return `<tr class="${n.k === sel ? "sel" : ""}${n.v ? " mtr--v-" + n.v : ""}"><td><div class="mtn" style="--d:${d}">${mapTog(n)}<button type="button" class="mln" data-act="mapSel" data-k="${esc(n.k)}"><small class="lv">${lv[0]}</small> <b>${n.ic ? chIcon(n.ic) : ""}${esc(n.t)}</b>${!n.kpi && n.fx ? ` <span class="sub">${esc(n.fx)}</span>` : ""}</button></div></td>${cols.map(c => `<td class="n mono">${kv[c] != null ? kv[c] : ""}</td>`).join("")}<td>${n.m ? `<em class="mte">${esc(n.m)}</em>` : ""}</td></tr>`; }).join("")}</tbody></table></div>`; }
+      return `<tr class="mtr--l${n.lv}${n.k === sel ? " sel" : ""}${n.v ? " mtr--v-" + n.v : ""}"><td><div class="mtn" style="--d:${d}">${mapTog(n)}<button type="button" class="mln" data-act="mapSel" data-k="${esc(n.k)}"><small class="lv lvb lvb--${n.lv}">${lv[0]}</small> <b>${n.ic ? chIcon(n.ic) : ""}${esc(n.t)}</b>${!n.kpi && n.fx ? ` <span class="sub">${esc(n.fx)}</span>` : ""}</button></div></td>${cols.map(c => `<td class="n mono">${kv[c] != null ? kv[c] : ""}</td>`).join("")}<td>${n.m ? `<em class="mte">${esc(n.m)}</em>` : ""}</td></tr>`; }).join("")}</tbody></table></div>`; }
 /* окно с настройками выбранной карточки */
 const mapPop = () => { if (!MP.sel) return ""; const body = mapInfo(); if (!body.trim()) return "";
   return `<div class="mpop" role="dialog" aria-modal="true" aria-label="${L("Деталі","Подробности")}"><button type="button" class="mpop__bg" data-act="mapClose" aria-label="${L("Закрити","Закрыть")}" tabindex="-1"></button><div class="mpop__in"><div class="mpop__bar"><button type="button" class="btn btn--sm" data-act="mapClose">${L("Закрити","Закрыть")} ✕</button></div>${typeof tsNode === "function" ? tsNode(MP.sel) : ""}${body}</div></div>`; };
 document.addEventListener("keydown", e => { if (e.key === "Escape" && MP.sel && document.querySelector(".mpop")) { MP.sel = null; render(); } });
 const vMap = () => { const t = mapTree(), s = MP.sel;
   const view = MP.view === "list" ? mapList(t, s) : MP.view === "table" ? mapTable(t, s) : mapBoard(t, s);
-  return `<div class="map map--${MP.view}">${mapBar()}${view}${s ? mapPop() : mapInfo()}</div>`; };
+  return `<div class="map map--${MP.view}${MP.view === "board" && MP.dir === "v" ? " map--vert" : ""}">${mapBar()}${view}${s ? mapPop() : mapInfo()}</div>`; };
 const vMapDemo = () => `<div class="map">${mapBoard(mapDemoTree(), MP.demo)}${mapDemoInfo()}</div>`;
 
 Object.assign(ACT, {
   mapSel(d){ const demo = !W.co, k = demo ? "demo" : "sel"; MP[k] = MP[k] === d.k ? null : d.k;
     setTimeout(() => { const e = [...document.querySelectorAll(".nd[data-k]")].find(x => x.dataset.k === d.k); if (e) e.focus({preventScroll:true}); }, 0); },
+  mapDir(d){ MP.dir = d.v === "v" ? "v" : "h"; try { localStorage.setItem("rakurs_map_dir", MP.dir); } catch (e) { /* */ } },
   mapView(d){ MP.view = d.v; try { localStorage.setItem("rakurs_map_view", d.v); } catch (e) { /* */ } },
   mapClose(){ const k = MP.sel; MP.sel = null; setTimeout(() => { const e = [...document.querySelectorAll("[data-act=mapSel]")].find(x => x.dataset.k === k); if (e) e.focus({preventScroll:true}); }, 0); },
   mapAdd(d){ const [, pid, fid] = d.k.split("/");
