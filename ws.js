@@ -461,6 +461,16 @@ function tabBar(){
   tb.innerHTML = [["today",L("Сьогодні","Сегодня")],["map",L("Карта","Карта")],["ads",L("Реклама","Реклама")],["projects",L("Проєкти","Проекты")],["set",L("Ще","Ещё")]].map(x =>
     `<button type="button" data-act="wsCtab" data-v="${x[0]}"${cur === x[0] ? ' aria-current="page"' : ""}>${ico(TBI[x[0]])}<span>${x[1]}</span></button>`).join("");
 }
+/* путь вверху: компания › раздел или проект › воронка › вкладка; каждый шаг кликабелен */
+function crumbs(p, f){ if (!W.co) return ""; const it = [], go = (t, attrs) => `<button type="button" class="crumb__a" ${attrs}>${esc(t)}</button>`;
+  const ctabs = {today:L("Сьогодні","Сегодня"), map:L("Карта","Карта"), ads:L("Реклама","Реклама"), projects:L("Проєкти","Проекты"), kb:L("База знань","База знаний"), team:L("Команда","Команда"), set:L("Налаштування компанії","Настройки компании"), me:L("Профіль","Профиль")};
+  it.push(go(W.co.name, 'data-act="wsCtab" data-v="today"'));
+  if (!p) { it.push(`<b>${esc(ctabs[W.ctab] || "")}</b>`); return it.join('<i aria-hidden="true">›</i>'); }
+  it.push(go(L("Проєкти","Проекты"), 'data-act="wsCtab" data-v="projects"'));
+  if (!f) { const t = (pChain(p).find(c => c[0] === W.tab) || [])[1]; it.push(go(p.name, `data-act="wsOpenP" data-id="${p.id}"`)); if (t) it.push(`<b>${esc(t)}</b>`); return it.join('<i aria-hidden="true">›</i>'); }
+  const ft = (FTABS().find(x => x[0] === ftNorm(W.ftab)) || [])[1];
+  it.push(go(p.name, `data-act="wsOpenP" data-id="${p.id}"`), go(L("Воронки","Воронки"), `data-act="wsTab" data-v="funnels"`), go(f.name, `data-act="wsOpenF" data-id="${f.id}"`)); if (ft) it.push(`<b>${esc(ft)}</b>`);
+  return it.join('<i aria-hidden="true">›</i>'); }
 function ownShell(){
   const p = P(), f = F(), nb = (act, v, t, on) => `<a role="button" tabindex="0" data-act="${act}" data-v="${v}" ${on?'aria-current="page"':""} title="${String(t).replace(/<[^>]+>.*$/, "").trim()}"><i class="nbi">${TBI[v] ? ico(TBI[v]) : ""}</i><span>${t}</span></a>`;
   $("rail").innerHTML = `<a class="logo" href="index.html">${brandLogo("rail")}</a>
@@ -470,7 +480,7 @@ function ownShell(){
     ${W.user&&f?`<nav class="navg"><span>${esc(f.name)}</span>${FTABS().map(c=>nb("wsFtab",c[0],c[1],ftNorm(W.ftab)===c[0])).join("")}</nav>`:""}
     <div class="rail__foot">${W.user&&W.co?`<button type="button" class="me me--btn" data-act="wsCtab" data-v="me"${!p&&W.ctab==="me"?' aria-current="page"':""} title="${L("Профіль","Профиль")}"><b>${esc(ME.name || W.user.name || W.user.id)}</b><small>${esc(ME.title || (ME.name ? W.user.name || W.user.id : L("профіль","профиль")))}</small></button>`:""}
       <div class="rail__ico">${W.user?`<button type="button" class="ib" data-act="wsLogout" aria-label="${L("Вийти","Выйти")}" title="${L("Вийти","Выйти")}">${ICO.exit}</button>`:""}<a href="index.html">${L("На сайт","На сайт")}</a></div></div>`;
-  $("bar").innerHTML = `<span class="crumb">${[W.co&&W.co.name, p&&p.name, f&&f.name].filter(Boolean).map(esc).join(" › ") || (W.user?L("Нова компанія","Новая компания"):L("Реєстрація","Регистрация"))}</span>${W.co && !p && typeof pfSel === "function" ? pfSel() : ""}<span id="sync" role="status">${CLOUD ? cloudBadgeHTML() : `<span class="badge">${L("прототип · дані у браузері","прототип · данные в браузере")}</span>`}</span>
+  $("bar").innerHTML = `<nav class="crumb" aria-label="${L("Де ви зараз","Где вы сейчас")}">${crumbs(p, f) || esc(W.user?L("Нова компанія","Новая компания"):L("Реєстрація","Регистрация"))}</nav>${W.co && !p && typeof pfSel === "function" ? pfSel() : ""}<span id="sync" role="status">${CLOUD ? cloudBadgeHTML() : `<span class="badge">${L("прототип · дані у браузері","прототип · данные в браузере")}</span>`}</span>
     <div class="bar__r"><div class="seg tier" role="group" aria-label="${L("Режим","Режим")}"><button type="button" data-act="tier" data-v="lite" aria-pressed="${S.tier==="lite"}">Lite</button><button type="button" data-act="tier" data-v="pro" aria-pressed="${S.tier==="pro"}">Pro</button></div><div class="lang" role="group" aria-label="${L("Мова","Язык")}"><button type="button" data-lang="uk" aria-pressed="${lang==="uk"}">UA</button><button type="button" data-lang="ru" aria-pressed="${lang==="ru"}">RU</button></div></div>`;
   $("frozen").hidden = true; $("fab").hidden = true; document.documentElement.lang = lang;
   let ap = $("apb"); if (!ap) { ap = document.createElement("div"); ap.id = "apb"; ap.className = "apb"; ap.setAttribute("role", "status"); $("view").before(ap); }
