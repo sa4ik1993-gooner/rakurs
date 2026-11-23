@@ -131,21 +131,25 @@ async function tsOffLoad(p){ if (TS.offBusy[p.id]) return; TS.offBusy[p.id] = tr
     const busy = new Set((p.tasks || []).filter(t => t.status === "run" || t.status === "plan").map(t => t.scope.camp).filter(Boolean)), out = [];
     /* советуем только по кампаниям, точно привязанным к воронке (правило аккаунта, ручная привязка, сервер). «Единственная воронка проекта» — не повод:
        в общем аккаунте могут быть кампании других людей и других продуктов. */
-    const sure = o => { const r = {id:o.campaign_id, f:o.funnel_id || "", name:o.campaign_name, prov:tsCh(o.provider)}; return typeof fxAuto === "function" && fxAuto(p, r) ? "" : fxFunnel(p, r); };
+    const am = {}; for (let i = 0; i < 20; i++) { const q = await sb.from("ad_metrics").select("campaign_id,account_id").eq("project_id", p.id).gte("day", tsDay(d2, -29)).lte("day", d2).range(i * 1000, i * 1000 + 999);
+      if (q.error) break; (q.data || []).forEach(o => { if (o.account_id) am[o.campaign_id] = String(o.account_id); }); if ((q.data || []).length < 1000) break; }
+    const work = ch => (prAccs(p, ch) || []).map(z => String(z.id)), accOf = o => am[o.campaign_id] || (work(tsCh(o.provider)).length === 1 && !Object.keys(am).length ? work(tsCh(o.provider))[0] : "");
+    const sure = o => { const acc = accOf(o), ch = tsCh(o.provider); if (!acc || !work(ch).includes(acc)) return "";
+      const r = {id:o.campaign_id, f:o.funnel_id || "", name:o.campaign_name, prov:ch, acc}; return typeof fxAuto === "function" && fxAuto(p, r) ? "" : fxFunnel(p, r); };
     (a.data || []).forEach(o => { const fid = sure(o), f = fid && p.funnels.find(z => z.id === fid); if (!f || busy.has(o.campaign_id)) return;
       const l7 = +o.leads || 0, s7 = +o.spend || 0, c7 = l7 ? s7 / l7 : 0, cap = fT(f, p).cap, r3 = b3[o.campaign_id] || {}, l3 = +r3.leads || 0, s3 = +r3.spend || 0, c3 = l3 ? s3 / l3 : 0;
       if (l7 < 10 || !c7 || !cap || c7 > cap * 0.9 || l3 < 3 || c3 > c7 * 1.1 || s3 <= 0) return;
-      const ch = tsCh(o.provider), acc = x.am ? prAccOf(x, o.campaign_id, ch) : "";
+      const ch = tsCh(o.provider), acc = accOf(o);
       out.push({id:o.campaign_id, name:o.campaign_name, f:fid, fname:f.name, ch, acc, c7, c3, cap, day:s3 / 3, l7}); });
     /* эффективные, но не в работе: за 30 дней ≥10 лидов и лид ≤ 90% потолка, за последние 2 дня расхода нет */
     const idle = [], live2 = new Set((m2.data || []).filter(o => +o.spend > 0).map(o => o.campaign_id)), cf = {};
     (m30.data || []).forEach(o => { const fid = sure(o), f = fid && p.funnels.find(z => z.id === fid); cf[o.campaign_id] = f;
       if (!f || live2.has(o.campaign_id) || busy.has(o.campaign_id)) return; const l = +o.leads || 0, sp = +o.spend || 0, c = l ? sp / l : 0, cap = fT(f, p).cap;
-      if (l >= 10 && c && cap && c <= cap * 0.9) idle.push({kind:"camp", id:o.campaign_id, name:o.campaign_name, f:fid, fname:f.name, ch:tsCh(o.provider), acc:x.am ? prAccOf(x, o.campaign_id, tsCh(o.provider)) : "", cpl:c, cap, l30:l, day:sp / 30}); });
+      if (l >= 10 && c && cap && c <= cap * 0.9) idle.push({kind:"camp", id:o.campaign_id, name:o.campaign_name, f:fid, fname:f.name, ch:tsCh(o.provider), acc:accOf(o), cpl:c, cap, l30:l, day:sp / 30}); });
     const base = n => (typeof rsBase === "function" ? rsBase(n) : n) || n, cr = {}, cr2 = new Set((c2.data || []).filter(o => +o.spend > 0).map(o => base(o.ad_name)));
     (c30.data || []).forEach(o => { const f = cf[o.campaign_id]; if (!f || !o.ad_name) return; const k = base(o.ad_name), t = cr[k] = cr[k] || {name:k, spend:0, leads:0, f, orig:{}, camps:{}};
       t.spend += +o.spend || 0; t.leads += +o.leads || 0; t.orig[o.ad_name] = (t.orig[o.ad_name] || 0) + (+o.spend || 0);
-      const cm = t.camps[o.campaign_id] = t.camps[o.campaign_id] || {id:o.campaign_id, name:o.campaign_name || o.campaign_id, spend:0, leads:0, live:live2.has(o.campaign_id), acc:x.am ? prAccOf(x, o.campaign_id, tsCh(o.provider)) : "", ch:tsCh(o.provider)}; cm.spend += +o.spend || 0; cm.leads += +o.leads || 0; });
+      const cm = t.camps[o.campaign_id] = t.camps[o.campaign_id] || {id:o.campaign_id, name:o.campaign_name || o.campaign_id, spend:0, leads:0, live:live2.has(o.campaign_id), acc:accOf(o), ch:tsCh(o.provider)}; cm.spend += +o.spend || 0; cm.leads += +o.leads || 0; });
     Object.values(cr).forEach(t => { const c = t.leads ? t.spend / t.leads : 0, cap = fT(t.f, p).cap; if (!(t.leads >= 10 && c && cap && c <= cap * 0.9 && !cr2.has(t.name))) return;
       const full = Object.keys(t.orig).sort((a, b) => t.orig[b] - t.orig[a]), camps = Object.values(t.camps).sort((a, b) => b.leads - a.leads || b.spend - a.spend);
       idle.push({kind:"cr", id:"cr:" + t.name, name:full[0] || t.name, vers:full, camps, f:t.f.id, fname:t.f.name, cpl:c, cap, l30:t.leads}); });

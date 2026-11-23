@@ -34,8 +34,11 @@ function prLoad(p){ if (!prOn(p)) return; const x = prOf(p), fx = fxOf(p), r = x
   const camp = o => ({prov:PROV_CH[o.provider] || o.provider, f:o.funnel_id || "", id:o.campaign_id, name:o.campaign_name || o.campaign_id, spend:+o.spend || 0, imp:+o.impressions || 0, clicks:+o.clicks || 0, leads:+o.leads || 0});
   Promise.all([q("ad_summary", {d1:r.d1, d2:r.d2}), q("ad_summary", {d1:r.p1, d2:r.p2}), q("ad_adsets", {d1:r.d1, d2:r.d2}), q("ad_creatives", {d1:r.d1, d2:r.d2}), q("sales_summary", {d1:r.d1, d2:r.d2}), prAccMap(p, x)]).then(([c, pv, gs, as, ss]) => {
     x.cur = c ? c.map(camp) : null; x.prev = pv ? pv.map(camp) : [];
+    if (x.am && x.am.map) { const off = r0 => { const a = x.am.map[r0.id], w = prAccs(p, r0.prov).map(z => String(z.id)); return a && w.length && !w.includes(a); }, gone = new Set();
+      if (x.cur) x.cur = x.cur.filter(r0 => off(r0) ? (gone.add(r0.id), false) : true); x.prev = x.prev.filter(r0 => !off(r0)); x.gone = gone; }
     x.sets = gs ? gs.map(o => ({cid:o.campaign_id, id:o.adset_id || "", name:o.adset_name || o.adset_id || "—", spend:+o.spend || 0, imp:+o.impressions || 0, clicks:+o.clicks || 0, leads:+o.leads || 0})) : [];
     x.ads = as ? as.map(o => ({cid:o.campaign_id, name:o.ad_name || "—", spend:+o.spend || 0, imp:+o.impressions || 0, clicks:+o.clicks || 0, leads:+o.leads || 0})) : [];
+    if (x.gone && x.gone.size) { x.sets = x.sets.filter(o => !x.gone.has(o.cid)); x.ads = x.ads.filter(o => !x.gone.has(o.cid)); }
     x.sb = {}; (ss || []).forEach(o => { const k = fxKey(o.utm_campaign), t = x.sb[k] = x.sb[k] || {book:0, pay:0, rev:0}, cur = o.currency || "", rate = cur === "USD" || !cur ? 1 : (p.fx || {})[cur];
       if (o.kind === "booking") t.book += +o.events || 0; else if (o.kind === "payment") { t.pay += +o.events || 0; t.rev += rate ? (+o.amount || 0) / rate : 0; } });
     x.loading = false; x.at = Date.now(); x.synced = fx.synced; if (!S.modal) render();
@@ -49,7 +52,6 @@ function prLoad(p){ if (!prOn(p)) return; const x = prOf(p), fx = fxOf(p), r = x
 const PR_CH = ["meta", "gg", "tt", "tga"];
 const prAccs = (p, ch) => { const c = !ch || ch === "meta" ? p.meta.conn || {} : ((p.ads || {})[ch] || {}); return c.accounts && c.accounts.length ? c.accounts : c.account ? [c.account] : []; };
 function prAccMap(p, x){ const one = {}; PR_CH.forEach(ch => { const a = prAccs(p, ch); if (a.length === 1) one[ch] = String(a[0].id); });
-  if (!PR_CH.some(ch => prAccs(p, ch).length > 1)) { x.am = {one}; return Promise.resolve(); }
   const out = {}, page = i => Promise.resolve(sb.from("ad_metrics").select("campaign_id,account_id").eq("project_id", p.id).gte("day", x.r.p1).lte("day", x.r.d2).range(i * 1000, i * 1000 + 999))
     .then(res => { if (res.error) { x.am = {err:res.error.message}; return; } const d = res.data || []; d.forEach(o => { if (o.account_id) out[o.campaign_id] = String(o.account_id); });
       if (d.length === 1000 && i < 29) return page(i + 1); x.am = {map:out, one}; }, e => { x.am = {err:String(e && e.message || e)}; });
