@@ -5,7 +5,8 @@ window.BRAND = {
   name: "HEYROW",          // название в текстах, заголовке вкладки, подписях ассистента
   logoText: "HEY",         // надпись логотипа, пока нет файла логотипа…
   logoAccent: "ROW",       // …и её вторая часть цветом акцента (play)
-  mark: true,              // знак «Туда и обратно» перед надписью: левая стойка цветом текста, правая — акцентом
+  mark: false,             // старый знак со стрелками — не используется (утверждён логотип «HEY с воронкой и строкой ROW», Figma 23.11.2026)
+  wordmark: true,          // утверждённый логотип: HEY, ножка Y — оранжевая «воронка», под словом оранжевая черта и ROW справа
 
   /* Файлы логотипа (SVG или PNG) кладутся рядом с этим файлом, сюда пишется имя: "logo-dark.svg".
      Пока пусто — рисуется знак и надпись. Если файл указан, надпись не показывается. */
@@ -17,7 +18,7 @@ window.BRAND = {
   icon: "",                // значок вкладки браузера (SVG или PNG); пусто — знак на тёмном квадрате
 
   fonts: {
-    url: "https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Unbounded:wght@500;700;800&display=swap",
+    url: "https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Unbounded:wght@500;700;800;900&display=swap",
     display: "'Unbounded','Arial Black',sans-serif",          // заголовки и логотип
     body: "'Golos Text','Segoe UI',system-ui,sans-serif",      // основной текст
     mono: "'JetBrains Mono',ui-monospace,Menlo,monospace"      // цифры, метки, подписи
@@ -82,6 +83,7 @@ window.BRAND = {
     if (place === "rail" && (L.onDark || L.onLight)) return img(L.onDark || L.onLight);
     if (place !== "rail" && L.onLight && L.onDark) return img(L.onLight, "lg-l") + img(L.onDark, "lg-d");
     if (place !== "rail" && (L.onLight || L.onDark)) return img(L.onLight || L.onDark);
+    if (B.wordmark) return '<span class="hw" aria-label="' + B.name + '"><span class="hw__hey">HE<span class="hw__y">Y</span></span><span class="hw__ln"><i></i><span class="hw__row">ROW</span></span></span>';
     const word = "<span>" + B.logoText + (B.logoAccent ? "<b>" + B.logoAccent + "</b>" : "") + "</span>";
     return (B.mark ? '<svg viewBox="26 26 108 104" aria-hidden="true">' + MARK + "</svg>" : "<i></i>") + word;
   };
