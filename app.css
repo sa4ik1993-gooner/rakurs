@@ -859,3 +859,5 @@ body.has-tabbar .only-m{display:flex}
 .tsm__in .tsc{border-top:0;margin-top:4px}
 .tsw2{border-top:1px solid var(--line);padding-top:10px;margin-top:6px;font-size:13.5px}.tsw2 ul{margin:6px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:5px}
 .tsg{font-size:12px;color:var(--muted)}.tsg--wait{color:var(--warn)}.tsg--back{color:#e5531a}
+
+.seg--xs button{padding:3px 8px;font-size:11.5px}
