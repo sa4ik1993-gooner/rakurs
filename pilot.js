@@ -42,7 +42,10 @@ function plPanel(p){ if (!CLOUD) return "";
   const e = PL.edit[p.id], s = r.settings, on = s && s.enabled, accs = prAccs(p, "meta"), dis = r.admin ? "" : " disabled";
   const dirty = s ? (!!e.enabled !== !!s.enabled) : !!e.enabled;
   const st = dirty ? `<span class="st st--pause">${L("Зміни не збережено","Изменения не сохранены")}</span>` : on ? `<span class="st st--on">${L("Працює, перевіряю щогодини","Работает, проверяю каждый час")}</span>` : `<span class="st st--pause">${L("На паузі","На паузе")}</span>`;
-  const rows = (r.log || []).filter(x => x.status !== "dismissed").map(x => plRow(p, x, dis)).join("");
+  /* в ленте — то, что ждёт решения или в графике, и события за сутки; решённое раньше — в «Історія» */
+  const vis = (r.log || []).filter(x => x.status !== "dismissed"), day = Date.now() - 24 * 3600e3;
+  const act = vis.filter(x => x.status === "new" || x.status === "scheduled" || (x.kind !== "reco" && Date.parse(x.at) > day) || (x.decided_at && Date.parse(x.decided_at) > Date.now() - 3600e3)), old = vis.filter(x => !act.includes(x));
+  const rows = act.map(x => plRow(p, x, dis)).join("") + (old.length ? `<li class="plhist">${more("plh:" + p.id, L("Історія · ","История · ") + old.length, `<ul class="feed">${old.map(x => plRow(p, x, dis)).join("")}</ul>`)}</li>` : "");
   const feed = rows ? `<ul class="feed pllog">${rows}</ul>` : `<div class="empty empty--sm">${hava("watch", 48)}<div><b>${L("Тут буде все, що я зробив з рекламою.","Здесь будет всё, что я сделал с рекламой.")}</b> <span class="sub">${on ? L("Перевіряю акаунт щогодини, перший звіт надішлю о ","Проверяю аккаунт каждый час, первый отчёт пришлю в ") + String(s.report_hour).padStart(2, "0") + ":00." : L("Увімкни автопілот у налаштуваннях нижче.","Включи автопилот в настройках ниже.")}</span></div></div>`;
   const accOpts = accs.map(a => `<label class="ck"><input type="checkbox" data-placc="${esc(String(a.id))}"${e.account_ids.includes(String(a.id)) ? " checked" : ""}${dis}> ${esc(a.name || a.id)}</label>`).join("");
   const hours = [...Array(16)].map((_, i) => i + 7);

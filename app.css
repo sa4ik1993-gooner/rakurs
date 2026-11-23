@@ -1337,3 +1337,4 @@ td:first-child{font:600 var(--t-body)/1.3 var(--font-ui)}
 .plmore{margin:0}.plmore>summary{min-height:var(--control-sm);font:600 var(--t-small)/1.3 var(--font-ui);color:var(--muted)}.feed__r{align-items:start}.feed__r>.hava,.feed__r>time{margin-top:2px}
 .feed__t>.st,.feed__t>.row{align-self:flex-start}
 .rail .logo{display:flex;justify-content:center;padding:0}
+.plhist{list-style:none;border-top:1px solid var(--line);padding-top:var(--s-1)}.plhist .feed{opacity:.8}
