@@ -4,7 +4,7 @@
    В кабинете Meta платформа сама ничего не меняет: шаг делает человек и отмечает «Зроблено».
    Виды задач: scale — больше рекламы с тем же результатом; cut — снизить цену лида; pause — выключить то, что не работает; leads — N лидов к дате. */
 const TS = {txt:{}, mic:null, micK:"", busy:{}, prog:{}, pbusy:{}};
-const TS_STEP = 1.15, TS_GAP = 2;   /* бюджет поднимаем на 15% раз в 2 дня — иначе Meta заново уходит в обучение. Решение о бюджете — всегда за рекламодателем */
+const TS_STEP = 1.15, TS_GAP = 2, TS_LEARN = 50, TS_SMALL = 0.2, TS_BIG = 1.5, TS_MINL = 5, TS_BACKS = 2;   /* бюджет поднимаем на 15% раз в 2 дня — иначе Meta заново уходит в обучение. Решение о бюджете — всегда за рекламодателем */
 const tsDay = (d, n) => { const x = new Date(d + "T12:00:00"); x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10); };
 const tsDM = d => d.slice(8, 10) + "." + d.slice(5, 7);
 /* ключ карты co/pid/fid/канал/aАккаунт/кампания → что охватывает задача */
@@ -52,23 +52,43 @@ async function tsRows(p, s, d1, d2){ const r = await sb.rpc("ad_summary", {p:p.i
 const tsSum = rows => { const s = rows.reduce((a, o) => { a.spend += o.spend; a.leads += o.leads; a.day += o.day; return a; }, {spend:0, leads:0, day:0}); s.cpl = s.leads ? s.spend / s.leads : 0; return s; };
 
 /* план по шагам */
-function tsPlan(p, s, o, rows){ const tot = tsSum(rows), f = s.f && p.funnels.find(x => x.id === s.f), cap = f ? fT(f, p).cap : pT(p).cap, start = prToday(), st = [];
+function tsPlan(p, s, o, rows, ext){ const tot = tsSum(rows), f = s.f && p.funnels.find(x => x.id === s.f), cap = f ? fT(f, p).cap : pT(p).cap, start = prToday(), st = [];
   const guard = o.guard === "num" ? o.cpl : o.guard === "same" ? (tot.cpl || cap) * 1.1 : (o.type === "cut" ? o.cpl : 0) || cap;
   const nm = a => a.slice(0, 4).map(x => x.name).join(", ") + (a.length > 4 ? L(" і ще "," и ещё ") + (a.length - 4) : "");
-  const out = {guard, base:{day:tot.day, cpl:tot.cpl, leads:tot.leads}, start, steps:st, note:"", target:0};
+  const out = {guard, base:{day:tot.day, cpl:tot.cpl, leads:tot.leads}, start, steps:st, note:"", target:0, ext};
   if (!rows.length) { out.note = L("За 7 днів у цьому охопленні не було витрат — плану не буде. Оберіть інший рівень або запустіть рекламу.","За 7 дней в этом охвате не было расхода — плана не будет. Выберите другой уровень или запустите рекламу."); return out; }
   const win = rows.filter(r => r.leads >= 5 && r.cpl && r.cpl <= guard), lose = rows.filter(r => r.spend >= Math.max(cap, 5) * 2 && (!r.leads || r.cpl > Math.max(guard, cap) * 1.3));
   if (o.type === "scale" || o.type === "leads") {
     let target = o.dayTo || tot.day * (o.factor || 1.5);
     if (o.type === "leads") { const days = Math.max(1, o.days || 7), cpl = tot.cpl || cap; target = Math.max(tot.day, o.leads / days * cpl); out.leadsNeed = o.leads; out.days = days;
       if (o.leads / days * cpl > tot.day * 3) out.note = L("Щоб встигнути, бюджет треба підняти більш ніж утричі — ціна ліда, найімовірніше, зросте. Реальніше — подовжити строк.","Чтобы успеть, бюджет нужно поднять больше чем втрое — цена лида, скорее всего, вырастет. Реалистичнее — продлить срок."); }
-    out.target = target;
-    if (!win.length) { out.note = (out.note ? out.note + " " : "") + L("Немає кампаній, де ціна ліда в межах ","Нет кампаний, где цена лида в пределах ") + "$" + dec(guard) + L(" і хоча б 5 лідів за 7 днів. Масштабувати нічого — спершу знизьте ціну ліда."," и хотя бы 5 лидов за 7 дней. Масштабировать нечего — сначала снизьте цену лида."); return out; }
-    const wDay = win.reduce((a, r) => a + r.day, 0), wTo = wDay + (target - tot.day); let cur = wDay, i = 0;
-    while (cur < wTo - 0.5 && i < 12) { const nx = Math.min(cur * TS_STEP, wTo);
-      st.push({d:tsDay(start, i * TS_GAP), t:L("Підніміть бюджет: ","Поднимите бюджет: ") + nm(win) + L(" — разом з $"," — вместе с $") + dec(cur, 0) + L(" до $"," до $") + dec(nx, 0) + L(" на день (+","/день (+") + Math.round((nx / cur - 1) * 100) + "%). " + L("Рішення за вами — платформа бюджет не змінює.","Решение за вами — платформа бюджет не меняет.")});
-      cur = nx; i++; if (i === 2 && (o.factor || 0) >= 2) st.push({d:tsDay(start, i * TS_GAP), t:L("Додайте нову групу з найкращим креативом на ширшу аудиторію — один бюджет усіх груп не витягне.","Добавьте новую группу с лучшим креативом на более широкую аудиторию — один бюджет всех групп не вытянет."), act:"launch"}); }
-    if (lose.length) st.unshift({d:start, t:L("Вимкніть, що тягне ціну вгору: ","Выключите то, что тянет цену вверх: ") + nm(lose) + "."});
+    out.target = target; const grow = tot.day ? target / tot.day : 1, why = out.why = [];
+    /* обучение Meta: кампания «прошла обучение», если за 7 дней ≥ TS_LEARN лидов (Meta выходит из обучения после ~50 событий в неделю на группу) */
+    const learned = win.filter(r => r.leads >= TS_LEARN), learning = win.filter(r => r.leads < TS_LEARN);
+    out.strategy = grow <= 1 + TS_SMALL ? "small" : grow <= TS_BIG ? "steps" : "dup";
+    why.push(L("Піднімаємо бюджет лише кампаніям, що пройшли навчання Meta (від ","Поднимаем бюджет только кампаниям, прошедшим обучение Meta (от ") + TS_LEARN + L(" лідів за 7 днів): "," лидов за 7 дней): ") + (learned.length ? nm(learned) : "—") + "." + (learning.length ? L(" Ще в навчанні — не чіпаємо: "," Ещё в обучении — не трогаем: ") + nm(learning) + "." : ""));
+    if (lose.length) why.push(L("Спершу вимикаємо те, що тягне ціну вгору: ","Сначала выключаем то, что тянет цену вверх: ") + nm(lose) + ".");
+    if (!win.length || !learned.length) { out.note = (out.note ? out.note + " " : "") + (!win.length ? L("Немає кампаній, де ціна ліда в межах $","Нет кампаний, где цена лида в пределах $") + dec(guard) + L(" і хоча б 5 лідів за 7 днів. Спершу знизьте ціну ліда."," и хотя бы 5 лидов за 7 дней. Сначала снизьте цену лида.")
+        : L("Жодна кампанія ще не пройшла навчання — піднімати бюджет рано, він зіб'є навчання. Зачекайте, поки буде ","Ни одна кампания ещё не прошла обучение — поднимать бюджет рано, это собьёт обучение. Подождите, пока будет ") + TS_LEARN + L(" лідів за 7 днів."," лидов за 7 дней."));
+      if (!learned.length && win.length) st.push({d:start, t:L("Чекаємо навчання: ","Ждём обучения: ") + nm(win) + ".", wait:1}); return out; }
+    const lDay = learned.reduce((a, r) => a + r.day, 0), gap = target - tot.day; let cur = lDay, i = 0;
+    const maxSteps = out.strategy === "small" ? 1 : out.strategy === "steps" ? 4 : 2, lTo = out.strategy === "dup" ? lDay * Math.pow(TS_STEP, maxSteps) : lDay + gap;
+    why.push(out.strategy === "small" ? L("Невелике збільшення — один крок у межах кампаній, що вже навчилися: показники мають втриматися.","Небольшое увеличение — один шаг в рамках кампаний, которые уже обучились: показатели должны удержаться.")
+      : out.strategy === "steps" ? L("Крок +","Шаг +") + Math.round((TS_STEP - 1) * 100) + L("%, не частіше разу на ","%, не чаще раза в ") + TS_GAP + L(" дні: більший стрибок скидає навчання."," дня: больший скачок сбрасывает обучение.")
+      : L("Збільшення суттєве (×","Увеличение существенное (×") + dec(grow, 1) + L("): тільки бюджетом його не взяти без втрати якості. Плавно піднімаємо навчені кампанії, а решту дасть дубль найкращої кампанії.","): только бюджетом его не взять без потери качества. Плавно поднимаем обученные кампании, а остальное даст дубль лучшей кампании."));
+    if (lose.length) st.push({d:start, t:L("Вимкніть, що тягне ціну вгору: ","Выключите то, что тянет цену вверх: ") + nm(lose) + "."});
+    while (cur < lTo - 0.5 && i < maxSteps) { const nx = Math.min(cur * (out.strategy === "small" ? Math.min(TS_STEP, lTo / cur) : TS_STEP), lTo);
+      st.push({d:tsDay(start, i * TS_GAP), t:L("Підніміть бюджет: ","Поднимите бюджет: ") + nm(learned) + L(" — разом з $"," — вместе с $") + dec(cur, 0) + L(" до $"," до $") + dec(nx, 0) + L(" на день (+","/день (+") + Math.round((nx / cur - 1) * 100) + "%)" + (learned.length < rows.length ? L("; усього по охопленню $","; всего по охвату $") + dec(tot.day + nx - lDay, 0) + L(" на день","/день") : "") + "."});
+      cur = nx; i++; }
+    if (out.strategy === "dup") { const best = learned.slice().sort((a, b) => a.cpl - b.cpl)[0], rest = Math.max(0, target - tot.day - (cur - lDay)), ex = out.ext || {};
+      const sets = (ex.sets || []).filter(x => x.cid === best.id && x.leads >= 3).sort((a, b) => a.spend / a.leads - b.spend / b.leads).slice(0, 3).map(x => x.name);
+      const crs = (ex.crs || []).filter(x => x.cid === best.id && x.leads >= 3).sort((a, b) => a.spend / a.leads - b.spend / b.leads).slice(0, 3).map(x => x.name);
+      st.push({d:tsDay(start, i * TS_GAP), t:L("Дубль кампанії ","Дубль кампании ") + best.name + L(" (ліди по $"," (лиды по $") + dec(best.cpl) + L("): нова кампанія, вимкнена, бюджет ~$","): новая кампания, выключенная, бюджет ~$") + dec(rest, 0) + L(" на день","/день") + (sets.length ? L(". Найкращі групи: ",". Лучшие группы: ") + sets.join(", ") : "") + (crs.length ? L(". Креативи: ",". Креативы: ") + crs.join(", ") : "") + ".", act:"launch", dup:1});
+      why.push(L("Дубль збирається з найкращих груп і креативів кампанії ","Дубль собирается из лучших групп и креативов кампании ") + best.name + L(" за 7 днів. Він створюється вимкненим; вмикаєте ви. Нова кампанія пройде навчання 3–7 днів — ціна ліда в перші дні вища."," за 7 дней. Он создаётся выключенным; включаете вы. Новая кампания пройдёт обучение 3–7 дней — цена лида в первые дни выше."));
+      i++; }
+    why.push(L("Наступний крок відкривається за результатом: минуло ","Следующий шаг открывается по результату: прошло ") + TS_GAP + L(" дні після попереднього, прийшло ≥"," дня после предыдущего, пришло ≥") + TS_MINL + L(" лідів і ціна ліда ≤ $"," лидов и цена лида ≤ $") + dec(guard) + ".");
+    why.push(L("Якщо ціна ліда вища за $","Если цена лида выше $") + dec(guard) + L(" — поверніть попередній бюджет; після "," — верните прежний бюджет; после ") + TS_BACKS + L(" відкатів задача зупиняється з висновком."," откатов задача останавливается с выводом."));
+    why.push(L("Бюджети змінюєте ви: платформа підказує й стежить.","Бюджеты меняете вы: платформа подсказывает и следит."));
     st.push({d:tsDay(start, i * TS_GAP + 3), t:L("Перевірка: 3 дні на новому бюджеті. Якщо ціна ліда в межах — задачу виконано.","Проверка: 3 дня на новом бюджете. Если цена лида в пределах — задача выполнена."), check:1});
   } else if (o.type === "cut") {
     const tg = o.cpl || tot.cpl * 0.8; out.guard = tg; out.target = tg;
@@ -88,11 +108,25 @@ async function tsCreate(k, text){ const s = tsScope(k), p = s && W.projs.find(x 
   const o = tsParse(text); if (!o.type) { toast(L("Не зрозуміли задачу. Приклади — під полем.","Не поняли задачу. Примеры — под полем.")); return false; }
   if (!CLOUD || !sb) { toast(L("Задачі працюють із сервером","Задачи работают с сервером")); return false; }
   let ok = false;
-  try { const d2 = tsDay(prToday(), -1), rows = await tsRows(p, s, tsDay(d2, -6), d2), pl = tsPlan(p, s, o, rows);
-    p.tasks = p.tasks || []; p.tasks.unshift(Object.assign({id:uid(), text:String(text).trim(), type:o.type, o, scope:s, status:"plan", at:new Date().toISOString()}, pl)); save(); ok = true; }
+  try { const d2 = tsDay(prToday(), -1), rows = await tsRows(p, s, tsDay(d2, -6), d2);
+    const [gs, cs] = await Promise.all([sb.rpc("ad_adsets", {p:p.id, d1:tsDay(d2, -6), d2}), sb.rpc("ad_creatives", {p:p.id, d1:tsDay(d2, -6), d2})]);
+    const ext = {sets:(gs.data || []).map(x => ({cid:x.campaign_id, name:x.adset_name || x.adset_id, spend:+x.spend || 0, leads:+x.leads || 0})), crs:(cs.data || []).map(x => ({cid:x.campaign_id, name:x.ad_name, spend:+x.spend || 0, leads:+x.leads || 0}))};
+    const pl = tsPlan(p, s, o, rows, ext); delete pl.ext;
+    const nt = Object.assign({id:uid(), text:String(text).trim(), type:o.type, o, scope:s, status:"plan", at:new Date().toISOString()}, pl);
+    p.tasks = p.tasks || []; p.tasks.unshift(nt); TS.open = {p:p.id, id:nt.id}; save(); ok = true; }
   catch (e) { toast(String(e.message || e)); }
   return ok; }
 
+/* состояние очередного шага: ждём (дни / лиды), можно, или откатить. Первый шаг — сразу (до 12:00 по Киеву — сегодня, позже — завтра утром). */
+function tsGate(t){ const i = t.steps.findIndex(x => !x.done); if (i < 0 || t.status !== "run") return null; const x = t.steps[i], prev = i ? t.steps[i - 1] : null, g = TS.prog[t.id], today = prToday();
+  if (x.wait) return {st:"wait", why:L("Чекаємо, поки кампанії пройдуть навчання.","Ждём, пока кампании пройдут обучение.")};
+  if (!prev || !prev.done) { const h = +new Date().toLocaleString("en-GB", {timeZone:"Europe/Kyiv", hour:"2-digit", hour12:false}).slice(0, 2);
+    return x.d > today ? {st:"wait", why:L("Крок на ","Шаг на ") + tsDM(x.d)} : !prev && h >= 12 && x.d === today && !x.check ? {st:"go", why:L("Бюджет краще змінити зранку — до 12:00 за Києвом; можна завтра зранку.","Бюджет лучше менять утром — до 12:00 по Киеву; можно завтра утром.")} : {st:"go", why:""}; }
+  const days = Math.round((Date.parse(today) - Date.parse(prev.done)) / 864e5);
+  if (g && g.cpl && g.cpl > t.guard && days >= TS_GAP) return {st:"back", why:L("Ціна ліда $","Цена лида $") + dec(g.cpl) + L(" вища за межу $"," выше границы $") + dec(t.guard) + L(" — поверніть попередній бюджет."," — верните прежний бюджет.")};
+  if (days < TS_GAP) return {st:"wait", why:L("Минуло ","Прошло ") + days + L(" з "," из ") + TS_GAP + L(" днів після кроку."," дней после шага.")};
+  if (g && g.leads < TS_MINL) return {st:"wait", why:L("Лідів після кроку ","Лидов после шага ") + num(g.leads) + L(" з "," из ") + TS_MINL + "."};
+  return {st:"go", why:L("Результат тримається — можна наступний крок.","Результат держится — можно следующий шаг.")}; }
 /* как идёт задача: последние 3 полных дня против исходных */
 async function tsProg(p, t){ if (TS.pbusy[t.id]) return; TS.pbusy[t.id] = true;
   try { const d2 = tsDay(prToday(), -1), rows = await tsRows(p, t.scope, tsDay(d2, -2), d2); TS.prog[t.id] = Object.assign(tsSum(rows), {at:Date.now()}); }
@@ -108,7 +142,7 @@ function tsCard(p, t){ const g = TS.prog[t.id], today = prToday(), next = t.step
         <button type="button" class="lnk" data-act="tsDel" data-p="${p.id}" data-id="${t.id}" aria-label="${L("Прибрати задачу","Убрать задачу")}">×</button></span></div>
     <p class="tsu">${L("Зрозуміли так: ","Поняли так: ")}${esc(und)}. ${L("Було за 7 днів: $","Было за 7 дней: $")}${dec(t.base.day, 0)}${L("/день, ліди по $","/день, лиды по $")}${t.base.cpl ? dec(t.base.cpl) : "—"}.</p>
     ${t.note ? `<p class="tsn">${esc(t.note)}</p>` : ""}${pg}
-    ${t.steps.length ? `<ol class="tss">${t.steps.map((x, i) => `<li class="${x.done ? "ok" : x === next && t.status === "run" ? (late ? "now" : "next") : ""}"><span class="mono">${tsDM(x.d)}</span> <span>${esc(x.t)}</span>${t.status === "run" && x === next ? ` <span class="row">${x.act === "launch" && t.scope.f ? `<button type="button" class="btn btn--sm" data-act="tsGo" data-p="${p.id}" data-f="${t.scope.f}">${L("Відкрити запуск","Открыть запуск")}</button>` : ""}<button type="button" class="btn btn--sm${late ? " btn--solid" : ""}" data-act="tsDone" data-p="${p.id}" data-id="${t.id}" data-v="${i}">${x.check ? L("Результат є","Результат есть") : L("Зроблено","Сделано")}</button></span>` : ""}</li>`).join("")}</ol>` : ""}
+    ${t.steps.length ? `<ol class="tss">${t.steps.map((x, i) => `<li class="${x.done ? "ok" : x === next && t.status === "run" ? (late ? "now" : "next") : ""}"><span class="mono">${tsDM(x.d)}</span> <span>${esc(x.t)}</span>${t.status === "run" && x === next ? (() => { const gt = tsGate(t); return gt && gt.st !== "go" ? ` <small class="tsg tsg--${gt.st}">${esc(gt.why)}</small>${gt.st === "back" ? ` <button type="button" class="btn btn--sm" data-act="tsBack" data-p="${p.id}" data-id="${t.id}">${L("Повернув","Вернул")}</button>` : ""}` : (gt && gt.why ? ` <small class="tsg">${esc(gt.why)}</small>` : "") + ` <span class="row">${x.act === "launch" && t.scope.f ? `<button type="button" class="btn btn--sm" data-act="tsGo" data-p="${p.id}" data-f="${t.scope.f}">${L("Відкрити запуск","Открыть запуск")}</button>` : ""}<button type="button" class="btn btn--sm${late ? " btn--solid" : ""}" data-act="tsDone" data-p="${p.id}" data-id="${t.id}" data-v="${i}">${x.check ? L("Результат є","Результат есть") : L("Зроблено","Сделано")}</button></span>`; })() : ""}</li>`).join("")}</ol>` : ""}
     ${t.status === "run" ? `<div class="row"><button type="button" class="lnk" data-act="tsStop" data-p="${p.id}" data-id="${t.id}">${L("Зупинити задачу","Остановить задачу")}</button></div>` : ""}</div>`; }
 
 const TS_EX = () => [L("Збільшити рекламу вдвічі з тією ж ціною ліда","Увеличить рекламу вдвое с той же ценой лида"), L("Розігнати до $300 на день, лід не дорожче $6","Разогнать до $300 в день, лид не дороже $6"), L("Знизити ціну ліда до $5","Снизить цену лида до $5"), L("100 лідів за тиждень","100 лидов за неделю"), L("Вимкнути те, що не працює","Выключить то, что не работает")];
@@ -116,6 +150,22 @@ const TS_EX = () => [L("Збільшити рекламу вдвічі з тіє
 function tsBox(k, pick){ const busy = TS.busy[k], mic = (window.SpeechRecognition || window.webkitSpeechRecognition) ? `<button type="button" class="btn btn--ico${TS.mic && TS.micK === k ? " btn--solid" : ""}" data-act="tsMic" data-k="${esc(k)}" aria-label="${L("Надиктувати","Надиктовать")}" title="${L("Надиктувати","Надиктовать")}"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="7.5" y="2.5" width="5" height="9" rx="2.5"/><path d="M4.5 9.5a5.5 5.5 0 0 0 11 0M10 15v2.5"/></svg></button>` : "";
   return `<div class="tsb">${pick || ""}<div class="row tsi"><input id="ts-${esc(k)}" data-tsk="${esc(k)}" value="${esc(TS.txt[k] || "")}" placeholder="${L("Що зробити? Напр.: збільшити рекламу вдвічі з тією ж ціною ліда","Что сделать? Напр.: увеличить рекламу вдвое с той же ценой лида")}" aria-label="${L("Задача","Задача")}"${busy ? " disabled" : ""}>${mic}<button type="button" class="btn btn--sm btn--solid" data-act="tsAdd" data-k="${esc(k)}"${busy ? " disabled" : ""}>${busy ? L("Рахуємо…","Считаем…") : L("Поставити","Поставить")}</button></div>
     <div class="opts opts--sm">${TS_EX().map(x => `<button type="button" class="opt" data-act="tsEx" data-k="${esc(k)}" data-v="${esc(x)}">${esc(x)}</button>`).join("")}</div></div>`; }
+/* календарь: 4 недели с понедельника текущей; в дне — шаги задач. Нажали — окно задачи по центру; «×» — убрать задачу. */
+TS.view = (() => { try { return localStorage.getItem("rakurs_ts_view") || "cal"; } catch (e) { return "cal"; } })(); TS.open = null; TS.arm = "";
+function tsCal(ps){ const today = prToday(), d0 = new Date(today + "T12:00:00"), mon = tsDay(today, -((d0.getDay() + 6) % 7)), days = [...Array(28)].map((_, i) => tsDay(mon, i)), by = {};
+  ps.forEach(p => (p.tasks || []).filter(t => t.status === "run" || t.status === "plan").forEach(t => t.steps.forEach((x, i) => { (by[x.d] = by[x.d] || []).push({p, t, x, i}); })));
+  const wd = [L("Пн","Пн"), L("Вт","Вт"), L("Ср","Ср"), L("Чт","Чт"), L("Пт","Пт"), L("Сб","Сб"), L("Нд","Вс")];
+  return `<div class="tcal"><div class="tcal__h">${wd.map(w => `<span>${w}</span>`).join("")}</div><div class="tcal__g">${days.map(d => `<div class="tcd${d === today ? " tcd--now" : ""}${d < today ? " tcd--past" : ""}"><span class="tcd__n">${d.slice(8, 10) === "01" || d === days[0] ? tsDM(d) : +d.slice(8, 10)}</span>
+    ${(by[d] || []).map(({p, t, x, i}) => { const nx = t.steps.find(y => !y.done), lv = x.done ? "ok" : t.status === "plan" ? "plan" : x === nx ? ((tsGate(t) || {}).st || "go") : "later";
+      return `<div class="tcc tcc--${lv}"><button type="button" class="tcc__b" data-act="tsOpen" data-p="${p.id}" data-id="${t.id}" title="${esc(x.t)}">${x.check ? "✓ " : x.dup ? "⧉ " : ""}${esc(t.text.length > 34 ? t.text.slice(0, 33) + "…" : t.text)}<small>${L("крок ","шаг ")}${i + 1}/${t.steps.length}</small></button><button type="button" class="tcc__x" data-act="tsDelA" data-p="${p.id}" data-id="${t.id}" aria-label="${L("Прибрати задачу","Убрать задачу")}">${TS.arm === t.id ? "?" : "×"}</button></div>`; }).join("")}</div>`).join("")}</div>
+    ${TS.arm ? `<p class="sub">${L("Натисніть «?» ще раз — задачу буде прибрано.","Нажмите «?» ещё раз — задача будет убрана.")}</p>` : ""}</div>`; }
+function tsPop(){ if (!TS.open) return ""; const p = W.projs.find(x => x.id === TS.open.p), t = p && (p.tasks || []).find(x => x.id === TS.open.id); if (!t) { TS.open = null; return ""; }
+  const sn = {small:L("Невелике збільшення в межах навчених кампаній","Небольшое увеличение в рамках обученных кампаний"), steps:L("Плавне збільшення кроками","Плавное увеличение шагами"), dup:L("Збільшення + дубль найкращої кампанії","Увеличение + дубль лучшей кампании")}[t.strategy];
+  return `<div class="tsm" role="dialog" aria-modal="true" aria-label="${esc(t.text)}"><button type="button" class="tsm__bg" data-act="tsClose" aria-label="${L("Закрити","Закрыть")}" tabindex="-1"></button><div class="tsm__in">
+    <div class="row sp"><span class="tag">${L("Задача","Задача")}${sn ? " · " + esc(sn) : ""}</span><button type="button" class="btn btn--sm" data-act="tsClose">${L("Закрити","Закрыть")} ✕</button></div>
+    ${tsCard(p, t)}
+    ${(t.why || []).length ? `<div class="tsw2"><b>${L("Що робитиме платформа","Что будет делать платформа")}</b><ul>${t.why.map(w => `<li>${esc(w)}</li>`).join("")}</ul></div>` : ""}</div></div>`; }
+document.addEventListener("keydown", e => { if (e.key === "Escape" && TS.open) { TS.open = null; render(); } });
 /* на «Сегодня»: охват выбирается из воронок и аккаунтов */
 TS.sc = "";
 /* Рекомендации: платформа сама находит кампании, которые можно масштабировать без потери качества, и спрашивает «да / нет».
@@ -174,9 +224,11 @@ function tsToday(){ const ps = (typeof pfProjs === "function" ? pfProjs() : W.pr
     (f.ch || []).forEach(c => prAccs(p, c).forEach(a => opts.push(["co/" + p.id + "/" + f.id + "/" + c + "/" + prAK(String(a.id)), (ps.length > 1 ? p.name + " · " : "") + f.name + " · " + (a.name || a.id)]))); }); });
   if (!opts.some(o => o[0] === TS.sc)) TS.sc = opts[0][0];
   const pick = `<label class="tsw"><span class="lbl">${L("Для чого","Для чего")}</span><select data-tssc="1">${opts.map(o => `<option value="${esc(o[0])}"${o[0] === TS.sc ? " selected" : ""}>${esc(o[1])}</option>`).join("")}</select></label>`;
-  const list = ps.flatMap(p => (p.tasks || []).filter(t => t.status === "run" || t.status === "plan").map(t => tsCard(p, t))).join("");
+  const has = ps.some(p => (p.tasks || []).some(t => t.status === "run" || t.status === "plan"));
+  const sw = has ? `<span class="seg" role="group" aria-label="${L("Вигляд задач","Вид задач")}"><button type="button" data-act="tsView" data-v="cal" aria-pressed="${TS.view === "cal"}">${L("Календар","Календарь")}</button><button type="button" data-act="tsView" data-v="list" aria-pressed="${TS.view === "list"}">${L("Список","Список")}</button></span>` : "";
+  const list = !has ? "" : TS.view === "cal" ? tsCal(ps) : ps.flatMap(p => (p.tasks || []).filter(t => t.status === "run" || t.status === "plan").map(t => tsCard(p, t))).join("");
   const done = ps.reduce((a, p) => a + (p.tasks || []).filter(t => t.status === "done" || t.status === "stop").length, 0);
-  return `<div class="panel tsk"><div class="row sp"><span class="tag">${L("Задачі для платформи","Задачи для платформы")}</span>${done ? `<small class="sub">${L("завершено: ","завершено: ")}${done}</small>` : ""}</div>${tsOffers(ps)}${tsBox("today", pick)}${list}</div>`; }
+  return `<div class="panel tsk"><div class="row sp"><span class="tag">${L("Задачі для платформи","Задачи для платформы")}</span>${sw}${done ? `<small class="sub">${L("завершено: ","завершено: ")}${done}</small>` : ""}</div>${tsOffers(ps)}${tsBox("today", pick)}${list}${tsPop()}</div>`; }
 function tsNode(k){ const s = tsScope(k); if (!s || !s.f) return ""; const p = W.projs.find(x => x.id === s.pid), mine = (p.tasks || []).filter(t => tsKey(t.scope) === tsKey(s) && t.status !== "done" && t.status !== "stop");
   return `<div class="panel tsk"><span class="tag">${L("Задача для платформи","Задача для платформы")} · ${esc(s.label)}</span>${tsBox(k)}${mine.map(t => tsCard(p, t)).join("")}</div>`; }
 const tsK = k => k === "today" ? TS.sc : k;
@@ -214,5 +266,12 @@ Object.assign(ACT, {
       guard:c.cap, target:0, base:{day:0, cpl:c.cpl, leads:c.l30}, note:"", steps:[{d:t0, t:step, act:c.kind === "cr" ? "launch" : ""}, {d:tsDay(t0, 3), t:L("Перевірка: 3 дні, ціна ліда не вища за стелю $","Проверка: 3 дня, цена лида не выше потолка $") + dec(c.cap) + ".", check:1}]});
     TS.off[p.id].idle = TS.off[p.id].idle.filter(x => x.id !== c.id); save(); toast(L("Задачу поставлено","Задача поставлена")); },
   ofNo(d){ const o = ofSeen(); o[d.id] = Date.now() + 7 * 864e5; try { localStorage.setItem(OF_KEY, JSON.stringify(o)); } catch (e) { /* */ } },
+  tsView(d){ TS.view = d.v; try { localStorage.setItem("rakurs_ts_view", d.v); } catch (e) { /* */ } },
+  tsOpen(d){ TS.open = {p:d.p, id:d.id}; TS.arm = ""; },
+  tsClose(){ TS.open = null; },
+  tsDelA(d){ if (TS.arm !== d.id) { TS.arm = d.id; return; } TS.arm = ""; ACT.tsDel(d); },
+  tsBack(d){ const [p, t] = tsT(d); if (!t) return false; const i = t.steps.findIndex(x => !x.done); if (i > 0) { t.steps[i - 1].done = ""; t.backs = (t.backs || 0) + 1; }
+    if ((t.backs || 0) >= TS_BACKS) { t.status = "stop"; t.note = L("Зупинено: після ","Остановлено: после ") + TS_BACKS + L(" відкатів кампанії не тримають ціну ліда на більшому бюджеті — вони вперлися в стелю."," откатов кампании не держат цену лида на большем бюджете — они упёрлись в потолок."); }
+    save(); },
   tsGo(d){ W.cur = d.p; W.fun = d.f; W.ftab = "launch"; MP.sel = null; save(); },
 });
