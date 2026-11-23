@@ -102,12 +102,12 @@ function arAddWord(pid, k, fid, w){ const p = arProj(pid); w = String(w || "").t
   r[mode] = cur.join(", "); arTidy(p, k); save(); return true; }
 document.addEventListener("keydown", e => { const t = e.target; if (e.key !== "Enter" || !t.dataset || !t.dataset.arw) return; e.preventDefault();
   const w = t.closest(".ar"), btn = w && w.querySelector("[data-act=arWordAdd]:not([data-v])"); if (!btn) return; const k = t.dataset.arw;
-  if (arAddWord(btn.dataset.p, k, btn.dataset.f, t.value)) { render(); setTimeout(() => { const el = document.getElementById("ar-w-" + k); if (el) el.focus(); }, 0); } });
+  if (arAddWord(btn.dataset.p, k, btn.dataset.f, t.value)) { render(); setTimeout(() => { const el = document.getElementById("ar-w-" + k); if (el) el.focus({preventScroll:true}); }, 0); } });
 Object.assign(ACT, {
   arPickF(d){ AR.f[d.k] = d.v; },
-  arMode(d){ AR.mode[d.k] = d.v; setTimeout(() => { const el = document.getElementById("ar-w-" + d.k); if (el) el.focus(); }, 0); },
-  arWordAdd(d){ const v = d.v || ((document.getElementById("ar-w-" + d.k) || {}).value || ""); if (!v.trim()) { const el = document.getElementById("ar-w-" + d.k); if (el) el.focus(); return false; }
-    arAddWord(d.p, d.k, d.f, v); setTimeout(() => { const el = document.getElementById("ar-w-" + d.k); if (el && !d.v) el.focus(); }, 0); },
+  arMode(d){ AR.mode[d.k] = d.v; setTimeout(() => { const el = document.getElementById("ar-w-" + d.k); if (el) el.focus({preventScroll:true}); }, 0); },
+  arWordAdd(d){ const v = d.v || ((document.getElementById("ar-w-" + d.k) || {}).value || ""); if (!v.trim()) { const el = document.getElementById("ar-w-" + d.k); if (el) el.focus({preventScroll:true}); return false; }
+    arAddWord(d.p, d.k, d.f, v); setTimeout(() => { const el = document.getElementById("ar-w-" + d.k); if (el && !d.v) el.focus({preventScroll:true}); }, 0); },
   arWordDel(d){ const p = arProj(d.p); if (!p) return false; const r = arRule(p, d.k, d.f, false); if (!r) return false; r[d.fld] = fxWords(r[d.fld]).filter(w => w !== d.v).join(", "); arTidy(p, d.k); save(); },
 });
 const fxSum = rows => rows.reduce((a, r) => { a.spend += r.spend; a.imp += r.imp; a.clicks += r.clicks; a.leads += r.leads; a.book += r.book || 0; a.pay += r.pay || 0; a.rev += r.rev || 0; return a; }, {spend:0, imp:0, clicks:0, leads:0, book:0, pay:0, rev:0});

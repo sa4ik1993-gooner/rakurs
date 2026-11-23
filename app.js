@@ -472,7 +472,13 @@ function renderShell(){
   $("fab").innerHTML = `<i></i>${L("Сказати боту","Сказать боту")}`; $("fab").hidden = S.asst.open;
   document.documentElement.lang = lang;
 }
-function renderView(){ const r = route(), v = $("view"); v.innerHTML = V[r](); if (r !== lastRoute) { v.classList.remove("enter"); void v.offsetWidth; v.classList.add("enter"); lastRoute = r; window.scrollTo(0,0); } }
+/* при перерисовке на том же экране прокрутка окон и досок не сбрасывается, а окно карточки не «въезжает» заново */
+const KEEP_SCROLL = [".mpop__in", ".map__scroll", ".ml", ".mtb"];
+function renderView(){ const r = route(), v = $("view"), same = r === lastRoute, pop = !!v.querySelector(".mpop");
+  const kept = same ? KEEP_SCROLL.map(q => [...v.querySelectorAll(q)].map(e => [e.scrollTop, e.scrollLeft])) : null;
+  v.innerHTML = V[r]();
+  if (kept) KEEP_SCROLL.forEach((q, i) => [...v.querySelectorAll(q)].forEach((e, j) => { const k = kept[i][j]; if (k) { e.scrollTop = k[0]; e.scrollLeft = k[1]; } }));
+  if (pop) { const m = v.querySelector(".mpop"); if (m) m.classList.add("mpop--still"); } if (r !== lastRoute) { v.classList.remove("enter"); void v.offsetWidth; v.classList.add("enter"); lastRoute = r; window.scrollTo(0,0); } }
 const enter = el => { el.classList.remove("enter"); void el.offsetWidth; el.classList.add("enter"); };
 let ovKind = null, asstWas = false;
 function renderOverlay(){

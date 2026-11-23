@@ -443,7 +443,13 @@ function ownView(){ const p = P(), f = F(); if (CLOUD && (!CL.ready || CL.enteri
 let ownKey = "";
 const _rs = renderShell, _rv = renderView, _ra = renderAsst, _mf = modalFunnel;
 renderShell = function(){ tabBar(); if (own()) ownShell(); else { _rs(); const ft = document.querySelector(".rail__foot"); if (ft) ft.insertAdjacentHTML("afterbegin", `<button type="button" data-act="wsOwn">← ${L("Моя компанія","Моя компания")}</button>`); } };
-renderView = function(){ if (!own()) return _rv(); const v = $("view"), k = [W.cur, W.fun, W.tab, W.ftab, W.ctab, !!W.co, !!W.user, AU.via, AU.step, AU.login].join("|"); v.innerHTML = ownView(); if (k !== ownKey) { enter(v); ownKey = k; window.scrollTo(0,0); } };
+renderView = function(){ if (!own()) return _rv(); const v = $("view"), k = [W.cur, W.fun, W.tab, W.ftab, W.ctab, !!W.co, !!W.user, AU.via, AU.step, AU.login].join("|"), same = k === ownKey, pop = !!v.querySelector(".mpop");
+  /* тот же экран: прокрутка окна карточки, доски, списка и таблиц сохраняется, окно не «въезжает» заново */
+  const kept = same ? KEEP_SCROLL.map(q => [...v.querySelectorAll(q)].map(e => [e.scrollTop, e.scrollLeft])) : null;
+  v.innerHTML = ownView();
+  if (kept) KEEP_SCROLL.forEach((q, i) => [...v.querySelectorAll(q)].forEach((e, j) => { const x = kept[i][j]; if (x) { e.scrollTop = x[0]; e.scrollLeft = x[1]; } }));
+  if (same && pop) { const m = v.querySelector(".mpop"); if (m) m.classList.add("mpop--still"); }
+  if (!same) { enter(v); ownKey = k; window.scrollTo(0,0); } };
 renderAsst = function(){ if (own()) { $("asst").hidden = true; $("fab").hidden = true; return; } _ra(); };
 modalFunnel = function(){ return own() ? modalFunnelOwn() : _mf(); };
 
