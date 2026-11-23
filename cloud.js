@@ -20,10 +20,10 @@ const hhmm = t => { const d = new Date(t); return String(d.getHours()).padStart(
 function cloudStatus(){
   return ({idle:[L("сервер підключено","сервер подключён"), "", ""],
     load:[L("завантаження…","загрузка…"), "", ""],
-    dirty: cloudOff() ? [L("немає мережі","нет сети"), L("збережемо, щойно з’явиться","сохраним, как появится"), L("Зміни лежать у цій вкладці. Не закривайте її, доки мережа не повернеться.","Изменения лежат в этой вкладке. Не закрывайте её, пока сеть не вернётся.")] : [L("зберігаємо…","сохраняем…"), "", ""],
+    dirty: cloudOff() ? [L("немає мережі","нет сети"), L("збережемо, щойно з’явиться","сохраним, как появится"), L("Зміни лежать у цій вкладці. Не закривай її, доки мережа не повернеться.","Изменения лежат в этой вкладке. Не закрывай её, пока сеть не вернётся.")] : [L("зберігаємо…","сохраняем…"), "", ""],
     saved:[L("збережено","сохранено"), CL.savedAt ? hhmm(CL.savedAt) : "", L("Усі зміни на сервері, їх бачить команда.","Все изменения на сервере, их видит команда.")],
-    err: CL.fail === "save" ? [L("не збережено","не сохранено"), CL.tries <= 3 ? L("пробуємо ще раз","пробуем ещё раз") : "", L("Останні зміни ще не на сервері. Не закривайте вкладку.","Последние изменения ещё не на сервере. Не закрывайте вкладку.")]
-      : [L("помилка завантаження","ошибка загрузки"), "", L("Оновіть сторінку.","Обновите страницу.")]})[CL.state] || ["", "", ""]; }
+    err: CL.fail === "save" ? [L("не збережено","не сохранено"), CL.tries <= 3 ? L("пробуємо ще раз","пробуем ещё раз") : "", L("Останні зміни ще не на сервері. Не закривай вкладку.","Последние изменения ещё не на сервере. Не закрывай вкладку.")]
+      : [L("помилка завантаження","ошибка загрузки"), "", L("Онови сторінку.","Обнови страницу.")]})[CL.state] || ["", "", ""]; }
 const cloudLabel = () => cloudStatus()[0];
 function cloudBadgeHTML(){ const s = cloudStatus(), st = CL.state === "dirty" && cloudOff() ? "off" : CL.state;
   return `<span class="badge" data-st="${st}"${s[2] ? ` title="${s[2]}"` : ""}>${s[0]}${s[1] ? `<span class="st-x"> · ${s[1]}</span>` : ""}</span>${CL.state === "err" && CL.fail === "save" ? `<button type="button" class="btn btn--sm" data-act="cloudRetry">${L("Повторити","Повторить")}</button>` : ""}`; }
@@ -41,7 +41,7 @@ async function cloudBoot(){
     const r = await sb.auth.getSession(); CL.state = "idle";
     if (/access_token=|error=|error_code=/.test(location.hash)) try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
     if (r.data && r.data.session) await cloudSigned(r.data.session.user, /access_token=/.test(h0));
-    else if (/error=|error_code=/.test(h0)) setTimeout(() => toast(L("Посилання з листа застаріло або вже використане. Отримайте новий лист","Ссылка из письма устарела или уже использована. Запросите новое письмо")), 300);
+    else if (/error=|error_code=/.test(h0)) setTimeout(() => toast(L("Посилання з листа застаріло або вже використане. Отримай новий лист","Ссылка из письма устарела или уже использована. Запроси новое письмо")), 300);
     if (sb.auth.onAuthStateChange) sb.auth.onAuthStateChange((ev, s) => { if (ev === "SIGNED_IN" && s && s.user) setTimeout(() => cloudSigned(s.user, true), 0); });
   } catch (e) { cErr(e, L("Не вдалося з’єднатися із сервером","Не удалось соединиться с сервером")); }
   CL.ready = true; render();
@@ -114,12 +114,12 @@ async function cloudSync(){
 }
 /* вход через Telegram: окно Telegram отдаёт подписанный токен, серверная функция проверяет его и выдаёт пропуск */
 function tgLib(){ if (!TG() || document.getElementById("tg-lib")) return; const s = document.createElement("script"); s.id = "tg-lib"; s.async = true; s.src = "https://oauth.telegram.org/js/telegram-login.js?6"; document.head.appendChild(s); }
-const tgErr = (d) => ({bad_token:L("Telegram не підтвердив вхід. Спробуйте ще раз","Telegram не подтвердил вход. Попробуйте ещё раз"), expired:L("Підтвердження застаріло. Спробуйте ще раз","Подтверждение устарело. Попробуйте ещё раз"),
+const tgErr = (d) => ({bad_token:L("Telegram не підтвердив вхід. Спробуй ще раз","Telegram не подтвердил вход. Попробуй ещё раз"), expired:L("Підтвердження застаріло. Спробуй ще раз","Подтверждение устарело. Попробуй ещё раз"),
   taken:L("Цей Telegram уже використовується як окремий акаунт","Этот Telegram уже используется как отдельный аккаунт"), has_other:L("До цього акаунта вже прив’язано інший Telegram","К этому аккаунту уже привязан другой Telegram"),
-  not_signed_in:L("Спершу увійдіть у кабінет","Сначала войдите в кабинет")}[d.error] || L("Не вдалося увійти через Telegram","Не удалось войти через Telegram") + ": " + (d.detail || d.error));
+  not_signed_in:L("Спершу увійди у кабінет","Сначала войди в кабинет")}[d.error] || L("Не вдалося увійти через Telegram","Не удалось войти через Telegram") + ": " + (d.detail || d.error));
 function cloudTg(link){
   if (!TG()) return;
-  if (!window.Telegram || !Telegram.Login) { tgLib(); toast(L("Telegram ще завантажується. Спробуйте за кілька секунд","Telegram ещё загружается. Попробуйте через пару секунд")); return; }
+  if (!window.Telegram || !Telegram.Login) { tgLib(); toast(L("Telegram ще завантажується. Спробуй за кілька секунд","Telegram ещё загружается. Попробуй через пару секунд")); return; }
   if (CL.tgBusy) return;
   try { Telegram.Login.auth({client_id:String(RK.tg), scope:["profile","write"], lang:lang}, r => cloudTgDone(r, link)); }
   catch (e) { console.error(e); toast(L("Не вдалося відкрити вікно Telegram","Не удалось открыть окно Telegram")); }
@@ -143,7 +143,7 @@ async function cloudTgDone(r, link){
 /* вход */
 async function cloudSendCode(mail){
   const r = await sb.auth.signInWithOtp({email:mail, options:{shouldCreateUser:!AU.login, emailRedirectTo:location.origin + location.pathname}});
-  if (r.error) { toast(/signups not allowed|not found|not allowed for otp/i.test(r.error.message) ? L("Акаунта з такою поштою немає — зареєструйтесь","Аккаунта с такой почтой нет — зарегистрируйтесь") : /rate|seconds|limit/i.test(r.error.message) ? L("Забагато листів. Спробуйте пізніше: вбудована пошта надсилає лише кілька листів на годину","Слишком много писем. Попробуйте позже: встроенная почта отправляет всего несколько писем в час") : L("Не вдалося надіслати лист: ","Не удалось отправить письмо: ") + r.error.message); return; }
+  if (r.error) { toast(/signups not allowed|not found|not allowed for otp/i.test(r.error.message) ? L("Акаунта з такою поштою немає — зареєструйтесь","Аккаунта с такой почтой нет — зарегистрируйтесь") : /rate|seconds|limit/i.test(r.error.message) ? L("Забагато листів. Спробуй пізніше: вбудована пошта надсилає лише кілька листів на годину","Слишком много писем. Попробуй позже: встроенная почта отправляет всего несколько писем в час") : L("Не вдалося надіслати лист: ","Не удалось отправить письмо: ") + r.error.message); return; }
   const again = AU.step === 1; AU.id = mail; AU.step = 1; render(); if (again) toast(L("Лист надіслано ще раз","Письмо отправлено ещё раз"));
 }
 async function cloudVerify(code){
@@ -151,7 +151,7 @@ async function cloudVerify(code){
   if (r.error || !r.data || !r.data.user) { toast(L("Код не підійшов або застарів","Код не подошёл или устарел")); return; }
   await cloudSigned(r.data.user, true);
 }
-async function cloudLogout(){ try { await sb.auth.signOut(); } catch (e) {} W = blankW(); AU = auFresh(); AU.login = true; CL.cos = []; CL.members = []; CL.role = null; CL.tg = null; cloudSnap(); render(); toast(L("Ви вийшли","Вы вышли")); }
+async function cloudLogout(){ try { await sb.auth.signOut(); } catch (e) {} W = blankW(); AU = auFresh(); AU.login = true; CL.cos = []; CL.members = []; CL.role = null; CL.tg = null; cloudSnap(); render(); toast(L("Ти вийшов","Ты вышел")); }
 async function cloudCreateCo(name, kind){
   const r = await sb.from("companies").insert({name, kind}).select().single(); if (r.error) return cErr(r.error, L("Не вдалося створити компанію","Не удалось создать компанию"), "act");
   CL.cos.push(r.data); try { await cloudOpen(r.data.id); CL.state = "saved"; } catch (e) { return cErr(e, L("Компанію створено, але вона не відкрилася","Компания создана, но не открылась")); } render();
@@ -183,6 +183,6 @@ function cloudFileOpen(path){ if (!CLOUD || !sb || !path) return; const w = wind
 async function cloudMembers(){ const m = await sb.from("members").select("*").eq("company_id", W.co.id).order("created_at"); if (!m.error) CL.members = m.data || []; }
 async function cloudAddMember(email, role, proj){
   const r = await sb.from("members").insert({company_id:W.co.id, email, role, project_ids: proj ? [proj] : null}); if (r.error) { toast(/duplicate|unique/i.test(r.error.message) ? L("Ця людина вже в команді","Этот человек уже в команде") : L("Не вдалося додати: ","Не удалось добавить: ") + r.error.message); return; }
-  await cloudMembers(); render(); toast(L("Доступ надано. Натисніть «Скопіювати запрошення» біля людини й надішліть їй текст","Доступ выдан. Нажмите «Скопировать приглашение» рядом с человеком и отправьте ему текст"));
+  await cloudMembers(); render(); toast(L("Доступ надано. Натисни «Скопіювати запрошення» біля людини й надішли їй текст","Доступ выдан. Нажми «Скопировать приглашение» рядом с человеком и отправь ему текст"));
 }
 async function cloudDelMember(id){ const r = await sb.from("members").delete().eq("id", id); if (r.error) return cErr(r.error, L("Не вдалося прибрати","Не удалось убрать"), "act"); await cloudMembers(); render(); toast(L("Доступ закрито","Доступ закрыт")); }

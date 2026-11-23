@@ -30,7 +30,7 @@ async function abFill(p, manual){ if (AB.busy[p.id]) return; AB.busy[p.id] = tru
     if (land && !String(p.site || "").trim()) v.site = u;
     Object.keys(v).forEach(k => { if (v[k] && abFree(p, k) && v[k] !== p[k]) { p[k] = v[k]; p.auto[k] = 1; got[k] = 1; } });
     if (Object.keys(got).length) save();
-    if (manual) toast(Object.keys(got).length ? L("Заповнили самі — перевірте й виправте","Заполнили сами — проверьте и исправьте") : u ? L("Нового нічого не знайшли: поля, які ви писали самі, не чіпаємо","Нового ничего не нашли: поля, которые вы писали сами, не трогаем") : L("Додайте лендинг у воронку — з нього заповнимо опис","Добавьте лендинг в воронку — из него заполним описание"));
+    if (manual) toast(Object.keys(got).length ? L("Заповнили самі — перевір й виправ","Заполнили сами — проверь и исправь") : u ? L("Нового нічого не знайшли: поля, які ти писав самі, не чіпаємо","Нового ничего не нашли: поля, которые ты писал сами, не трогаем") : L("Додай лендинг у воронку — з нього заповнимо опис","Добавь лендинг в воронку — из него заполним описание"));
   } finally { AB.busy[p.id] = false; render(); } }
 /* при открытии «Про проєкт»: один раз за сеанс, если есть что заполнить */
 function abAuto(p){ if (!own() || AB.tried[p.id] || AB.busy[p.id]) return; if (!["desc", "product", "worked"].some(k => !String(p[k] || "").trim())) return; setTimeout(() => abFill(p, false), 0); }

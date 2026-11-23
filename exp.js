@@ -7,7 +7,7 @@ const exDate = d => { const m = /^(\d{4})-(\d\d)-(\d\d)/.exec(d || ""); return m
 function exCalc(e, p){ const f = p.funnels.find(x => x.id === e.f), cap = f ? fT(f, p).cap : pT(p).cap, cpl = e.leads > 0 ? e.spend / e.leads : null;
   return {f, cap, cpl, okCpl: cpl == null ? null : cpl <= cap, l2b: e.leads > 0 ? e.book / e.leads * 100 : null, b2p: e.book > 0 ? e.pay / e.book * 100 : null, roas: e.spend > 0 && f && e.pay > 0 ? e.pay * f.tg.check / e.spend : null}; }
 function exRow(e, i, p){ const c = exCalc(e, p), v = EXV().find(x => x[0] === e.v), n = (k, t, u) => `<div class="field"><label for="ex-${i}-${k}">${t}</label><input id="ex-${i}-${k}" class="tin tin--w" data-exp="${i}.${k}" value="${e[k] || ""}" inputmode="decimal" placeholder="0"${u ? ` aria-label="${t}, ${u}"` : ""}></div>`;
-  const facts = [c.cpl != null ? `${L("ціна ліда","цена лида")} $${dec(c.cpl)} ${L("за стелі","при потолке")} $${dec(c.cap)}` : "", c.l2b != null ? `${L("лід → бронь","лид → бронь")} ${dec(c.l2b, 1)}%` : "", c.b2p != null ? `${L("бронь → оплата","бронь → оплата")} ${dec(c.b2p, 1)}%` : "", c.roas != null ? `ROAS ${dec(c.roas)}` : ""].filter(Boolean);
+  const facts = [c.cpl != null ? `${L("ціна ліда","цена лида")} ${dec(c.cpl)} $ ${L("за стелі","при потолке")} ${dec(c.cap)} $` : "", c.l2b != null ? `${L("лід → бронь","лид → бронь")} ${dec(c.l2b, 1)}%` : "", c.b2p != null ? `${L("бронь → оплата","бронь → оплата")} ${dec(c.b2p, 1)}%` : "", c.roas != null ? `ROAS ${dec(c.roas)}` : ""].filter(Boolean);
   return `<div class="panel exr"><div class="row sp"><span class="row">${v ? pill(v[2], v[1]) : pill("mute", EXS().find(x => x[0] === e.st)[1])}<span class="sub mono">${exDate(e.at)}</span></span>
       <span class="row"><select data-exs="${i}" aria-label="${L("Статус","Статус")}">${EXS().map(x => `<option value="${x[0]}"${x[0] === e.st ? " selected" : ""}>${x[1]}</option>`).join("")}</select>${del("exDel", e.id)}</span></div>
     ${fld("p.exp." + i + ".h", L("Що перевіряємо","Что проверяем"), {w:1, area:2})}
@@ -29,9 +29,9 @@ function vExp(p){ const ex = p.exp || [], cnt = k => ex.filter(e => k === "run" 
       <div class="row"><button class="btn btn--solid" data-act="exAdd">${L("Записати тест","Записать тест")}</button></div></div>
     ${ex.length ? `<div class="c2 c2--eq">${sum("yes", L("Що спрацювало","Что сработало"))}${sum("no", L("Що не спрацювало","Что не сработало"))}</div>
       ${ex.map((e, i) => [e, i]).reverse().map(x => exRow(x[0], x[1], p)).join("")}`
-    : empty(L("Тестів ще немає","Тестов ещё нет"), L("Запишіть першу гіпотезу у формі вище — навіть якщо запуск іще попереду. Згодом тут буде видно, що вже пробували й що з цього вийшло.","Запишите первую гипотезу в форме выше — даже если запуск ещё впереди. Со временем здесь будет видно, что уже пробовали и что из этого вышло."))}`; }
+    : empty(L("Тестів ще немає","Тестов ещё нет"), L("Запиши першу гіпотезу у формі вище — нави якщо запуск іще попереду. Згодом тут буде видно, що вже пробували й що з цього вийшло.","Запиши первую гипотезу в форме выше — даже если запуск ещё впереди. Со временем здесь будет видно, что уже пробовали и что из этого вышло."))}`; }
 Object.assign(ACT, {
-  exAdd(){ const p = P(), h = val("ex-h"); if (!need(h, L("Сформулюйте гіпотезу одним реченням","Сформулируйте гипотезу одним предложением"), "ex-h")) return false;
+  exAdd(){ const p = P(), h = val("ex-h"); if (!need(h, L("Сформулюй гіпотезу одним реченням","Сформулируй гипотезу одним предложением"), "ex-h")) return false;
     p.exp = p.exp || []; p.exp.push({id:uid(), at:new Date().toISOString().slice(0, 10), h, f:$("ex-f").value, ch:$("ex-ch").value, seg:$("ex-seg").value, st:$("ex-st").value, spend:0, leads:0, book:0, pay:0, v:"", out:""}); save(); toast(L("Тест записано","Тест записан")); },
   exDel(d){ const p = P(); p.exp = (p.exp || []).filter(e => e.id !== d.id); save(); },
   exV(d){ const e = P().exp[+d.i]; if (!e) return false; e.v = e.v === d.v ? "" : d.v; if (e.v && e.st !== "done") e.st = "done"; save(); },

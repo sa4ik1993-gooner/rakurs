@@ -5,20 +5,19 @@ window.BRAND = {
   name: "HEYROW",          // название в текстах, заголовке вкладки, подписях ассистента
   logoText: "HEY",         // надпись логотипа, пока нет файла логотипа…
   logoAccent: "ROW",       // …и её вторая часть цветом акцента (play)
-  mark: false,             // старый знак со стрелками — не используется (утверждён логотип «HEY с воронкой и строкой ROW», Figma 23.11.2026)
-  wordmark: true,          // утверждённый логотип: HEY, ножка Y — оранжевая «воронка», под словом оранжевая черта и ROW справа
 
   /* Файлы логотипа (SVG или PNG) кладутся рядом с этим файлом, сюда пишется имя: "logo-dark.svg".
      Пока пусто — рисуется знак и надпись. Если файл указан, надпись не показывается. */
   logo: {
-    onDark: "",            // для тёмного фона: левая полоса кабинета и тёмная тема лендинга
-    onLight: "",           // для светлого фона: шапка лендинга в светлой теме
-    height: 22             // высота логотипа в пикселях
+    onDark: "ui/logo/logo-on-dark.svg",    // файлы из heyrow-ui/logo, не перерисовываются
+    onLight: "ui/logo/logo-on-light.svg",
+    height: 28             // высота логотипа в пикселях
   },
-  icon: "",                // значок вкладки браузера (SVG или PNG); пусто — знак на тёмном квадрате
+  icon: "ui/logo/icon-32.png",             // значок вкладки: app-icon-dark из heyrow-ui/logo
+  touchIcon: "ui/logo/icon-180.png",
 
   fonts: {
-    url: "https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Unbounded:wght@500;700;800;900&display=swap",
+    url: "https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;600&family=Unbounded:wght@700;800&family=Caveat:wght@600&display=swap",
     display: "'Unbounded','Arial Black',sans-serif",          // заголовки и логотип
     body: "'Golos Text','Segoe UI',system-ui,sans-serif",      // основной текст
     mono: "'JetBrains Mono',ui-monospace,Menlo,monospace"      // цифры, метки, подписи
@@ -57,35 +56,36 @@ window.BRAND = {
   }
 };
 
-/* ---- ниже ничего менять не нужно: раскладка настроек по странице ---- */
+/* ---- ниже ничего менять не нужно ----
+   Кабинет (<html data-ui="app">): цвета, шрифты, отступы — только из ui/tokens.css (heyrow-ui), тёмной темы нет (DESIGN.md п. 3).
+   Лендинг: старые имена цветов и тёмная тема остаются, пока лендинг не переведён на дизайн-систему. */
 (function (B) {
+  const app = document.documentElement.dataset.ui === "app";
   const vars = o => Object.keys(o).map(k => "--" + k + ":" + o[k]).join(";");
-  const MARK = '<path d="M40 44h22v56H40zM29 98h44l-22 28zM60 74h40v16H60z" fill="currentColor"/><path d="M98 58h22v68H98zM87 60h44l-22-30z" fill="var(--play)"/>';
-  const dark = vars(B.dark) + ";color-scheme:dark", h = (B.logo && B.logo.height) || 22;
+  const h = (B.logo && B.logo.height) || 28, add = (tag, a) => { const e = document.createElement(tag); Object.assign(e, a); document.head.appendChild(e); return e; };
+  if (app) add("link", { rel: "stylesheet", href: "ui/tokens.css" });
   const st = document.createElement("style"); st.id = "brand";
-  st.textContent =
+  st.textContent = (app ? "" :
     ":root{" + vars(B.light) + ";--f-display:" + B.fonts.display + ";--f-body:" + B.fonts.body + ";--f-mono:" + B.fonts.mono + "}" +
-    '@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){' + dark + "}}" +
-    ':root[data-theme="dark"]{' + dark + "}" +
-    ".logo svg{width:22px;height:22px;flex:none;display:block}.logo span{font-weight:800;letter-spacing:-.01em}.logo b{color:var(--play);font-weight:inherit}" +
-    ".logo img{height:" + h + "px;width:auto;display:block}.logo .lg-d{display:none}" +
+    '@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){' + vars(B.dark) + ";color-scheme:dark}}" +
+    ':root[data-theme="dark"]{' + vars(B.dark) + ";color-scheme:dark}" +
     '@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .logo .lg-l{display:none}:root:not([data-theme="light"]) .logo .lg-d{display:block}}' +
-    ':root[data-theme="dark"] .logo .lg-l{display:none}:root[data-theme="dark"] .logo .lg-d{display:block}';
+    ':root[data-theme="dark"] .logo .lg-l{display:none}:root[data-theme="dark"] .logo .lg-d{display:block}') +
+    ".logo img{height:" + h + "px;width:auto;display:block}.logo .lg-d{display:none}";
   document.head.appendChild(st);
-  if (B.fonts.url) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = B.fonts.url; document.head.appendChild(l); }
-  const ic = document.createElement("link"); ic.rel = "icon";
-  ic.href = B.icon || "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160"><rect width="160" height="160" rx="36" fill="' + B.light.ink + '"/>' + MARK.replace("currentColor", "#fff").replace("var(--play)", B.light.play) + "</svg>");
-  document.head.appendChild(ic);
+  if (B.fonts.url) add("link", { rel: "stylesheet", href: B.fonts.url });
+  add("link", { rel: "icon", href: B.icon });
+  if (B.touchIcon) add("link", { rel: "apple-touch-icon", href: B.touchIcon });
 
-  /* логотип: place = "rail" — тёмная полоса кабинета; "page" — фон по теме (лендинг) */
+  /* иконки: спрайт heyrow-ui/icons вставляется в страницу, ico("name") рисует <svg><use> */
+  if (app) fetch("ui/icons.svg").then(r => r.text()).then(t => { const d = document.createElement("div"); d.hidden = true; d.innerHTML = t; document.body.prepend(d); }).catch(() => {});
+  window.ico = (n, label) => '<svg class="ic" ' + (label ? 'role="img" aria-label="' + label + '"' : 'aria-hidden="true"') + '><use href="#i-' + n + '"/></svg>';
+
+  /* логотип — только файлом: rail — тёмная полоса кабинета, page — светлый фон */
   window.brandLogo = place => {
     const L = B.logo || {}, img = (src, c) => '<img src="' + src + '" alt="' + B.name + '"' + (c ? ' class="' + c + '"' : "") + ">";
-    if (place === "rail" && (L.onDark || L.onLight)) return img(L.onDark || L.onLight);
-    if (place !== "rail" && L.onLight && L.onDark) return img(L.onLight, "lg-l") + img(L.onDark, "lg-d");
-    if (place !== "rail" && (L.onLight || L.onDark)) return img(L.onLight || L.onDark);
-    if (B.wordmark) return '<span class="hw" aria-label="' + B.name + '"><span class="hw__hey">HE<span class="hw__y">Y</span></span><span class="hw__ln"><i></i><span class="hw__row">ROW</span></span></span>';
-    const word = "<span>" + B.logoText + (B.logoAccent ? "<b>" + B.logoAccent + "</b>" : "") + "</span>";
-    return (B.mark ? '<svg viewBox="26 26 108 104" aria-hidden="true">' + MARK + "</svg>" : "<i></i>") + word;
+    if (place === "rail") return img(L.onDark);
+    return app ? img(L.onLight) : img(L.onLight, "lg-l") + img(L.onDark, "lg-d");
   };
   const fill = () => {
     if (document.title) document.title = document.title.replace("Rakurs", B.name);

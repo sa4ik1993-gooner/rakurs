@@ -10,16 +10,16 @@ async function aqCall(body){
   catch (e) { return {ok:false, error:"net", detail:e && e.message}; }
 }
 const aqErr = d => ({
-  no_ai_key:L("На сервері ще немає ключа Anthropic. Додайте його в Supabase: Edge Functions → Secrets → ANTHROPIC_API_KEY.","На сервере ещё нет ключа Anthropic. Добавьте его в Supabase: Edge Functions → Secrets → ANTHROPIC_API_KEY."),
-  bad_ai_key:L("Ключ Anthropic на сервері не працює: перевірте його та баланс рахунку.","Ключ Anthropic на сервере не работает: проверьте его и баланс счёта."),
-  ai_busy:L("Сервіс Claude зараз перевантажений. Спробуйте ще раз за хвилину.","Сервис Claude сейчас перегружен. Попробуйте ещё раз через минуту."),
-  refused:L("Модель відмовилась відповідати на це запитання. Сформулюйте його інакше.","Модель отказалась отвечать на этот вопрос. Сформулируйте его иначе."),
-  too_long:L("Відповідь вийшла надто довгою й обірвалась. Звузьте запитання: один акаунт, один період.","Ответ получился слишком длинным и оборвался. Сузьте вопрос: один аккаунт, один период."),
-  no_answer:L("Відповіді не вийшло. Спробуйте ще раз або звузьте запитання.","Ответа не получилось. Попробуйте ещё раз или сузьте вопрос."),
-  empty:L("Напишіть або надиктуйте запитання.","Напишите или надиктуйте вопрос."),
-  denied:L("Цей проєкт вам не відкрито.","Этот проект вам не открыт."), not_signed_in:L("Спершу увійдіть у кабінет.","Сначала войдите в кабинет."),
-  no_project:L("Проєкт ще не збережено на сервері. Зачекайте кілька секунд і повторіть.","Проект ещё не сохранён на сервере. Подождите пару секунд и повторите."),
-  net:L("Не вдалося звернутися до функції ask. Якщо її ще не створено на сервері — створіть (Supabase → Edge Functions → ask). ","Не удалось обратиться к функции ask. Если она ещё не создана на сервере — создайте (Supabase → Edge Functions → ask). ") + (d.detail || ""),
+  no_ai_key:L("На сервері ще немає ключа Anthropic. Додай його в Supabase: Edge Functions → Secrets → ANTHROPIC_API_KEY.","На сервере ещё нет ключа Anthropic. Добавь его в Supabase: Edge Functions → Secrets → ANTHROPIC_API_KEY."),
+  bad_ai_key:L("Ключ Anthropic на сервері не працює: перевір його та баланс рахунку.","Ключ Anthropic на сервере не работает: проверь его и баланс счёта."),
+  ai_busy:L("Сервіс Claude зараз перевантажений. Спробуй ще раз за хвилину.","Сервис Claude сейчас перегружен. Попробуй ещё раз через минуту."),
+  refused:L("Модель відмовилась відповідати на це запитання. Сформулюй його інакше.","Модель отказалась отвечать на этот вопрос. Сформулируй его иначе."),
+  too_long:L("Відповідь вийшла надто довгою й обірвалась. Звузь запитання: один акаунт, один період.","Ответ получился слишком длинным и оборвался. Сузь вопрос: один аккаунт, один период."),
+  no_answer:L("Відповіді не вийшло. Спробуй ще раз або звузь запитання.","Ответа не получилось. Попробуй ещё раз или сузь вопрос."),
+  empty:L("Напиши або надиктуй запитання.","Напиши или надиктуй вопрос."),
+  denied:L("Цей проєкт тобі не відкрито.","Этот проект тебе не открыт."), not_signed_in:L("Спершу увійди у кабінет.","Сначала войди в кабинет."),
+  no_project:L("Проєкт ще не збережено на сервері. Зачекай кілька секунд і повтори.","Проект ещё не сохранён на сервере. Подожди пару секунд и повтори."),
+  net:L("Не вдалося звернутися до функції ask. Якщо її ще не створено на сервері — створи (Supabase → Edge Functions → ask). ","Не удалось обратиться к функции ask. Если она ещё не создана на сервере — создай (Supabase → Edge Functions → ask). ") + (d.detail || ""),
 }[d.error] || L("Не вдалося: ","Не удалось: ") + (d.detail || d.error));
 /* Ответ модели приходит простой разметкой: заголовки, списки, жирный, таблицы. Всё экранируется, HTML из ответа не исполняется. */
 function mdLite(src){
@@ -57,7 +57,7 @@ function askPanel(p, f){
       ${!conn ? `<p class="sub">${L("Рекламний кабінет Meta до проєкту ще не підключено — без нього платформа не бачить цифр реклами.","Рекламный кабинет Meta к проекту ещё не подключён — без него платформа не видит цифр рекламы.")}</p>` : ""}
       ${AQ.err ? `<p class="mterr" role="alert">${esc(AQ.err)}</p>` : ""}
       <div class="row"><button class="btn btn--solid" data-act="aqSend"${AQ.busy ? " disabled" : ""}>${AQ.busy ? L("Рахуємо…","Считаем…") : L("Спитати","Спросить")}</button>
-        ${AQ_SR ? `<button type="button" class="btn${AQ.on ? " btn--del" : ""}" data-act="aqMic"${AQ.busy ? " disabled" : ""} aria-pressed="${AQ.on}">${AQ.on ? L("■ Зупинити запис","■ Остановить запись") : L("● Надиктувати","● Надиктовать")}</button>` : `<span class="sub">${L("Диктування працює в Chrome і Safari.","Диктовка работает в Chrome и Safari.")}</span>`}
+        ${AQ_SR ? `<button type="button" class="btn${AQ.on ? " btn--del" : ""}" data-act="aqMic"${AQ.busy ? " disabled" : ""} aria-pressed="${AQ.on}">${AQ.on ? L("Зупинити запис","Остановить запись") : L("Надиктувати","Надиктовать")}</button>` : `<span class="sub">${L("Диктування працює в Chrome і Safari.","Диктовка работает в Chrome и Safari.")}</span>`}
         ${AQ.busy ? `<span class="sub" role="status">${L("Платформа збирає цифри й рахує, зазвичай до хвилини","Платформа собирает цифры и считает, обычно до минуты")} · <span id="aq-wait">0</span> ${L("с","с")}</span>` : ""}</div>`;
   return `<div class="panel" id="aq"><span class="tag">${L("Запит до платформи","Запрос к платформе")}</span>
     
@@ -71,7 +71,7 @@ Object.assign(ACT, {
     r.lang = lang === "ru" ? "ru-RU" : "uk-UA"; r.continuous = true; r.interimResults = true;
     r.onresult = e => { let tmp = ""; for (let i = e.resultIndex; i < e.results.length; i++) { const t = e.results[i][0].transcript; if (e.results[i].isFinal) fin += t + " "; else tmp += t; }
       AQ.text = (base + fin + tmp).replace(/\s+/g, " "); const el = document.getElementById("aq-text"); if (el) el.value = AQ.text; };
-    r.onerror = e => { AQ.err = e.error === "not-allowed" || e.error === "service-not-allowed" ? L("Браузер не дав доступу до мікрофона. Дозвольте його для цієї сторінки.","Браузер не дал доступ к микрофону. Разрешите его для этой страницы.") : e.error === "no-speech" || e.error === "aborted" ? "" : L("Не вдалося розпізнати мову: ","Не удалось распознать речь: ") + e.error; };
+    r.onerror = e => { AQ.err = e.error === "not-allowed" || e.error === "service-not-allowed" ? L("Браузер не дав доступу до мікрофона. Дозволь його для цієї сторінки.","Браузер не дал доступ к микрофону. Разреши его для этой страницы.") : e.error === "no-speech" || e.error === "aborted" ? "" : L("Не вдалося розпізнати мову: ","Не удалось распознать речь: ") + e.error; };
     r.onend = () => { AQ.on = false; AQ.rec = null; AQ.text = AQ.text.trim(); render(); };
     AQ.rec = r; AQ.on = true; AQ.err = ""; try { r.start(); } catch (e) { AQ.on = false; AQ.rec = null; } },
   aqSend(){ const p = P(), f = F(), q = AQ.text.trim(); if (!p || AQ.busy) return false; if (q.length < 3) { AQ.err = aqErr({error:"empty"}); return; }

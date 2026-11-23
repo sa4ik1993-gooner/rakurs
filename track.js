@@ -5,7 +5,7 @@ const TR_SRC = () => { const b = location.origin + location.pathname.replace(/[^
 async function trCall(body){ if (!CLOUD || !sb) return {ok:false, error:"offline"};
   try { const r = await sb.functions.invoke("track", {body}); if (r.error || !r.data) return {ok:false, error:"net", detail:(r.error && r.error.message) || ""}; return r.data; }
   catch (e) { return {ok:false, error:"net", detail:e && e.message}; } }
-const trErr = r => ({not_signed_in:L("Спершу увійдіть у кабінет","Сначала войдите в кабинет"), denied:L("Немає доступу до цього проєкту","Нет доступа к этому проекту"), offline:L("Працює лише із сервером","Работает только с сервером"),
+const trErr = r => ({not_signed_in:L("Спершу увійди у кабінет","Сначала войди в кабинет"), denied:L("Немає доступу до цього проєкту","Нет доступа к этому проекту"), offline:L("Працює лише із сервером","Работает только с сервером"),
   net:L("Сервер не відповів. Можливо, функцію track ще не викладено.","Сервер не ответил. Возможно, функцию track ещё не выложили.")})[r.error] || (r.error || "") + (r.detail ? ": " + r.detail : "");
 async function trLoad(p){ if (TK.busy[p.id]) return; TK.busy[p.id] = true;
   let r = await trCall({action:"status", project_id:p.id});
@@ -28,14 +28,14 @@ function trPanel(p){
       <div class="row trc"><code class="mono">${esc(trTag(s.key, f.id))}</code><button type="button" class="btn btn--sm" data-act="trCopy" data-v="${esc(f.id)}">${L("Копіювати","Копировать")}</button></div></div>`; }).join("");
   return `<div class="panel tr"><div class="row sp"><h2>${L("Трекер HEYROW","Трекер HEYROW")}</h2><span class="row">${live ? pill("good", L("працює · ","работает · ") + trAgo(s.last)) : pill("warn", L("ще не стоїть на сайті","ещё не стоит на сайте"))}</span></div>
     <p class="sub">${L("Ключ проєкту: ","Ключ проекта: ")}<b class="mono">${esc(s.key)}</b> · ${L("за 7 днів: ","за 7 дней: ")}${num((s.kinds || {}).lead || 0)} ${L("лідів","лидов")}, ${num((s.kinds || {}).view || 0)} ${L("переглядів","просмотров")}${(s.kinds || {}).pay ? ", " + num(s.kinds.pay) + L(" оплат"," оплат") : ""}</p>
-    ${fun || `<p class="sub">${L("Додайте воронку — для неї з’явиться свій код.","Добавьте воронку — для неё появится свой код.")}</p>`}
+    ${fun || `<p class="sub">${L("Додай воронку — для неї з’явиться свій код.","Добавь воронку — для неё появится свой код.")}</p>`}
     <details class="trx"><summary>${L("Сайт на кількох доменах, оплата, згода на cookie","Сайт на нескольких доменах, оплата, согласие на cookie")}</summary>
       <p class="sub">${L("Загальний код без воронки: ","Общий код без воронки: ")}<code class="mono">${esc(trTag(s.key, ""))}</code> — ${L("воронку визначимо за адресою сторінки з розділу «Лендинги».","воронку определим по адресу страницы из раздела «Лендинги».")}</p>
-      <p class="sub">${L("Сторінка «дякуємо» після оплати: ","Страница «спасибо» после оплаты: ")}<code class="mono">heyrow.pay(650, "USD")</code>. ${L("Якщо оплати вже рахує CRM — не ставте, щоб не задвоїти.","Если оплаты уже считает CRM — не ставьте, чтобы не задвоить.")}</p>
-      <p class="sub">${L("Для ЄС: додайте ","Для ЕС: добавьте ")}<code class="mono">data-consent="1"</code>${L(" і викликайте "," и вызывайте ")}<code class="mono">heyrow.consent()</code>${L(" після згоди на cookie."," после согласия на cookie.")}</p></details>
+      <p class="sub">${L("Сторінка «дякуємо» після оплати: ","Страница «спасибо» после оплаты: ")}<code class="mono">heyrow.pay(650, "USD")</code>. ${L("Якщо оплати вже рахує CRM — не став, щоб не задвоїти.","Если оплаты уже считает CRM — не ставь, чтобы не задвоить.")}</p>
+      <p class="sub">${L("Для ЄС: додай ","Для ЕС: добавь ")}<code class="mono">data-consent="1"</code>${L(" і викликай "," и вызывай ")}<code class="mono">heyrow.consent()</code>${L(" після згоди на cookie."," после согласия на cookie.")}</p></details>
     ${trPagesBox(p)}<div class="trh"><span class="tag">${L("Звідки приходять події","Откуда приходят события")}</span> ${seen.length ? seen.map(h => `<span class="mono">${esc(h)}</span>`).join(", ") : `<span class="sub">—</span>`}
       ${adm ? `<div class="row"><input id="tr-hosts" value="${esc((s.hosts || []).join(", "))}" placeholder="${L("свої домени через кому — інші відкидаємо","свои домены через запятую — остальные отбрасываем")}" aria-label="${L("Дозволені домени","Разрешённые домены")}"><button type="button" class="btn btn--sm" data-act="trHosts">${L("Зберегти","Сохранить")}</button></div>` : ""}
-      ${foreign.length > 1 ? `<p class="sub">${L("Домени не обмежено: події приймаються з будь-якого сайту з цим кодом. Впишіть свої.","Домены не ограничены: события принимаются с любого сайта с этим кодом. Впишите свои.")}</p>` : ""}</div></div>`; }
+      ${foreign.length > 1 ? `<p class="sub">${L("Домени не обмежено: події приймаються з будь-якого сайту з цим кодом. Впиши свої.","Домены не ограничены: события принимаются с любого сайта с этим кодом. Впиши свои.")}</p>` : ""}</div></div>`; }
 
 /* отчёт в воронке: лиды трекера против лидов Meta по объявлениям за период карты */
 const trPath = u => { try { const x = new URL(/^https?:/.test(u) ? u : "https://" + u); return [x.hostname.replace(/^www\./, ""), x.pathname.replace(/\/$/, "") || "/"]; } catch (e) { return ["", ""]; } };
@@ -103,7 +103,7 @@ function trReport(p, f){ if (!CLOUD) return ""; const s = TK.st[p.id]; if (s ===
   R.rows.forEach(x => add(x.utm_content, x.kind === "view" ? {v:+x.people} : x.kind === "lead" ? {l:+x.people} : {pay:+x.events, am:+x.amount}));
   let mt = 0; (R.meta || []).forEach(o => { const n = +o.leads || 0; mt += n; if (!o.ad_name) return; add(o.ad_name, {}); const t = by[fxKey(o.ad_name)]; t.m = (t.m || 0) + n; });
   const rows = Object.values(by).filter(x => x.l || x.m || x.pay).sort((a, b) => (b.l + (b.m || 0)) - (a.l + (a.m || 0))).slice(0, 20), tl = rows.reduce((a, x) => a + x.l, 0), paid = R.rows.filter(x => x.kind === "lead" && x.utm_source).reduce((a, x) => a + +x.people, 0);
-  if (!R.rows.length) return `<div class="panel">${head}<p class="sub">${L("За цей період подій трекера по воронці немає. Перевірте, що код стоїть на лендингу (Підключення → Трекер HEYROW).","За этот период событий трекера по воронке нет. Проверьте, что код стоит на лендинге (Подключения → Трекер HEYROW).")}</p></div>`;
+  if (!R.rows.length) return `<div class="panel">${head}<p class="sub">${L("За цей період подій трекера по воронці немає. Перевір, що код стоїть на лендингу (Підключення → Трекер HEYROW).","За этот период событий трекера по воронке нет. Проверь, что код стоит на лендинге (Подключения → Трекер HEYROW).")}</p></div>`;
   return `<div class="panel">${head}<div class="kpis kpis--4">${[[L("Ліди трекера","Лиды трекера"), num(tl)], [L("Ліди Meta","Лиды Meta"), R.meta ? num(mt) : "—"], [L("З міткою реклами","С меткой рекламы"), num(paid)], [L("Різниця","Разница"), R.meta ? (tl - mt > 0 ? "+" : "") + num(tl - mt) : "—"]].map(k => `<div class="kpi"><span class="tag">${k[0]}</span><strong>${k[1]}</strong></div>`).join("")}</div>
     ${more("trr:" + f.id, L("по оголошеннях","по объявлениям") + " · " + rows.length, `<div class="tw tw--in"><table><thead><tr><th>${L("Оголошення (utm_content)","Объявление (utm_content)")}</th><th class="n">${L("Відвідувачі","Посетители")}</th><th class="n">${L("Ліди трекера","Лиды трекера")}</th><th class="n">${L("Ліди Meta","Лиды Meta")}</th><th class="n">${L("Оплати","Оплаты")}</th></tr></thead><tbody>
       ${rows.map(x => `<tr><td class="mono">${esc(x.n)}</td><td class="n mono">${num(x.v)}</td><td class="n mono">${num(x.l)}</td><td class="n mono">${x.m == null ? "—" : num(x.m)}</td><td class="n mono">${x.pay ? num(x.pay) + (x.am ? " · $" + num(x.am) : "") : "—"}</td></tr>`).join("")}</tbody></table></div>`)}</div>`; }
@@ -111,7 +111,7 @@ function trReport(p, f){ if (!CLOUD) return ""; const s = TK.st[p.id]; if (s ===
 Object.assign(ACT, {
   trReload(){ const p = P(); if (p) { delete TK.st[p.id]; trLoad(p); } return false; },
   trCopy(d){ const p = P(), s = p && TK.st[p.id]; if (!s || !s.key) return false; const t = trTag(s.key, d.v || "");
-    (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast(L("Код скопійовано — вставте в блок head сайту","Код скопирован — вставьте в блок head сайта")), () => toast(L("Виділіть код і скопіюйте вручну","Выделите код и скопируйте вручную"))); return false; },
+    (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast(L("Код скопійовано — встав в блок head сайту","Код скопирован — вставь в блок head сайта")), () => toast(L("Виділи код і скопіюй вручну","Выдели код и скопируй вручную"))); return false; },
   async trHosts(){ const p = P(), el = document.getElementById("tr-hosts"); if (!p || !el) return false;
     const r = await trCall({action:"hosts", project_id:p.id, hosts:el.value.split(/[\s,;]+/).filter(Boolean)});
     if (r.ok) { toast(r.hosts.length ? L("Збережено: події лише з цих доменів","Сохранено: события только с этих доменов") : L("Обмеження знято","Ограничение снято")); delete TK.st[p.id]; trLoad(p); } else toast(trErr(r)); return false; },

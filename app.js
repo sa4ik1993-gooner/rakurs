@@ -2,12 +2,12 @@
 let lang = "uk";
 try { const s = localStorage.getItem("rakurs_lang"); if (s === "ru" || s === "uk") lang = s; } catch (e) {}
 try { const q = new URLSearchParams(location.search).get("lang"); if (q === "ru" || q === "uk") lang = q; } catch (e) {}
-try { const th = localStorage.getItem("rakurs_theme"); if (th === "light" || th === "dark") document.documentElement.dataset.theme = th; } catch (e) {}
+
 
 const L = (uk, ru) => (lang === "ru" ? ru : uk);
 const $ = id => document.getElementById(id);
 const num = n => Math.round(n).toLocaleString("en-US").replace(/,/g, " ");
-const money = n => "$" + num(n);
+const money = n => (num(n) + " $");
 const dec = (n, d = 2) => n.toFixed(d).replace(".", ",");
 const tc = s => "0:" + String(Math.max(0, Math.round(s))).padStart(2, "0");
 const pill = (c, x) => `<span class="pill pill--${c}">${x}</span>`;
@@ -60,7 +60,7 @@ const LOGT = () => [
   L("Створено воронку «Акція листопада», режим «радник».","Создана воронка «Акция ноября», режим «советник»."),
   L("Запит монтажеру: нова версія priglos, перший кадр — готовий рендер.","Запрос монтажёру: новая версия priglos, первый кадр — готовый рендер."),
   L("Змінено стелю ціни ліда у вебінарній воронці: $5,50 → $5,00.","Изменён потолок цены лида в вебинарной воронке: $5,50 → $5,00.")];
-const WHO = () => ({rule:L("правило","правило"),bot:L("бот","бот"),you:L("ви","вы")});
+const WHO = () => ({rule:L("правило","правило"),bot:L("бот","бот"),you:L("ти","ты")});
 function nowS(){ const d = new Date(), p = n => String(n).padStart(2,"0"); return p(d.getDate())+"."+p(d.getMonth()+1)+" "+p(d.getHours())+":"+p(d.getMinutes()); }
 const logAdd = (who, text) => S.log.unshift([nowS(), who, text]);
 
@@ -84,7 +84,7 @@ function dayChart(){
   const sp=[690,720,705,760,810,790,745,730,770,800,780,760,740,740], ld=[150,168,160,172,190,184,170,166,181,192,186,180,176,177];
   const X = i => 44 + i * 36, Y = v => 170 - v / 900 * 140, YL = v => 170 - v / 220 * 140;
   let h = `<svg viewBox="0 0 560 204" role="img" aria-label="daily">`;
-  [0,300,600,900].forEach(v => h += `<line class="g-grid" x1="40" x2="548" y1="${Y(v)}" y2="${Y(v)}"/><text class="g-lab" x="34" y="${Y(v)+3.5}" text-anchor="end">$${v}</text>`);
+  [0,300,600,900].forEach(v => h += `<line class="g-grid" x1="40" x2="548" y1="${Y(v)}" y2="${Y(v)}"/><text class="g-lab" x="34" y="${Y(v)+3.5}" text-anchor="end">${v} $</text>`);
   sp.forEach((v,i) => h += `<rect class="${i>=7?"g-bar2":"g-bar"}" x="${X(i)}" y="${Y(v)}" width="22" height="${170-Y(v)}"/><text class="g-lab" x="${X(i)+11}" y="188" text-anchor="middle">${String(6+i).padStart(2,"0")}</text>`);
   h += `<path class="g-line" d="${ld.map((v,i)=>(i?"L":"M")+(X(i)+11)+" "+YL(v).toFixed(1)).join("")}"/>`;
   return h + "</svg>";
@@ -105,17 +105,17 @@ const HYP = () => ({
 const SRC = () => ({sales:L("продажі","продажи"),ret:L("досмотри","досмотры"),mkt:L("ринок","рынок"),mem:L("пам’ять","память")});
 const TR = () => [
   [0,4,L("Привіт! Мене звати Олена, я викладаю 3D уже вісім років.","Привет! Меня зовут Елена, я преподаю 3D уже восемь лет.")],
-  [4,9,L("Подивіться на цей рендер. Його зробила учениця на третьому тижні.","Посмотрите на этот рендер. Его сделала ученица на третьей неделе.")],
+  [4,9,L("Подивись на цей рендер. Його зробила учениця на третьому тижні.","Посмотри на этот рендер. Его сделала ученица на третьей неделе.")],
   [9,16,L("Вона ніколи не працювала в 3D і вчилася вечорами.","Она никогда не работала в 3D и училась по вечерам.")],
   [16,23,L("На безкоштовному уроці ми зберемо таку саму сцену разом.","На бесплатном уроке мы соберём такую же сцену вместе.")],
   [23,30,L("Реєструйтесь за посиланням — урок уже цієї середи.","Регистрируйтесь по ссылке — урок уже в эту среду.")]];
 const COPY = () => ({
   A:{head:L("Безкоштовний урок 3D-візуалізації","Бесплатный урок 3D-визуализации"),
-     text:L("Навчіться створювати інтер’єри в 3D. Записуйтесь на безкоштовний урок і зробіть перший крок у нову професію.","Научитесь создавать интерьеры в 3D. Записывайтесь на бесплатный урок и сделайте первый шаг в новую профессию."),
+     text:L("Навчись створювати інтер’єри в 3D. Записуйтесь на безкоштовний урок і зроби перший крок у нову професію.","Научись создавать интерьеры в 3D. Записывайтесь на бесплатный урок и сделай первый шаг в новую профессию."),
      u:[5,3,2,2], a:[4,4,3,6],
      note:L("Обіцянка загальна: незрозуміло, що саме людина зробить на уроці й коли він відбудеться. Терміновості немає.","Обещание общее: непонятно, что именно человек сделает на уроке и когда он пройдёт. Срочности нет.")},
   B:{head:L("Перший 3D-рендер за один вечір — урок у середу о 19:00","Первый 3D-рендер за один вечер — урок в среду в 19:00"),
-     text:L("За 90 хвилин зберете сцену вітальні з нуля: світло, матеріали, рендер. Без досвіду, на звичайному ноутбуці. Урок безкоштовний, реєстрація до середи.","За 90 минут соберёте сцену гостиной с нуля: свет, материалы, рендер. Без опыта, на обычном ноутбуке. Урок бесплатный, регистрация до среды."),
+     text:L("За 90 хвилин збереш сцену вітальні з нуля: світло, матеріали, рендер. Без досвіду, на звичайному ноутбуці. Урок безкоштовний, реєстрація до середи.","За 90 минут соберёшь сцену гостиной с нуля: свет, материалы, рендер. Без опыта, на обычном ноутбуке. Урок бесплатный, регистрация до среды."),
      u:[8,7,9,8], a:[8,8,7,8],
      note:L("Є конкретний результат, час і умова. Заборонених формулювань проєкту немає.","Есть конкретный результат, время и условие. Запрещённых формулировок проекта нет.")}});
 
@@ -136,7 +136,7 @@ today(){
       <div class="item"><div class="row">${pill("good",SRC().sales)}<strong>${L("Нова гіпотеза з продажів","Новая гипотеза из продаж")}</strong></div>
         <p class="sub">${L("«Комісія розстрочки» звучить в 11 з 24 коментарів менеджерів. Ідея ролика: розстрочка без переплати.","«Комиссия рассрочки» звучит в 11 из 24 комментариев менеджеров. Идея ролика: рассрочка без переплаты.")}</p>${act("a3",L("Взяти в тест","Взять в тест"))}</div>
     </div>
-    <div class="stack" style="display:flex;flex-direction:column;gap:16px">
+    <div class="stack" style="display:flex;flex-direction:column;gap:var(--s-4)">
       <div class="panel"><span class="tag">${L("План місяця","План месяца")}</span>
         ${[[L("Ліди","Лиды"),2452,2820],[L("Оплати","Оплаты"),56,95],[L("Виручка","Выручка"),38080,64600]].map(r=>`<div><div class="row sp"><span>${r[0]}</span><b class="mono">${r[0]===L("Виручка","Выручка")?money(r[1])+" / "+money(r[2]):num(r[1])+" / "+num(r[2])}</b></div><div class="prog"><i style="width:${Math.round(r[1]/r[2]*100)}%"></i></div></div>`).join("")}
       </div>
@@ -170,13 +170,13 @@ passport(){
         <dt>${L("Сайти","Сайты")}</dt><dd class="mono">school3d.example/urok · /akcia</dd>
         <dt>${L("Подія цілі","Событие цели")}</dt><dd>${L("Реєстрація на урок → бронь → оплата","Регистрация на урок → бронь → оплата")}</dd>
       </dl>
-      <span class="tag" style="margin-top:6px">${L("Заборонені формулювання","Запрещённые формулировки")}</span>
+      <span class="tag" style="margin-top:var(--s-2)">${L("Заборонені формулювання","Запрещённые формулировки")}</span>
       <div class="chipset"><span class="chip chip--no">${L("«заробіток від $…»","«заработок от $…»")}</span><span class="chip chip--no">${L("«гарантія працевлаштування»","«гарантия трудоустройства»")}</span><span class="chip chip--no">${L("«залишилось N місць»","«осталось N мест»")}</span></div>
       <p class="sub">${L("Ці фрази перевіряються в кожному новому ролику й тексті до запуску.","Эти фразы проверяются в каждом новом ролике и тексте до запуска.")}</p>
     </div>
     <div class="panel vf"><span class="tag">${L("Стеля ціни ліда","Потолок цены лида")}</span>
       <p class="formula">6,0% × 56% × $680 × <span id="shv">${S.share}</span>%</p>
-      <p class="big" id="capv">$${dec(rpl * S.share / 100)}</p>
+      <p class="big" id="capv">${dec(rpl * S.share / 100)} $</p>
       <div class="field"><label for="share">${L("Частка маркетингу у виручці","Доля маркетинга в выручке")}</label><input type="range" id="share" min="15" max="35" value="${S.share}"></div>
       <p class="sub">${L("Броней від лідів × закриття броней × чек × частка маркетингу. Усі правила зупинки й масштабування рахуються від цього числа.","Броней от лидов × закрытие броней × чек × доля маркетинга. Все правила остановки и масштабирования считаются от этого числа.")}</p>
     </div>
@@ -189,7 +189,7 @@ funnels(){
   <div class="cols">${S.funnels.map(f=>`<div class="panel">
     <div class="row sp"><h2>${f.name || fname(f.id)}</h2>${pill(f.mode==="auto"?"ink":"mute",modeName(f.mode))}</div>
     <dl class="kv"><dt>${L("Ціль","Цель")}</dt><dd>${f.goal==="site"?L("Конверсія на сайті","Конверсия на сайте"):L("Лід-форма","Лид-форма")}</dd>
-      <dt>${L("Стеля ліда","Потолок лида")}</dt><dd>$${dec(f.cap)}</dd><dt>${L("Витрати","Расход")}</dt><dd>${money(f.spend)}</dd>
+      <dt>${L("Стеля ліда","Потолок лида")}</dt><dd>${dec(f.cap)} $</dd><dt>${L("Витрати","Расход")}</dt><dd>${money(f.spend)}</dd>
       <dt>${L("Ліди","Лиды")}</dt><dd>${num(f.leads)}${f.leads?" · $"+dec(f.spend/f.leads):""}</dd><dt>ROAS</dt><dd><b>${f.spend?dec(roas(f)):"—"}</b></dd></dl>
     <div class="row"><button class="btn btn--sm" data-act="openFunnel" data-id="${f.id}">${L("Відкрити","Открыть")}</button></div></div>`).join("")}</div>`;
 },
@@ -197,27 +197,27 @@ funnel(f){
   const fams = S.fam.filter(x => x.f === f.id), ls = S.launches.filter(x => x.f === f.id);
   return `<button class="back" data-act="closeFunnel">← ${L("Усі воронки","Все воронки")}</button>
   <div class="head"><div><h1>${f.name || fname(f.id)}</h1><p class="sub mono">${f.landing}</p></div></div>
-  <div class="kpis">${[[L("Витрати","Расход"),money(f.spend)],[L("Ліди","Лиды"),num(f.leads)],[L("Ціна ліда","Цена лида"),f.leads?"$"+dec(f.spend/f.leads):"—"],[L("Оплати","Оплаты"),f.pay],["ROAS",f.spend?dec(roas(f)):"—"]].map(k=>`<div class="kpi"><span class="tag">${k[0]}</span><strong>${k[1]}</strong></div>`).join("")}</div>
+  <div class="kpis">${[[L("Витрати","Расход"),money(f.spend)],[L("Ліди","Лиды"),num(f.leads)],[L("Ціна ліда","Цена лида"),f.leads?(dec(f.spend/f.leads) + " $"):"—"],[L("Оплати","Оплаты"),f.pay],["ROAS",f.spend?dec(roas(f)):"—"]].map(k=>`<div class="kpi"><span class="tag">${k[0]}</span><strong>${k[1]}</strong></div>`).join("")}</div>
   <div class="c2">
     <div class="panel"><span class="tag">${L("Режим автономії","Режим автономии")}</span>
       <div class="seg" role="group">${["adv","btn","auto"].map(m=>`<button type="button" data-act="mode" data-id="${f.id}" data-v="${m}" aria-pressed="${f.mode===m}" ${S.frozen&&m==="auto"?"disabled":""}>${modeName(m)}</button>`).join("")}</div>
       <p class="sub">${{adv:L("Бот тільки радить. Усе робить людина.","Бот только советует. Всё делает человек."),btn:L("Бот готує дію і виконує після підтвердження.","Бот готовит действие и выполняет после подтверждения."),auto:L("Бот діє сам у коридорі нижче. Вихід за коридор повертає до кнопки.","Бот действует сам в коридоре ниже. Выход за коридор возвращает к кнопке.")}[f.mode]}</p>
-      <dl class="kv"><dt>${L("Стеля ціни ліда","Потолок цены лида")}</dt><dd class="mono">$${dec(f.cap)}</dd><dt>${L("Денний ліміт","Дневной лимит")}</dt><dd class="mono">$${f.limit}</dd><dt>${L("Крок бюджету","Шаг бюджета")}</dt><dd class="mono">${L("до 30%, кулдаун 24 год","до 30%, кулдаун 24 ч")}</dd></dl>
+      <dl class="kv"><dt>${L("Стеля ціни ліда","Потолок цены лида")}</dt><dd class="mono">${dec(f.cap)} $</dd><dt>${L("Денний ліміт","Дневной лимит")}</dt><dd class="mono">${f.limit} $</dd><dt>${L("Крок бюджету","Шаг бюджета")}</dt><dd class="mono">${L("до 30%, кулдаун 24 год","до 30%, кулдаун 24 ч")}</dd></dl>
     </div>
     <div class="panel"><span class="tag">${L("Офер","Оффер")}</span>
       <dl class="kv"><dt>${L("Продукт","Продукт")}</dt><dd>${L("Курс 3D-візуалізації","Курс 3D-визуализации")}</dd><dt>${L("Ціна","Цена")}</dt><dd>$680</dd>
       <dt>${L("Акція","Акция")}</dt><dd>${f.id==="f2"?L("бонусний модуль до 30.11","бонусный модуль до 30.11"):"—"}</dd><dt>${L("Ціль","Цель")}</dt><dd>${f.goal==="site"?L("Реєстрація на сайті","Регистрация на сайте"):L("Лід-форма","Лид-форма")}</dd></dl></div>
   </div>
   <div class="panel"><div class="row sp"><span class="tag">${L("Креативи воронки","Креативы воронки")} · ${fams.length}</span><a class="btn btn--sm" href="#creatives">${L("Бібліотека","Библиотека")}</a></div>
-    ${fams.length?`<div class="lib">${fams.map(crCard).join("")}</div>`:`<p class="sub">${L("Поки порожньо. Додайте ролики з папки або скажіть боту, що запустити.","Пока пусто. Добавьте ролики из папки или скажите боту, что запустить.")}</p>`}</div>
+    ${fams.length?`<div class="lib">${fams.map(crCard).join("")}</div>`:`<p class="sub">${L("Поки порожньо. Додай ролики з папки або скажи боту, що запустити.","Пока пусто. Добавь ролики из папки или скажи боту, что запустить.")}</p>`}</div>
   <div class="tw"><table><thead><tr><th>${L("Запуски воронки","Запуски воронки")}</th><th>${L("Майданчик","Площадка")}</th><th>${L("Статус","Статус")}</th><th class="n">${L("Витрати","Расход")}</th><th class="n">CPL</th></tr></thead>
-    <tbody>${ls.map(l=>`<tr data-act="openLaunch" data-id="${l.n}" tabindex="0"><td class="mono">${l.n}</td><td>${l.pl}</td><td>${st(l.st)}</td><td class="n">${money(l.spend)}</td><td class="n">${l.leads?"$"+dec(l.spend/l.leads):"—"}</td></tr>`).join("") || `<tr><td colspan="5" class="sub">${L("Запусків ще немає","Запусков ещё нет")}</td></tr>`}</tbody></table></div>`;
+    <tbody>${ls.map(l=>`<tr data-act="openLaunch" data-id="${l.n}" tabindex="0"><td class="mono">${l.n}</td><td>${l.pl}</td><td>${st(l.st)}</td><td class="n">${money(l.spend)}</td><td class="n">${l.leads?(dec(l.spend/l.leads) + " $"):"—"}</td></tr>`).join("") || `<tr><td colspan="5" class="sub">${L("Запусків ще немає","Запусков ещё нет")}</td></tr>`}</tbody></table></div>`;
 },
 creatives(){
   const up = S.upload;
-  return `<div class="head"><div><h1>${L("Креативи","Креативы")}</h1><p class="sub">${L("Версії однієї ідеї зібрані в сім’ю. Відкрийте ролик, щоб побачити досмотри по секундах.","Версии одной идеи собраны в семью. Откройте ролик, чтобы увидеть досмотры по секундам.")}</p></div></div>
+  return `<div class="head"><div><h1>${L("Креативи","Креативы")}</h1><p class="sub">${L("Версії однієї ідеї зібрані в сім’ю. Відкрий ролик, щоб побачити досмотри по секундах.","Версии одной идеи собраны в семью. Открой ролик, чтобы увидеть досмотры по секундам.")}</p></div></div>
   <div class="panel">
-    <button type="button" class="drop" data-act="upload"><b>${L("Додати ролики","Добавить ролики")}</b><span class="sub">${L("Перетягніть файли або візьміть нові з папки Drive «Креативи 3D»","Перетащите файлы или возьмите новые из папки Drive «Креативы 3D»")}</span></button>
+    <button type="button" class="drop" data-act="upload"><b>${L("Додати ролики","Добавить ролики")}</b><span class="sub">${L("Перетягни файли або візьми нові з папки Drive «Креативи 3D»","Перетащи файлы или возьми новые из папки Drive «Креативы 3D»")}</span></button>
     ${up ? up.files.map(f=>`<div class="file"><span class="mono">${f.n}</span>${f.p<100?`<span class="mono">${f.p}%</span>`:(f.bad?pill("crit",L("заборонене формулювання","запрещённая формулировка")):pill("good",L("перевірено","проверено")))}
       <div class="prog"><i style="width:${f.p}%"></i></div>
       ${f.p>=100&&f.bad?`<p class="sub" style="grid-column:1/-1">${L("На 0:03 текст на екрані «від 20$ на годину». Це заборонене формулювання проєкту — ролик у запуск не потрапить.","На 0:03 текст на экране «от 20$ в час». Это запрещённая формулировка проекта — ролик в запуск не попадёт.")}</p>`:""}</div>`).join("") : ""}
@@ -237,13 +237,13 @@ copy(){
       ${rw && S.copySel==="A" ? `<div class="copybox"><span class="tag">${L("Варіант B","Вариант B")}</span><b>${C.B.head.slice(0, rw.n)}</b><p>${C.B.text.slice(0, Math.max(0, rw.n - C.B.head.length))}${rw.done?"":'<span class="dots"></span>'}</p></div>${rw.done?`<div class="row"><button class="btn" data-act="copySel" data-id="B">${L("Відкрити варіант B","Открыть вариант B")}</button></div>`:""}` : ""}
     </div>
     <div class="panel vf"><span class="tag">4U</span>${U.map((n,i)=>`<div class="score"><span>${n}</span><i class="${c.u[i]<5?"low":""}" style="width:${c.u[i]*10}%"></i><b class="mono">${c.u[i]}</b></div>`).join("")}
-      <span class="tag" style="margin-top:8px">AIDA</span>${A.map((n,i)=>`<div class="score"><span>${n}</span><i class="${c.a[i]<5?"low":""}" style="width:${c.a[i]*10}%"></i><b class="mono">${c.a[i]}</b></div>`).join("")}</div>
+      <span class="tag" style="margin-top:var(--s-2)">AIDA</span>${A.map((n,i)=>`<div class="score"><span>${n}</span><i class="${c.a[i]<5?"low":""}" style="width:${c.a[i]*10}%"></i><b class="mono">${c.a[i]}</b></div>`).join("")}</div>
   </div>`;
 },
 hyp(){
   const H = HYP(), R = SRC();
   const col = n => S.hyp.filter(h=>h.col===n).map(h=>`<div class="kcard"><div class="row">${pill("mute",R[h.src])}${h.res!=null?pill(h.res?"good":"crit",h.res?L("підтверджено","подтверждено"):L("спростовано","опровергнуто")):""}</div><p>${H[h.id]}</p>${n===1?`<button class="btn btn--sm" data-act="take" data-id="${h.id}">${L("Взяти в тест","Взять в тест")}</button>`:""}</div>`).join("");
-  return `<div class="head"><div><h1>${L("Гіпотези","Гипотезы")}</h1><p class="sub">${L("У кожної гіпотези є джерело і результат. Історія лишається в проєкті, навіть коли змінюється команда.","У каждой гипотезы есть источник и результат. История остаётся в проекте, даже когда меняется команда.")}</p></div>
+  return `<div class="head"><div><h1>${L("Гіпотези","Гипотезы")}</h1><p class="sub">${L("У кожної гіпотези є джерело і результат. Історія лишається в проєкті, нави коли змінюється команда.","У каждой гипотезы есть источник и результат. История остаётся в проекте, даже когда меняется команда.")}</p></div>
     <button class="btn btn--solid" data-act="objections" ${S.objections?"disabled":""}>${L("Зібрати з продажів","Собрать из продаж")}</button></div>
   ${S.objections?`<div class="panel vf"><span class="tag">${L("Заперечення з коментарів менеджерів · 24 броні","Возражения из комментариев менеджеров · 24 брони")}</span>
     <div class="bars">${[[L("Комісія розстрочки","Комиссия рассрочки"),11],[L("Немає часу на навчання","Нет времени на обучение"),7],[L("Слабкий ноутбук","Слабый ноутбук"),5]].map(o=>`<div class="barrow"><span>${o[0]}</span><i style="width:${o[1]/11*100}%"></i><b>${o[1]} ${L("з 24","из 24")}</b></div>`).join("")}</div>
@@ -253,7 +253,7 @@ hyp(){
 launches(){
   return `<div class="head"><div><h1>${L("Запуски","Запуски")}</h1><p class="sub">${L("Усі майданчики в одній таблиці. Назви латиницею, бо вони йдуть в UTM. Усе нове створюється вимкненим — вмикає людина.","Все площадки в одной таблице. Названия латиницей, потому что они уходят в UTM. Всё новое создаётся выключенным — включает человек.")}</p></div></div>
   <div class="tw"><table><thead><tr><th>${L("Кампанія","Кампания")}</th><th>${L("Майданчик","Площадка")}</th><th>${L("Воронка","Воронка")}</th><th>${L("Статус","Статус")}</th><th class="n">${L("Бюджет/день","Бюджет/день")}</th><th class="n">${L("Витрати","Расход")}</th><th class="n">CPL</th></tr></thead>
-  <tbody>${S.launches.map(l=>`<tr data-act="openLaunch" data-id="${l.n}" tabindex="0"><td class="mono">${l.n}</td><td>${l.pl}</td><td>${fname(l.f)}</td><td>${st(l.st)}</td><td class="n">$${l.bud}</td><td class="n">${money(l.spend)}</td><td class="n">${l.leads?"$"+dec(l.spend/l.leads):"—"}</td></tr>`).join("")}</tbody></table></div>`;
+  <tbody>${S.launches.map(l=>`<tr data-act="openLaunch" data-id="${l.n}" tabindex="0"><td class="mono">${l.n}</td><td>${l.pl}</td><td>${fname(l.f)}</td><td>${st(l.st)}</td><td class="n">${l.bud} $</td><td class="n">${money(l.spend)}</td><td class="n">${l.leads?(dec(l.spend/l.leads) + " $"):"—"}</td></tr>`).join("")}</tbody></table></div>`;
 },
 analytics(){
   const fs = S.fam.filter(f=>f.spend>0), mx = Math.max(...fs.map(roas));
@@ -269,7 +269,7 @@ analytics(){
     <div class="panel"><span class="tag">${L("ROAS по сім’ях креативів","ROAS по семьям креативов")}</span>
       <div class="bars">${fs.map(f=>`<div class="barrow"><span class="mono">${f.id}</span><i class="${roas(f)<1?"bad":""}" style="width:${Math.max(2,roas(f)/mx*100)}%"></i><b>${dec(roas(f))}</b></div>`).join("")}</div></div>
     <div class="panel"><span class="tag">${L("По майданчиках","По площадкам")}</span>
-      <dl class="kv">${[["Meta",8880,2090],["TikTok",640,152],["Google",1020,210]].map(p=>`<dt>${p[0]}</dt><dd class="mono">${money(p[1])} · ${num(p[2])} ${L("лідів","лидов")} · $${dec(p[1]/p[2])}</dd>`).join("")}</dl></div>
+      <dl class="kv">${[["Meta",8880,2090],["TikTok",640,152],["Google",1020,210]].map(p=>`<dt>${p[0]}</dt><dd class="mono">${money(p[1])} · ${num(p[2])} ${L("лідів","лидов")} · ${dec(p[1]/p[2])} $</dd>`).join("")}</dl></div>
   </div>`;
 },
 rules(){
@@ -320,35 +320,35 @@ function drawerCr(f){
   const T = TR(), bound = PHR.reduce((b,p)=>Math.abs(p-f.drop)<Math.abs(b-f.drop)?p:b, PHR[0]), tr = S.trim;
   const steps = [L("Знаходжу межу фрази біля провалу","Нахожу границу фразы возле провала"),L("Ріжу ролик","Режу ролик")+" "+tc(0)+"–"+tc(bound),L("Заливаю нову версію в кабінет","Заливаю новую версию в кабинет"),L("Збираю оголошення вимкненим","Собираю объявление выключенным")];
   return `
-    <div class="row sp"><div><span class="tag">${L("Сім’я креативу","Семья креатива")}</span><h1>${f.id}_v${f.v}</h1></div><button class="x" data-act="closeOverlay" aria-label="${L("Закрити","Закрыть")}">×</button></div>
+    <div class="row sp"><div><span class="tag">${L("Сім’я креативу","Семья креатива")}</span><h1>${f.id}_v${f.v}</h1></div><button class="x" data-act="closeOverlay" aria-label="${L("Закрити","Закрыть")}">${ico("close")}</button></div>
     <div class="row">${st(f.st)}${pill("mute","CTR "+f.ctr)}${pill("mute",L("частота","частота")+" "+f.fq)}${pill("mute",f.spend?"ROAS "+dec(roas(f)):L("ще без показів","ещё без показов"))}</div>
-    <div class="row" style="align-items:flex-start;flex-wrap:nowrap;gap:16px">
+    <div class="row" style="align-items:flex-start;flex-wrap:nowrap;gap:var(--s-4)">
       <div class="thumb thumb--lg" style="--h:${f.h}"><em>${tc(S.playhead)} / ${tc(f.dur)}</em><span>${f.id}_v${f.v}</span></div>
       <div class="panel vf" style="flex:1"><span class="tag">${L("Досмотри по секундах","Досмотры по секундам")}${f.prev?" · "+L("пунктир — попередня версія","пунктир — прошлая версия"):""}</span>${retChart(f,{head:S.playhead,prev:f.prev,noCut:!!f.prev})}</div>
     </div>
     <div class="panel"><span class="tag">${L("Розшифровка","Расшифровка")}</span>
       <div class="tr">${T.filter(p=>p[0]>=(f.cut||0) && p[0]-(f.cut||0)<f.dur).map(p=>{ const off = f.cut||0, a=p[0]-off, b=Math.min(p[1]-off,f.dur); return `<button type="button" data-act="seek" data-id="${a}" class="${!f.prev&&tr&&p[1]<=bound?"cutme":""}" aria-current="${S.playhead>=a&&S.playhead<b}"><time>${tc(a)}–${tc(b)}</time><span>${p[2]}</span></button>`; }).join("")}</div></div>
     ${tr ? `<div class="panel"><span class="tag">${L("Обрізка","Обрезка")}</span><ol class="steps">${steps.map((s,i)=>`<li class="${i<tr.i?"ok":i===tr.i?"on":""}">${s}</li>`).join("")}</ol></div>` : ""}
-    ${f.prev ? `<div class="panel"><div class="row">${pill("good",L("нова версія","новая версия"))}<b>${L("Вступ обрізано, оголошення зібране вимкненим","Вступление обрезано, объявление собрано выключенным")}</b></div><p class="sub">${L("Ролик тепер починається з готового рендера. Порівняйте криві, коли набереться тиждень показів.","Ролик теперь начинается с готового рендера. Сравните кривые, когда наберётся неделя показов.")}</p></div>` : ""}
+    ${f.prev ? `<div class="panel"><div class="row">${pill("good",L("нова версія","новая версия"))}<b>${L("Вступ обрізано, оголошення зібране вимкненим","Вступление обрезано, объявление собрано выключенным")}</b></div><p class="sub">${L("Ролик тепер починається з готового рендера. Порівняй криві, коли набереться тиждень показів.","Ролик теперь начинается с готового рендера. Сравни кривые, когда наберётся неделя показов.")}</p></div>` : ""}
     <div class="row"><button class="btn btn--solid" data-act="trim" ${tr||f.prev?"disabled":""}>${L("Обрізати вступ по межі фрази","Обрезать вступление по границе фразы")}</button>
       <button class="btn" data-act="toTikTok" data-id="${f.id}">${L("Перенести в TikTok","Перенести в TikTok")}</button></div>`;
 }
 function drawerLaunch(l){
   const fams = S.fam.filter(f => f.f === l.f).slice(0,3);
   return `
-    <div class="row sp"><div><span class="tag">${l.pl} · ${fname(l.f)}</span><h1 style="font-size:18px;overflow-wrap:anywhere">${l.n}</h1></div><button class="x" data-act="closeOverlay" aria-label="${L("Закрити","Закрыть")}">×</button></div>
+    <div class="row sp"><div><span class="tag">${l.pl} · ${fname(l.f)}</span><h1 style="font-size:var(--t-head);overflow-wrap:anywhere">${l.n}</h1></div><button class="x" data-act="closeOverlay" aria-label="${L("Закрити","Закрыть")}">${ico("close")}</button></div>
     <div class="row">${st(l.st)}</div>
     <div class="panel"><span class="tag">${L("Налаштування","Настройки")}</span>
       <dl class="kv"><dt>${L("Ціль","Цель")}</dt><dd>${L("Ліди, подія «реєстрація»","Лиды, событие «регистрация»")}</dd><dt>${L("Гео і вік","Гео и возраст")}</dt><dd>${l.n.includes("_PL_")?L("Польща","Польша"):L("Україна","Украина")}, 25–54</dd>
-      <dt>${L("Бюджет","Бюджет")}</dt><dd class="mono">$${l.bud} ${L("на день","в день")}</dd><dt>${L("Старт","Старт")}</dt><dd class="mono">${L("00:40 за Києвом","00:40 по Киеву")}</dd>
+      <dt>${L("Бюджет","Бюджет")}</dt><dd class="mono">${l.bud} $ ${L("на день","в день")}</dd><dt>${L("Старт","Старт")}</dt><dd class="mono">${L("00:40 за Києвом","00:40 по Киеву")}</dd>
       <dt>UTM</dt><dd class="mono">utm_campaign={{campaign.name}}&amp;utm_content={{ad.name}}&amp;utm_term={{adset.name}}</dd></dl></div>
     <div class="panel"><span class="tag">${L("Структура","Структура")}</span>
-      <div class="tree"><b>${l.n}</b>${fams.map(f=>`<div>${L("група","группа")} ${f.id} · $${Math.round(l.bud/fams.length)}<div>${f.id}_v${f.v}</div></div>`).join("")}</div></div>
-    ${l.st==="draft" ? `<div class="panel vf"><p>${L("Кампанія зібрана вимкненою. Перевірте структуру й увімкніть — це завжди робить людина.","Кампания собрана выключенной. Проверьте структуру и включите — это всегда делает человек.")}</p><div class="row"><button class="btn btn--solid" data-act="enable" data-id="${l.n}" ${S.frozen?"disabled":""}>${L("Увімкнути","Включить")}</button></div></div>` : ""}`;
+      <div class="tree"><b>${l.n}</b>${fams.map(f=>`<div>${L("група","группа")} ${f.id} · ${Math.round(l.bud/fams.length)} $<div>${f.id}_v${f.v}</div></div>`).join("")}</div></div>
+    ${l.st==="draft" ? `<div class="panel vf"><p>${L("Кампанія зібрана вимкненою. Перевір структуру й увімкни — це завжди робить людина.","Кампания собрана выключенной. Проверь структуру и включи — это всегда делает человек.")}</p><div class="row"><button class="btn btn--solid" data-act="enable" data-id="${l.n}" ${S.frozen?"disabled":""}>${L("Увімкнути","Включить")}</button></div></div>` : ""}`;
 }
 function modalFunnel(){
   return `
-    <div class="row sp"><h1>${L("Нова воронка","Новая воронка")}</h1><button class="x" data-act="closeOverlay" aria-label="${L("Закрити","Закрыть")}">×</button></div>
+    <div class="row sp"><h1>${L("Нова воронка","Новая воронка")}</h1><button class="x" data-act="closeOverlay" aria-label="${L("Закрити","Закрыть")}">${ico("close")}</button></div>
     <div class="form">
       <div class="field w"><label for="nf-name">${L("Назва","Название")}</label><input id="nf-name" value="${L("Чорна п’ятниця, −20%","Чёрная пятница, −20%")}"></div>
       <div class="field"><label for="nf-price">${L("Ціна","Цена")}</label><input id="nf-price" value="$544"></div>
@@ -370,10 +370,10 @@ function modalProject(){
      <div class="field"><label for="np-share">${L("Частка маркетингу","Доля маркетинга")}</label><input id="np-share" value="25%"></div>
      <div class="field w"><label for="np-site">${L("Сайти, на які можна вести","Сайты, на которые можно вести")}</label><input id="np-site" value="english.example/trial"></div>
      <div class="field w"><label for="np-ev">${L("Що вважаємо результатом","Что считаем результатом")}</label><input id="np-ev" value="${L("запис на пробний урок → оплата","запись на пробный урок → оплата")}"></div>`,
-    `<div class="field w"><label for="np-ban">${L("Заборонені формулювання","Запрещённые формулировки")}</label><textarea id="np-ban" rows="3">${L("«заговорите за місяць», «гарантія рівня»","«заговорите за месяц», «гарантия уровня»")}</textarea></div>
+    `<div class="field w"><label for="np-ban">${L("Заборонені формулювання","Запрещённые формулировки")}</label><textarea id="np-ban" rows="3">${L("«заговорите за місяць», «гарантія рівня»","«заговори за месяц», «гарантия уровня»")}</textarea></div>
      <div class="field w"><label for="np-tone">${L("Тон","Тон")}</label><input id="np-tone" value="${L("дружній, без обіцянок швидкого результату","дружелюбный, без обещаний быстрого результата")}"></div>`][w];
   return `
-    <div class="row sp"><div><span class="tag">${L("Крок","Шаг")} ${w+1} / 3 · ${stepsT[w]}</span><h1>${L("Новий проєкт","Новый проект")}</h1></div><button class="x" data-act="closeOverlay" aria-label="${L("Закрити","Закрыть")}">×</button></div>
+    <div class="row sp"><div><span class="tag">${L("Крок","Шаг")} ${w+1} / 3 · ${stepsT[w]}</span><h1>${L("Новий проєкт","Новый проект")}</h1></div><button class="x" data-act="closeOverlay" aria-label="${L("Закрити","Закрыть")}">${ico("close")}</button></div>
     <div class="prog"><i style="width:${(w+1)/3*100}%"></i></div>
     <div class="form">${body}</div>
     <div class="row">${w>0?`<button class="btn" data-act="wiz" data-v="-1">${L("Назад","Назад")}</button>`:""}${w<2?`<button class="btn btn--solid" data-act="wiz" data-v="1">${L("Далі","Дальше")}</button>`:`<button class="btn btn--solid" data-act="createProject">${L("Створити і надіслати інтегратору","Создать и отправить интегратору")}</button>`}</div>`;
@@ -386,7 +386,7 @@ const SC = () => ({
     rows:[[L("Воронка","Воронка"),fname("f2")],[L("Креативи","Креативы"),"priglos_v4, viktor_v2, systema_v3"],[L("Гео","Гео"),L("Польща, 25–54","Польша, 25–54")],[L("Бюджет","Бюджет"),L("$10 на день × 3 групи","$10 в день × 3 группы")],[L("Старт","Старт"),L("завтра о 00:40, вимкненою","завтра в 00:40, выключенной")]],
     ok:L("Запустити","Запустить"),
     steps:[L("Беру три ролики з воронки","Беру три ролика из воронки"),L("Перевіряю тексти на заборонені формулювання","Проверяю тексты на запрещённые формулировки"),L("Збираю кампанію і три групи","Собираю кампанию и три группы"),L("Проставляю UTM і старт 00:40","Проставляю UTM и старт 00:40")],
-    done:L("Зібрано: RK_PL_Akcia_Site_20.11_ABO, 3 групи, 3 оголошення. Усе вимкнено. Увімкніть, коли перевірите.","Собрано: RK_PL_Akcia_Site_20.11_ABO, 3 группы, 3 объявления. Всё выключено. Включите, когда проверите."),go:["launches",L("Відкрити запуски","Открыть запуски")]},
+    done:L("Зібрано: RK_PL_Akcia_Site_20.11_ABO, 3 групи, 3 оголошення. Усе вимкнено. Увімкни, коли перевірите.","Собрано: RK_PL_Akcia_Site_20.11_ABO, 3 группы, 3 объявления. Всё выключено. Включи, когда провери."),go:["launches",L("Відкрити запуски","Открыть запуски")]},
   why:{chip:L("Чому виріс CPL?","Почему вырос CPL?"),q:L("Чому виріс CPL у вебінарній воронці?","Почему вырос CPL в вебинарной воронке?"),
     text:L("За тиждень CPL зріс з $3,90 до $4,60. CTR не змінився, CPM +18%. Причина в одній сім’ї: priglos_v4 показується з частотою 2,8, аудиторія його вже бачила. Пропоную обрізати вступ і випустити v5. Нічого не змінював.","За неделю CPL вырос с $3,90 до $4,60. CTR не изменился, CPM +18%. Причина в одной семье: priglos_v4 показывается с частотой 2,8, аудитория его уже видела. Предлагаю обрезать вступление и выпустить v5. Ничего не менял."),go:["creatives",L("Відкрити креативи","Открыть креативы")]},
   budget:{chip:L("Підняти бюджет на 30%","Поднять бюджет на 30%"),q:L("Підніми бюджет на viktor на тридцять відсотків","Подними бюджет на viktor на тридцать процентов"),
@@ -413,19 +413,19 @@ function asstHTML(){
   const sc = SC();
   const body = A.chat.map((m, i) => {
     const d = sc[m.sc];
-    if (m.k === "me") return `<div class="msg msg--me"><small>${L("Ви · голосове","Вы · голосовое")}</small>«${d.q.slice(0, m.n)}${m.n < d.q.length ? "" : "»"}</div>`;
+    if (m.k === "me") return `<div class="msg msg--me"><small>${L("Ти · голосове","Ты · голосовое")}</small>«${d.q.slice(0, m.n)}${m.n < d.q.length ? "" : "»"}</div>`;
     if (m.k === "think") return `<div class="msg msg--bot"><small>${BRAND.name}</small><span class="dots">${L("Розбираю","Разбираю")}</span></div>`;
-    if (m.k === "text") return `<div class="msg msg--bot"><small>${BRAND.name}</small>${d.text}${d.go?`<div class="row" style="margin-top:8px"><a class="btn btn--sm" href="#${d.go[0]}" data-act="asstGo">${d.go[1]}</a></div>`:""}</div>`;
+    if (m.k === "text") return `<div class="msg msg--bot"><small>${BRAND.name}</small>${d.text}${d.go?`<div class="row" style="margin-top:var(--s-2)"><a class="btn btn--sm" href="#${d.go[0]}" data-act="asstGo">${d.go[1]}</a></div>`:""}</div>`;
     if (m.k === "card") return `<div class="msg msg--bot"><small>${BRAND.name}</small><div class="card"><span class="tag">${L("Я зрозумів так","Я понял так")}</span><dl class="kv">${d.rows.map(r=>`<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join("")}</dl>${m.done?"":`<div class="row"><button class="btn btn--solid btn--sm" data-act="asstOk" data-id="${i}">${d.ok}</button><button class="btn btn--sm" data-act="asstNo" data-id="${i}">${L("Змінити","Изменить")}</button></div>`}</div></div>`;
     if (m.k === "steps") return `<div class="msg msg--bot"><small>${BRAND.name}</small><ol class="steps">${d.steps.map((s,j)=>`<li class="${j<m.i?"ok":j===m.i?"on":""}">${s}</li>`).join("")}</ol></div>`;
-    if (m.k === "done") return `<div class="msg msg--bot"><small>${BRAND.name}</small>${d.done}${d.go?`<div class="row" style="margin-top:8px"><a class="btn btn--sm" href="#${d.go[0]}" data-act="asstGo">${d.go[1]}</a></div>`:""}</div>`;
-    return `<div class="msg msg--bot"><small>${BRAND.name}</small>${L("Добре, скажіть, що змінити.","Хорошо, скажите, что изменить.")}</div>`;
+    if (m.k === "done") return `<div class="msg msg--bot"><small>${BRAND.name}</small>${d.done}${d.go?`<div class="row" style="margin-top:var(--s-2)"><a class="btn btn--sm" href="#${d.go[0]}" data-act="asstGo">${d.go[1]}</a></div>`:""}</div>`;
+    return `<div class="msg msg--bot"><small>${BRAND.name}</small>${L("Добре, скажи, що змінити.","Хорошо, скажи, что изменить.")}</div>`;
   }).join("");
   const rec = A.phase === "rec";
-  return `<div class="asst__h"><div><span class="tag">${L("Голосове керування","Голосовое управление")}</span><h2>${BRAND.name}</h2></div><button class="x" data-act="asstClose" aria-label="${L("Закрити","Закрыть")}">×</button></div>
-    <div class="asst__b" id="asst-b">${body || `<p class="sub">${L("Затисніть кнопку і скажіть, що зробити. Так само це працює в Telegram.","Зажмите кнопку и скажите, что сделать. Так же это работает в Telegram.")}</p>`}</div>
+  return `<div class="asst__h"><div><span class="tag">${L("Голосове керування","Голосовое управление")}</span><h2>${BRAND.name}</h2></div><button class="x" data-act="asstClose" aria-label="${L("Закрити","Закрыть")}">${ico("close")}</button></div>
+    <div class="asst__b" id="asst-b">${body || `<p class="sub">${L("Затисни кнопку і скажи, що зробити. Так само це працює в Telegram.","Зажми кнопку и скажи, что сделать. Так же это работает в Telegram.")}</p>`}</div>
     <div class="asst__f">
-      <span class="tag">${L("Спробуйте","Попробуйте")}</span>
+      <span class="tag">${L("Спробуй","Попробуй")}</span>
       <div class="try">${ORDER.map(k=>`<button type="button" data-act="say" data-id="${k}" ${A.phase!=="idle"?"disabled":""}>${sc[k].chip}</button>`).join("")}</div>
       <button type="button" class="mic ${rec?"rec":""}" data-act="say" ${A.phase!=="idle"?"disabled":""}>${rec?`<span class="wave">${"<b></b>".repeat(9).replace(/<b>/g,(m,o)=>`<b style="animation-delay:${(o%7)*60}ms">`)}</span>${L("Слухаю","Слушаю")} <span id="rec-t">0:00</span>`:`<i></i>${L("Затиснути і сказати","Зажать и сказать")}`}</button>
     </div>`;
@@ -464,11 +464,11 @@ function renderShell(){
   $("rail").innerHTML = `<a class="logo" href="index.html">${brandLogo("rail")}</a>
     <button type="button" class="ws" data-act="goProjects"><small>${L("Проєкт","Проект")}</small><b>${L("Школа 3D","Школа 3D")}</b></button>
     ${NAV().map(g=>`<nav class="navg"><span>${g[0]}</span>${g[1].map(n=>`<a href="#${n[0]}" ${n[0]===r?'aria-current="page"':""}>${n[1]}${n[0]==="today"&&pend?`<b>${pend}</b>`:""}</a>`).join("")}</nav>`).join("")}
-    <div class="rail__foot"><button type="button" class="ib" data-act="theme" aria-label="${L("Тема: світла / темна","Тема: светлая / тёмная")}" title="${L("Тема: світла / темна","Тема: светлая / тёмная")}">${isDark() ? ICO.moon : ICO.sun}</button><button type="button" data-act="reset">${L("Скинути демо","Сбросить демо")}</button><a href="index.html">← ${L("На сайт","На сайт")}</a></div>`;
+    <div class="rail__foot"><button type="button" data-act="reset">${L("Скинути демо","Сбросить демо")}</button><a href="index.html">← ${L("На сайт","На сайт")}</a></div>`;
   $("bar").innerHTML = `<span class="crumb">${L("Школа 3D","Школа 3D")}</span><span class="badge">${L("демо-дані","демо-данные")}</span><span class="range">06.11 – 19.11</span>
     <div class="bar__r"><div class="seg tier" role="group" aria-label="${L("Режим","Режим")}"><button type="button" data-act="tier" data-v="lite" aria-pressed="${S.tier==="lite"}">Lite</button><button type="button" data-act="tier" data-v="pro" aria-pressed="${S.tier==="pro"}">Pro</button></div><div class="lang" role="group" aria-label="${L("Мова","Язык")}"><button type="button" data-lang="uk" aria-pressed="${lang==="uk"}">UA</button><button type="button" data-lang="ru" aria-pressed="${lang==="ru"}">RU</button></div>
     <button type="button" class="stop" data-act="stop" aria-pressed="${S.frozen}">${S.frozen?L("АВТОДІЇ ЗУПИНЕНО","АВТОДЕЙСТВИЯ ОСТАНОВЛЕНЫ"):L("СТОП","СТОП")}</button></div>`;
-  const fz = $("frozen"); fz.hidden = !S.frozen; fz.textContent = L("Усі автодії по проєкту заморожено. Кампанії крутяться як є, бот нічого не змінює й не вмикає, доки ви не знімете стоп.","Все автодействия по проекту заморожены. Кампании крутятся как есть, бот ничего не меняет и не включает, пока вы не снимете стоп.");
+  const fz = $("frozen"); fz.hidden = !S.frozen; fz.textContent = L("Усі автодії по проєкту заморожено. Кампанії крутяться як є, бот нічого не змінює й не вмикає, доки ти не знімеш стоп.","Все автодействия по проекту заморожены. Кампании крутятся как есть, бот ничего не меняет и не включает, пока ты не снимешь стоп.");
   $("fab").innerHTML = `<i></i>${L("Сказати боту","Сказать боту")}`; $("fab").hidden = S.asst.open;
   document.documentElement.lang = lang;
 }
@@ -563,7 +563,7 @@ function meLoad(o){ if (!o || typeof o !== "object") return; ["name", "title", "
   try { localStorage.setItem("rakurs_me", JSON.stringify(ME)); } catch (e) {} if (typeof PR !== "undefined" && !PR.touched) PR.mode = meMode(); }
 const isDark = () => { const el = document.documentElement; return el.dataset.theme ? el.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; };
 /* Подсказка в значке «?»: пояснения не занимают место на экране, открываются наведением или нажатием. */
-const hint = (t, cls) => `<span class="hint${cls ? " hint--" + cls : ""}"><button type="button" class="hint__b" aria-label="${L("Підказка","Подсказка")}" aria-expanded="false">i</button><span class="hint__t" role="tooltip">${t}</span></span>`;
+const hint = (t, cls) => `<span class="hint${cls ? " hint--" + cls : ""}"><button type="button" class="hint__b" aria-label="${L("Підказка","Подсказка")}" aria-expanded="false">${ico("help")}</button><span class="hint__t" role="tooltip">${t}</span></span>`;
 
 /* подсказка «i» не вылезает за край экрана: перед показом проверяем место и прижимаем к нужному краю */
 function hintFit(h){ const t = h && h.querySelector(".hint__t"); if (!t || matchMedia("(max-width:640px)").matches) return;
@@ -573,13 +573,7 @@ function hintFit(h){ const t = h && h.querySelector(".hint__t"); if (!t || match
     else if (r.left < 8) { t.style.left = "0"; t.style.right = "auto"; t.style.transform = "none"; }
     const r2 = t.getBoundingClientRect(); if (r2.right > vw - 8) t.style.transform = "translateX(" + Math.round(vw - 8 - r2.right) + "px)"; else if (r2.left < 8) t.style.transform = "translateX(" + Math.round(8 - r2.left) + "px)"; }); }
 ["mouseover", "focusin", "click"].forEach(ev => document.addEventListener(ev, e => { const h = e.target && e.target.closest && e.target.closest(".hint"); if (h) hintFit(h); }, true));/* иконки вместо слов там, где знак понятен всем */
-const ICO = {
-  collapse:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3v6H3M15 3v6h6M9 21v-6H3M15 21v-6h6" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
-  eye:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.6" fill="currentColor"/></svg>',
-  sun:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1" stroke="currentColor" stroke-width="2"/></svg>',
-  moon:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
-  exit:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5v16h5M15 8l4 4-4 4M19 12H9" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
-  expand:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6" fill="none" stroke="currentColor" stroke-width="2"/></svg>'};
+const ICO = {collapse:ico("collapse"), expand:ico("expand"), eye:ico("eye"), exit:ico("exit")};
 const icoBtn = (ico, label, attrs) => `<button type="button" class="btn btn--sm btn--ico" aria-label="${label}" title="${label}" ${attrs}>${ICO[ico]}</button>`;
 document.addEventListener("click", e => {
   const hb = e.target.closest(".hint__b"); document.querySelectorAll(".hint.on").forEach(h => { if (!hb || h !== hb.parentNode) { h.classList.remove("on"); h.firstChild.setAttribute("aria-expanded", "false"); } });
@@ -590,7 +584,7 @@ document.addEventListener("click", e => {
   const el = e.target.closest("[data-act]"); if (!el) return;
   const r = ACT[el.dataset.act](el.dataset); if (r !== false) render();
 });
-document.addEventListener("input", e => { if (e.target.id === "share") { S.share = +e.target.value; $("shv").textContent = S.share; $("capv").textContent = "$" + dec(0.06 * 0.56 * CHECK * S.share / 100); } });
+document.addEventListener("input", e => { if (e.target.id === "share") { S.share = +e.target.value; $("shv").textContent = S.share; $("capv").textContent = (dec(0.06 * 0.56 * CHECK * S.share / 100) + " $"); } });
 document.addEventListener("keydown", e => {
   if (e.key === "Escape") { if (S.cr || S.launch || S.modal) { ACT.closeOverlay(); render(); } else if (S.asst.open) { S.asst.open = false; renderAsst(); } }
   if (e.key === "Enter" && e.target.matches("tr[data-act]")) { ACT[e.target.dataset.act](e.target.dataset); render(); }
