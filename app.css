@@ -833,3 +833,8 @@ body.has-tabbar .only-m{display:flex}
 
 .tso--idle{background:color-mix(in srgb,#2f6fdb 6%,transparent)}
 .rktw td.n,.rktw th{white-space:nowrap}
+/* поля и списки вне форм — в стиле платформы, а не браузера */
+:where(.phr,.rkf,.rkr,.tsk,.ar,.trp,.trh,.tsw,.rk) :is(select,input:not([type=checkbox]):not([type=radio])),.pfsel{min-height:34px;padding:4px 10px;border:1.5px solid var(--line);border-radius:2px;background:var(--bg);color:var(--ink);font-size:13px}
+:where(.phr,.rkf,.rkr,.tsk,.ar,.trp,.trh,.tsw,.rk) select,.pfsel{cursor:pointer;padding-right:26px;appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);background-position:calc(100% - 14px) 50%,calc(100% - 9px) 50%;background-size:5px 5px;background-repeat:no-repeat}
+:where(.phr,.rkf,.rkr,.tsk,.ar,.trp,.trh,.tsw,.rk) :is(select,input):focus-visible,.pfsel:focus-visible{outline:2px solid var(--ink);outline-offset:1px}
+.phr .btn--sm{min-height:34px}
