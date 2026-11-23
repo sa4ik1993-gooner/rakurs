@@ -375,7 +375,7 @@ function bdGoalBlock(f, p, cur, dis){ const F0 = BD.form, o = bdGoalCalc(f, p), 
       ${o.daily && +F0.budget !== o.daily ? `<div class="row"><button type="button" class="btn btn--sm btn--solid" data-act="bdBud" data-v="${o.daily}"${dis}>${L("Поставити ","Поставить ")}${bdM(o.daily, cur)}${L(" на день"," в день")}</button></div>` : ""}`; }
   else if (o.cpl && g.budget) calc = `<p class="bdg__c">${bdM(g.budget, cur)} ÷ ${L("лід ","лид ")}${bdM(o.cpl.v, cur)} ≈ <b>${o.byBudget} ${L("лідів","лидов")}</b></p>`;
   const chg = (f.builds || []).length ? `<div class="row bdg__q"><span class="sub">${L("Що змінилося з минулого запуску","Что изменилось с прошлого запуска")}</span><div class="opts opts--sm">${BD_CHG().map(c => `<button type="button" class="opt" data-act="bdChg" data-v="${c[0]}" aria-pressed="${(F0.chg || []).includes(c[0]) ? "true" : "false"}"${dis}>${c[1]}</button>`).join("")}</div></div>` : "";
-  return `<div class="bdq bdg"><div class="row sp"><b class="bdn">${L("Ціль","Цель")}</b>${hint(L("Одна фраза: скільки, чого й до якої дати. Платформа порахує бюджет за ціною ліда цієї воронки. Можна пропустити.","Одна фраза: сколько, чего и к какой дате. Платформа посчитает бюджет по цене лида этой воронки. Можно пропустить."))}</div>
+  return `<div class="bdq bdg"><div class="row sp"><b class="bdn">${L("Ціль","Цель")}</b></div>
     <div class="row bdg__in"><input id="bd-goal" data-bd="goal" value="${esc(F0.goal || "")}" placeholder="${L("100 лідів на вебінар післязавтра","100 лидов на вебинар послезавтра")}" aria-label="${L("Ціль запуску","Цель запуска")}"${dis}>${mic}</div>
     ${got.length ? `<div class="bdg__got">${got.map(x => `<span class="pill pill--mute">${esc(x)}</span>`).join("")}</div>` : ""}${calc}${chg}</div>`; }
 function bdMic(){ const SR = window.SpeechRecognition || window.webkitSpeechRecognition; if (!SR || !BD.form) return;
@@ -390,7 +390,7 @@ Object.assign(ACT, {
   bdChg(d){ const F0 = BD.form; if (!F0) return false; F0.chg = F0.chg || []; const i = F0.chg.indexOf(d.v); if (i < 0) F0.chg.push(d.v); else F0.chg.splice(i, 1); },
   /* вход с карты: «+ Кампания» у Meta Ads открывает запуск нужной воронки */
   bdFromMap(d){ const p = W.projs.find(x => x.id === d.p), f = p && p.funnels.find(x => x.id === d.f); if (!f) return false;
-    W.cur = p.id; W.fun = f.id; W.ftab = d.tab || W.ftab; BD.open = f.id; BD.tgt = null; if (CLOUD && bdConn(p) && bdCanWrite(bdConn(p))) bdInit(f, p); else BD.open = null; save();
+    W.cur = p.id; W.fun = f.id; W.ftab = d.tab || "launch"; BD.open = f.id; BD.tgt = null; if (CLOUD && bdConn(p) && bdCanWrite(bdConn(p))) bdInit(f, p); else BD.open = null; save();
     setTimeout(() => { const el = document.getElementById("bd"); if (el) el.scrollIntoView({block:"start"}); }, 80); }
 });
 document.addEventListener("change", e => { if (e.target && e.target.id === "bd-goal") render(); });

@@ -1,6 +1,6 @@
 /* Своя компания: Компания → Проекты → Воронки. Пустой старт, всё введённое хранится в браузере.
    Подключается после setup.js. Заполненный пример «Школа 3D» остаётся отдельным режимом. */
-const blankW = () => ({mode:"own", user:null, co:null, projs:[], cur:null, fun:null, tab:"about", ftab:"an", ctab:"map", wipe:false});
+const blankW = () => ({mode:"own", user:null, co:null, projs:[], cur:null, fun:null, tab:"about", ftab:"go", ctab:"today", wipe:false});
 const blankBrand = () => ({colors:"", fonts:"", voice:"", files:[]});
 let W = blankW();
 try { const s = JSON.parse(localStorage.getItem("rakurs_ws")); if (s && Array.isArray(s.projs)) W = Object.assign(W, s, {wipe:false}); } catch (e) {}
@@ -8,7 +8,7 @@ if (CLOUD) W = blankW();   /* с сервером локальная копия 
 const accKey = id => "rakurs_acc_" + id;
 const accGet = id => { try { const a = JSON.parse(localStorage.getItem(accKey(id))); return a && Array.isArray(a.projs) ? a : null; } catch (e) { return null; } };
 /* приводит сохранённые данные к текущей структуре */
-function norm(){ W.ctab = W.ctab || "map"; if (W.ctab === "acc") W.ctab = "me";
+function norm(){ W.ctab = W.ctab || "today"; if (W.ctab === "acc") W.ctab = "me";
   if (W.co) { W.co.kb = W.co.kb || []; W.co.paths = W.co.paths || []; W.co.brand = Object.assign(blankBrand(), W.co.brand); W.co.ban = W.co.ban || ""; W.co.tone = W.co.tone || ""; }
   W.projs.forEach(p => { p.kb = p.kb || []; p.exp = p.exp || []; p.kbOff = p.kbOff || []; const b = p.brand = Object.assign(blankBrand(), p.brand); if (b.own == null) b.own = !!(b.colors || b.fonts || b.voice); (p.funnels || []).forEach(f => { f.ch = f.ch || []; f.sale = f.sale || p.sale || "web"; }); }); }
 norm();
@@ -122,15 +122,22 @@ function vWelcome(){
 function pathsPanel(){
   const own = saleOwn(), adm = canAdmin(), use = id => W.projs.reduce((a, p) => a + p.funnels.filter(f => f.sale === id).length, 0);
   return `<div class="panel"><span class="tag">${L("Свої шляхи продажу","Свои пути продажи")} · ${own.length}</span>
-    <div class="hrow">${hint(L("Шляхи, які ви додали самі. Вони є у списку «Як відбувається продаж» кожної воронки компанії. Стандартні шляхи доступні завжди й тут не показані.","Пути, которые вы добавили сами. Они есть в списке «Как происходит продажа» каждой воронки компании. Стандартные пути доступны всегда и здесь не показаны."), "wide")}</div>
+    
     ${own.length ? own.map((x, i) => `<div class="pathrow">${adm ? `<div class="form">${fld("co.paths." + i + ".name", L("Назва","Название"))}${fld("co.paths." + i + ".steps", L("Кроки","Шаги"))}</div>` : `<b>${esc(x.name)}</b><span class="sub">${esc(x.steps)}</span>`}
         <div class="row sp"><span class="sub">${L("Воронок із цим шляхом: ","Воронок с этим путём: ")}${use(x.id)}</span>${adm ? del("wsDelPath", x.id) : ""}</div></div>`).join("")
       : empty(L("Своїх шляхів ще немає","Своих путей пока нет"), L("Додайте тут або під час створення воронки: «Як відбувається продаж» → «+ Свій шлях…».","Добавьте здесь или при создании воронки: «Как происходит продажа» → «+ Свой путь…»."))}
     ${adm ? `<div class="pathrow"><div class="form">${saleNew("kp")}</div><div class="row"><button class="btn btn--sm btn--solid" data-act="wsPathNew">${L("Додати шлях","Добавить путь")}</button></div></div>` : ""}</div>`;
 }
-function vCompany(){
-  const t = W.ctab, tabs = [["map",L("Карта","Карта")],["projects",L("Проєкти","Проекты")],["kb",L("База знань компанії","База знаний компании")],["team",L("Команда","Команда")],["set",L("Налаштування","Настройки")],["me",L("Профіль","Профиль")]];
+/* «Сегодня» — главная: пульс за период и решения на сегодня, ниже — цели на месяц. Карта — отдельно. */
+const railMore = () => { try { return localStorage.getItem("rakurs_rail_more") === "1"; } catch (e) { return false; } };
+function vToday(){ const on = W.projs.some(p => typeof prOn === "function" && prOn(p));
+  if (!W.projs.length) return empty(L("Проєктів ще немає","Проектов ещё нет"), L("Додайте проєкт на карті — тут з’являться рішення на сьогодні.","Добавьте проект на карте — здесь появятся решения на сегодня.")) + `<div class="row"><button class="btn btn--solid" data-act="wsCtab" data-v="map">${L("Відкрити карту","Открыть карту")}</button></div>`;
+  return `<div class="map today">${on ? prBar() + prOverview(null) : `<div class="panel"><span class="tag">${L("Рішення на сьогодні","Решения на сегодня")}</span><p class="sub">${L("З’являться, коли підключите рекламний кабінет.","Появятся, когда подключите рекламный кабинет.")}</p><div class="row"><button class="btn btn--sm btn--solid" data-act="mapConn" data-id="${W.projs[0].id}">${L("Підключити кабінет","Подключить кабинет")}</button></div></div>`}${typeof goalsBoard === "function" ? goalsBoard(null) : ""}</div>`; }
+let todayBoot = false;
+function vCompany(){ if (!todayBoot && W.co) { todayBoot = true; if (W.ctab === "map") W.ctab = "today"; }
+  const t = W.ctab, tabs = [["today",L("Сьогодні","Сегодня")],["map",L("Карта","Карта")],["projects",L("Проєкти","Проекты")],["kb",L("База знань компанії","База знаний компании")],["team",L("Команда","Команда")],["set",L("Налаштування","Настройки")],["me",L("Профіль","Профиль")]];
   const body = {
+    today: () => vToday(),
     map: () => vMap(),
     projects: () => `${W.projs.length ? `<div class="cols">${W.projs.map(p=>{ const ch = pChain(p), done = ch.filter(c=>c[2]).length; return `<div class="panel">
       <div class="row sp"><h2>${esc(p.name)}</h2>${canAdmin()?del2("wsDelP", p.id, "p:" + p.id):""}</div><p class="sub">${esc([p.niche,p.geo].filter(Boolean).join(" · "))}</p>
@@ -186,7 +193,7 @@ function vCompany(){
             <div class="field w"><label for="me-title">${L("Посада або роль у команді","Должность или роль в команде")}</label><input id="me-title" data-me="title" value="${esc(ME.title)}" placeholder="${L("таргетолог, маркетолог, власник","таргетолог, маркетолог, собственник")}"></div></div>
           <dl class="kv"><dt>${L("Вхід","Вход")}</dt><dd>${u.via==="tg"?"Telegram":L("Пошта","Почта")} · <span class="mono">${esc(u.name || u.id)}</span></dd>${TG()&&u.via!=="tg"?`<dt>Telegram</dt><dd>${CL.tg?esc(CL.tg.username||CL.tg.name||""):`<button class="btn btn--sm" data-act="wsTgLink">${L("Прив’язати","Привязать")}</button>`}</dd>`:""}${CLOUD?`<dt>${L("Роль у компанії","Роль в компании")}</dt><dd>${ROLES()[CL.role]||"—"}</dd>`:""}</dl>
           <div class="row"><button class="btn" data-act="wsLogout">${L("Вийти","Выйти")}</button></div></div>
-        <div class="panel"><span class="tag">${L("Особисті налаштування","Личные настройки")} ${hint(L("Діють лише для вас і не змінюють нічого в колег.","Действуют только для вас и ничего не меняют у коллег."))}</span>
+        <div class="panel"><span class="tag">${L("Особисті налаштування","Личные настройки")} </span>
           <dl class="kv kv--set"><dt>${L("Мова","Язык")}</dt><dd><span class="lang" role="group"><button type="button" data-lang="uk" aria-pressed="${lang==="uk"}">UA</button><button type="button" data-lang="ru" aria-pressed="${lang==="ru"}">RU</button></span></dd>
             <dt>${L("Тема","Тема")}</dt><dd>${seg("themeSet", [["light", ICO.sun, L("Світла","Светлая")], ["dark", ICO.moon, L("Темна","Тёмная")], ["auto", "A", L("Як у пристрої","Как в устройстве")]], th)}</dd>
             <dt>${L("Карта відкривається за","Карта открывается за")}</dt><dd>${seg("mePeriod", per, ME.period || "t")}</dd>
@@ -194,8 +201,8 @@ function vCompany(){
             ${nh ? `<dt>${L("Сховані картки на карті","Скрытые карточки на карте")}</dt><dd><button class="btn btn--sm" data-act="mapShowAll">${L("Показати всі","Показать все")} · ${nh}</button></dd>` : ""}</dl></div></div>`; },
   }[t]();
   return `<div class="head"><div><span class="tag">${t==="me"?L("Профіль","Профиль"):t==="set"?L("Налаштування компанії","Настройки компании"):W.co.kind==="agency"?L("Агентство","Агентство"):L("Компанія","Компания")}</span><h1>${esc(t==="me" ? ME.name || W.user.name || W.user.id : W.co.name)}</h1></div>
-    ${(t==="projects"||t==="map")&&canAdmin()?`<button class="btn btn--solid" data-act="modal" data-id="project">${L("Додати проєкт","Добавить проект")}</button>`:""}</div>
-  <div class="seg seg--co" role="group">${tabs.map(x=>`<button type="button" data-act="wsCtab" data-v="${x[0]}" aria-pressed="${t===x[0]}">${x[1]}${x[0]==="kb"&&W.co.kb.length?" · "+W.co.kb.length:""}</button>`).join("")}</div>
+    </div>
+  ${["kb","team","set"].includes(t) ? `<div class="seg seg--co" role="group" aria-label="${L("Налаштування компанії","Настройки компании")}">${[["kb",L("База знань","База знаний")],["team",L("Команда","Команда")],["set",L("Налаштування","Настройки")]].map(x=>`<button type="button" data-act="wsCtab" data-v="${x[0]}" aria-pressed="${t===x[0]}">${x[1]}</button>`).join("")}</div>` : ""}
   ${body}`;
 }
 function segList(segs, act, tag){ return segs.length ? `<div class="segs">${segs.map(s=>`<div class="seg3"><div class="row sp"><b>${esc(s.name)}</b><span class="row">${tag?tag(s):""}${del(act, s.id)}</span></div><span class="sub">${esc(s.pain)}</span>${s.say?`<span class="mono">→ ${esc(s.say)}</span>`:""}</div>`).join("")}</div>` : ""; }
@@ -248,7 +255,7 @@ function kbScore(){ const co = W.co, b = co.brand, has = t => co.kb.some(i=>i.ty
     .concat(KBT().filter(k=>k[1]!=="p").map(k=>[k[0],k[2],k[5],has(k[0])]));
   return {rows, got:rows.filter(r=>r[3]).reduce((a,r)=>a+r[2],0), next:rows.filter(r=>!r[3]).sort((x,y)=>y[2]-x[2])[0]}; }
 function kbMeter(){ const m = kbScore(), n = m.next, sec = n && !["brand","rules"].includes(n[0]);
-  return `<div class="panel kbm"><div class="row sp"><b class="kbm__n">${m.got}<small> / 100</small></b>${hint(L("Що більше платформа знає про компанію, то менше вигадує: тексти, сюжети й докази беруться з ваших матеріалів. Спільне для всіх проєктів; проєкт може вимкнути зайве.","Чем больше платформа знает о компании, тем меньше придумывает: тексты, сюжеты и доказательства берутся из ваших материалов. Общее для всех проектов; проект может выключить лишнее."))}</div>
+  return `<div class="panel kbm"><div class="row sp"><b class="kbm__n">${m.got}<small> / 100</small></b></div>
     <div class="prog"><i style="width:${m.got}%"></i></div>
     <div class="kbm__s">${m.rows.map(r=>`<span class="${r[3]?"ok":""}">${r[1]}</span>`).join("")}</div>
     ${n ? `<div class="row"><span class="sub">${L("Далі:","Дальше:")}</span>${sec?`<button class="btn btn--sm btn--solid" data-act="kbOpen" data-id="${n[0]}" data-on="1">${n[1]} · +${n[2]}</button>`:`<b>${n[1]} · +${n[2]}</b>`}</div>` : `<p class="good">${L("База повна","База полная")}</p>`}</div>`; }
@@ -318,18 +325,29 @@ function vProject(p){
         <dl class="kv"><dt>${L("Готовність","Готовность")}</dt><dd class="mono">${done} / ${c.length}</dd><dt>${L("ЦА","ЦА")}</dt><dd class="mono">${fSegs(f,p).length} ${L("сегм.","сегм.")}</dd><dt>${L("Лендингів","Лендингов")}</dt><dd class="mono">${f.lands.length}</dd><dt>${L("Креативів","Креативов")}</dt><dd class="mono">${f.crs.length}</dd><dt>${L("План","План")}</dt><dd class="mono">${num(x.pay)} ${L("оплат","оплат")} · ${money(x.rev)}</dd></dl>
         <div class="row"><button class="btn btn--sm btn--solid" data-act="wsOpenF" data-id="${f.id}">${L("Відкрити","Открыть")}</button></div></div>`; }).join("")}</div>`
         : empty(L("Воронок ще немає","Воронок ещё нет"), L("Воронка — це один офер з ціною: вебінар, акція, лід-форма. У неї свої сайт, канали трафіку, креативи й цілі.","Воронка — это один оффер с ценой: вебинар, акция, лид-форма. У неё свои сайт, каналы трафика, креативы и цели."), `<button class="btn btn--solid" data-act="modal" data-id="funnel">${L("Додати першу воронку","Добавить первую воронку")}</button>`)}`,
-    conn: () => `${MT.open === p.id ? metaGuide(p) : MT.g && MT.g.p === p.id ? guidePanel(p, MT.g.prov) : ""}<div class="hrow">${hint(L("Meta Ads — ключем доступу, Google і TikTok — входом у вікні майданчика. Для Telegram Ads відкритого способу забирати статистику немає: витрати вносяться вручну.","Meta Ads — ключом доступа, Google и TikTok — входом в окне площадки. Для Telegram Ads открытого способа забирать статистику нет: расход вносится вручную."), "wide")}</div>
+    conn: () => `${MT.open === p.id ? metaGuide(p) : MT.g && MT.g.p === p.id ? guidePanel(p, MT.g.prov) : ""}
       ${typeof trPanel === "function" ? trPanel(p) : ""}<div class="conn">${OBCONN().map(c=>{ const v = p.conn[c[0]]; return `<div class="panel"><div class="row sp"><h2>${c[1]}</h2>${c[0]==="meta"&&mtBroken(p)?pill("crit",L("потрібна увага","нужно внимание")):v===1?pill("good",L("підключено","подключено")):v?pill("warn",L("до підключення","к подключению")):pill("mute",L("немає","нет"))}</div>${c[0]==="meta" ? metaCard(p) : AD_FN[c[0]] ? adCard(p, c[0], c[2] + ".") : GUIDES()[c[0]] ? guideCard(p, c[0], c[2] + ".") : `<p class="sub">${c[2]}</p><div class="row"><button class="btn btn--sm" data-act="wsConn" data-id="${c[0]}">${v?L("Прибрати","Убрать"):L("Є, підключити","Есть, подключить")}</button></div>`}</div>`; }).join("")}</div>${sourcesPanel(p)}${utmPanel("p")}`
   }[t]();
   const next = ch.find(c=>!c[2]);
   return `<button class="back" data-act="wsBackP">← ${esc(W.co.name)}</button>
   <div class="head"><div><span class="tag">${L("Проєкт","Проект")}</span><h1>${esc(p.name)}</h1></div>${next&&next[0]!==t?`<button class="btn" data-act="wsTab" data-v="${next[0]}">${L("Наступний крок: ","Следующий шаг: ")}${next[1]}</button>`:""}</div>
-  ${stepper(ch, t, "wsTab")}${body}`;
+  ${ch.every(c => c[2]) ? `<details class="stepf" data-fold="steps:${p.id}"${(foldSt()["steps:" + p.id]) ? " open" : ""}><summary><span class="good">✓ ${L("Проєкт налаштовано","Проект настроен")}</span> <span class="sub">${L("показати кроки","показать шаги")}</span></summary>${stepper(ch, t, "wsTab")}</details>` : stepper(ch, t, "wsTab")}${body}`;
 }
 const capT = c => "$" + dec(c.cap) + (c.k > 1 ? `<small class="sub"> ${L("перша оплата","первая оплата")} $${dec(c.cap1)}</small>` : "");
 function calcP(p){ const c = pT(p); return `<div class="kpis">${[[L("Виручка","Выручка"),money(c.rev)],[L("Оплат","Оплат"),num(c.pay)],[L("Лідів","Лидов"),num(c.leads)],[L("Стеля ліда","Потолок лида"),capT(c)],["ROAS",dec(c.roas)]].map(k=>`<div class="kpi"><span class="tag">${k[0]}</span><strong>${k[1]}</strong></div>`).join("")}</div>
   ${typeof geList === "function" ? geList(geProject(p)) : ""}`; }
 function calcF(f, p){ const x = fT(f,p); return `<div class="kpis">${[[L("Бюджет","Бюджет"),money(x.bud)],[L("Лідів","Лидов"),num(x.leads)],[L("Оплат","Оплат"),num(x.pay)],[L("Виручка","Выручка"),money(x.rev)],[L("Стеля ліда","Потолок лида"),capT(x)]].map(k=>`<div class="kpi"><span class="tag">${k[0]}</span><strong>${k[1]}</strong></div>`).join("")}</div>${typeof geList === "function" ? geList(geFunnel(f, p)) : ""}`; }
+/* Воронка — три вкладки: «Как идёт» (цели и факт), «Запуск» (креативы, лендинги, запуск), «Настройки» (анамнез, ЦА, цели, правила). */
+const FTABS = () => [["go", L("Як іде","Как идёт")], ["launch", L("Запуск","Запуск")], ["set", L("Налаштування","Настройки")]];
+const ftNorm = t => ({an:"set", aud:"set", goals:"set", land:"launch", cr:"launch"})[t] || (["go", "launch", "set"].includes(t) ? t : "go");
+/* свёрнутый блок с одной строкой итога; что раскрыто — запоминается в браузере */
+const FOLD_KEY = "rakurs_fold";
+/* «Подробнее»: таблица под строкой, сверху остаются цифры и выводы */
+const more = (id, label, html) => `<details class="more" data-fold="${esc(id)}"${foldSt()[id] ? " open" : ""}><summary>${L("Детальніше","Подробнее")}${label ? " · " + label : ""}</summary>${html}</details>`;
+const foldSt = () => { try { return JSON.parse(localStorage.getItem(FOLD_KEY) || "{}"); } catch (e) { return {}; } };
+const fold = (id, title, sum, body, def) => { const st = foldSt(), open = id in st ? st[id] : !!def;
+  return `<details class="panel fold" data-fold="${esc(id)}"${open ? " open" : ""}><summary><span class="tag">${title}</span>${sum ? `<span class="fsum">${sum}</span>` : ""}<span class="fchev" aria-hidden="true"></span></summary><div class="fold__b">${body}</div></details>`; };
+document.addEventListener("toggle", e => { const d = e.target; if (!d.dataset || !d.dataset.fold) return; const st = foldSt(); st[d.dataset.fold] = d.open; try { localStorage.setItem(FOLD_KEY, JSON.stringify(st)); } catch (e2) { /* */ } }, true);
 function vFunnel(f, p){
   const ch = fChain(f,p), t = W.ftab, hasConn = Object.values(p.conn).some(Boolean);
   const ready = [[L("Офер і ціна","Оффер и цена"),ch[0][2]],[L("ЦА: хоча б один сегмент","ЦА: хотя бы один сегмент"),ch[1][2]],[L("Лендинг","Лендинг"),ch[2][2]],[L("Креативи: від трьох","Креативы: от трёх"),ch[3][2]],[L("Цілі воронки","Цели воронки"),ch[4][2]],[L("Кабінети позначено до підключення","Кабинеты отмечены к подключению"),hasConn]];
@@ -374,24 +392,31 @@ function vFunnel(f, p){
         ${r("pay",L("План оплат на місяць","План оплат в месяц"),"")}${r("check",L("Чек","Чек"),"$")}${r("l2b",L("Лід → бронь","Лид → бронь"),"%")}${r("b2p",L("Бронь → оплата","Бронь → оплата"),"%")}<tr><td>${L("Допродажі після першої оплати","Допродажи после первой оплаты")} ${hint(L("Скільки клієнт цієї воронки приносить понад перший чек, у % до першої оплати. Порожньо — беремо з цілей проєкту (","Сколько клиент этой воронки приносит сверх первого чека, в % к первой оплате. Пусто — берём из целей проекта (") + (+p.tg.ltv || 0) + "%).", "wide")}</td><td class="n"><input class="tin" data-w="f.tg.ltv" value="${fLtvOwn(f) ? f.tg.ltv : ""}" placeholder="${+p.tg.ltv || 0}" inputmode="decimal" aria-label="${L("Допродажі","Допродажи")}"> <span class="sub mono">%</span></td></tr></tbody></table></div>
         <p class="sub">${L("Конверсії взято з проєкту — змініть, якщо у цієї воронки вони інші. Частка маркетингу спільна: ","Конверсии взяты из проекта — измените, если у этой воронки они другие. Доля маркетинга общая: ")}${p.tg.share}%.</p></div>
         <div class="panel vf"><span class="tag">${L("План воронки","План воронки")}</span><div id="w-calc">${calcF(f,p)}</div></div></div>
-      ${chPlanPanel(f, p)}
-      ${typeof fxMatchPanel === "function" ? fxMatchPanel(p, f) : ""}
+      ${chPlanPanel(f, p)}`; },
+  };
+  const sec = k => body[k]();
+  const T = ftNorm(W.ftab), rd = ready.filter(r => r[1]).length;
+  const tabs = FTABS().map(x => `<button type="button" data-act="wsFtab" data-v="${x[0]}" aria-pressed="${T === x[0]}">${x[1]}${x[0] === "launch" && rd < ready.length ? ` <small class="sub">${rd}/${ready.length}</small>` : ""}</button>`).join("");
+  const ge = typeof geFunnel === "function" ? geFunnel(f, p) : [], tg = fT(f, p);
+  const view = {
+    go: () => `<div class="panel"><div class="row sp"><span class="tag">${L("Цілі воронки","Цели воронки")}</span><button type="button" class="lnk" data-act="wsFtab" data-v="set">${L("Змінити цілі","Изменить цели")}</button></div>${geList(ge)}</div>
       ${factPanel(p, f)}
-      ${typeof trReport === "function" ? trReport(p, f) : ""}
-      <div class="panel"><span class="tag">${L("Аналітика","Аналитика")}</span>
-        <div class="tw tw--in"><table><thead><tr><th>${L("Показник","Показатель")}</th><th class="n">${L("Ціль","Цель")}</th><th class="n">${L("Факт","Факт")}</th></tr></thead><tbody>
-        ${(()=>{ const x = fT(f,p); return [[L("Витрати","Расход"),money(x.bud)],[L("Ліди","Лиды"),num(x.leads)],[L("Ціна ліда","Цена лида"),"≤ $"+dec(x.cap)],[L("Лід → бронь","Лид → бронь"),pc(f.tg.l2b)],[L("Бронь → оплата","Бронь → оплата"),pc(f.tg.b2p,0)],[L("Оплати","Оплаты"),num(x.pay)],[L("Виручка","Выручка"),money(x.rev)],["ROAS",dec(100/p.tg.share)]].map(a=>`<tr><td>${a[0]}</td><td class="n mono">${a[1]}</td><td class="n mono sub">—</td></tr>`).join(""); })()}</tbody></table></div>
-        <div class="hrow">${hint(L("Факт рахується за датою вебінару й до оплати. З’явиться після першого запуску; як це виглядає — у заповненому прикладі.","Факт считается по дате вебинара и до оплаты. Появится после первого запуска; как это выглядит — в заполненном примере."), "wide")}</div></div>`; }
-  }[t]();
+      ${(() => { const tr = typeof trReport === "function" ? trReport(p, f) : ""; return tr ? fold("tr:" + f.id, L("Трекер проти Meta","Трекер против Meta"), "", tr, false) : ""; })()}
+      ${(() => { const a = askPanel(p, f); return a ? fold("ask:" + f.id, L("Питання до даних","Вопрос к данным"), "", a, false) : ""; })()}`,
+    launch: () => `${bdPanel(f, p)}
+      ${fold("rd:" + f.id, L("Готовність до запуску","Готовность к запуску"), rd + " / " + ready.length, `<ul class="steps">${ready.map(r=>`<li class="${r[1]?"ok":""}">${r[0]}</li>`).join("")}</ul><p class="sub">${L("Назва кампанії буде такою: ","Название кампании будет таким: ")}<span class="mono">${esc(camp)}</span>.</p>`, rd < ready.length)}
+      ${fold("cr:" + f.id, L("Креативи й тексти","Креативы и тексты"), String(f.crs.length), sec("cr"), !f.crs.length)}
+      ${fold("land:" + f.id, L("Лендинги","Лендинги"), String(f.lands.length), sec("land"), !f.lands.length)}
+      ${(() => { const r = rsPanel(p, f); return r ? fold("rs:" + f.id, L("Дослідження воронки","Исследование воронки"), f.research ? L("є","есть") : "", r, false) : ""; })()}`,
+    set: () => `${fold("an:" + f.id, L("Анамнез воронки","Анамнез воронки"), esc([f.an.offer, f.tg.check ? "$" + num(f.tg.check) : ""].filter(Boolean).join(" · ")), sec("an"), !(f.an.offer && f.tg.check))}
+      ${fold("aud:" + f.id, L("Аудиторія","Аудитория"), String(fSegs(f, p).length), sec("aud"), false)}
+      ${fold("goals:" + f.id, L("Цілі й план","Цели и план"), num(tg.pay) + L(" оплат · стеля ліда $"," оплат · потолок лида $") + dec(tg.cap), sec("goals"), !f.tg.pay)}
+      ${typeof fxMatchPanel === "function" ? (() => { const m = fxMatchPanel(p, f); return m ? fold("rules:" + f.id, L("Які кампанії належать воронці","Какие кампании относятся к воронке"), "", m, false) : ""; })() : ""}`,
+  };
   return `<button class="back" data-act="wsBackF">← ${esc(p.name)}</button>
   <div class="head"><div><span class="tag">${L("Воронка","Воронка")}</span><h1>${esc(f.name)}</h1><p class="sub">${esc(f.an.offer)}</p></div></div>
-  ${stepper(ch, t, "wsFtab")}${body}
-  <div class="panel vf"><div class="row sp"><span class="tag">${L("Готовність до запуску","Готовность к запуску")} · ${ready.filter(r=>r[1]).length} / ${ready.length}</span></div>
-    <ul class="steps">${ready.map(r=>`<li class="${r[1]?"ok":""}">${r[0]}</li>`).join("")}</ul>
-    <p class="sub">${L("Назва кампанії буде такою: ","Название кампании будет таким: ")}<span class="mono">${esc(camp)}</span>. ${L("Кампанія збирається вимкненою, вмикає людина.","Кампания собирается выключенной, включает человек.")}</p></div>
-  ${rsPanel(p, f)}
-  ${askPanel(p, f)}
-  ${bdPanel(f, p)}`;
+  <div class="seg seg--f" role="group" aria-label="${L("Розділи воронки","Разделы воронки")}">${tabs}</div>
+  ${view[T]()}`;
 }
 function modalFunnelOwn(){ const p = P();
   return `<div class="ob"><div class="row sp"><div><span class="tag">${esc(p.name)}</span><h1>${L("Нова воронка","Новая воронка")}</h1></div><button class="x" data-act="closeOverlay" aria-label="${L("Закрити","Закрыть")}">×</button></div>
@@ -403,7 +428,7 @@ function modalFunnelOwn(){ const p = P();
       ${saleNew("nf", true)}
       <div class="field w"><label for="nf-url">${L("Сайт: лендинг цієї воронки","Сайт: лендинг этой воронки")}</label><input id="nf-url" inputmode="url" autocapitalize="none" placeholder="example.com/page"></div>
       <div class="w chkf"><span class="tag">${L("Канали трафіку","Каналы трафика")}</span><div class="chks">${CHAN().map(c=>`<label class="chk"><input type="checkbox" class="nf-ch" value="${c[0]}"${p.conn[c[0]]?" checked":""}><span>${c[1]}</span></label>`).join("")}</div></div></div>
-    <div class="hrow">${hint(L("З проєкту успадкуються ЦА, правила й конверсії. Аудиторію можна правити всередині воронки: вимкнути сегменти проєкту й додати свої.","Из проекта унаследуются ЦА, правила и конверсии. Аудиторию можно править внутри воронки: выключить сегменты проекта и добавить свои."), "wide")}</div>
+    
     ${splitNote(1)}
     <div class="row"><button class="btn btn--solid" data-act="createFunnel">${L("Створити воронку","Создать воронку")}</button></div></div>`; }
 function ownAudStep(o){ return `<p class="sub">${L("Хто купує. Можна додати зараз або пізніше в проєкті; у воронках аудиторію можна звужувати.","Кто покупает. Можно добавить сейчас или позже в проекте; в воронках аудиторию можно сужать.")}</p>
@@ -412,6 +437,7 @@ function ownAudStep(o){ return `<p class="sub">${L("Хто купує. Можн�
 /* ---------- оболочка ---------- */
 /* нижняя навигация на телефоне: разделы компании под большим пальцем; разделы проекта остаются полосой сверху */
 const TBI = {
+  today:'<circle cx="10" cy="10" r="7.5"/><path d="M10 5.5V10l3 2"/>',
   map:'<rect x="1.5" y="8" width="4" height="4"/><path d="M5.5 10h3M8.5 5v10M8.5 5h3M8.5 15h3"/><rect x="11.5" y="3" width="6" height="4"/><rect x="11.5" y="13" width="6" height="4"/>',
   projects:'<path d="M2.5 5h5l1.5 2h8.5v9h-15z"/>',
   kb:'<path d="M4 3.5h10.5A1.5 1.5 0 0 1 16 5v11.5H5.5A1.5 1.5 0 0 1 4 15z"/><path d="M4 15a1.5 1.5 0 0 1 1.5-1.5H16"/>',
@@ -423,16 +449,16 @@ function tabBar(){
   const on = own() && !!W.user && !!W.co && !(CLOUD && (!CL.ready || CL.entering)); tb.hidden = !on; document.body.classList.toggle("has-tabbar", on); if (!on) { tb.innerHTML = ""; return; }
   tb.setAttribute("aria-label", L("Розділи компанії","Разделы компании"));
   const cur = P() ? "projects" : W.ctab;
-  tb.innerHTML = [["map",L("Карта","Карта")],["projects",L("Проєкти","Проекты")],["kb",L("База","База")],["set",L("Налашт.","Настройки")],["me",L("Профіль","Профиль")]].map(x =>
+  tb.innerHTML = [["today",L("Сьогодні","Сегодня")],["map",L("Карта","Карта")],["projects",L("Проєкти","Проекты")],["set",L("Ще","Ещё")],["me",L("Профіль","Профиль")]].map(x =>
     `<button type="button" data-act="wsCtab" data-v="${x[0]}"${cur === x[0] ? ' aria-current="page"' : ""}><svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${TBI[x[0]]}</svg><span>${x[1]}</span></button>`).join("");
 }
 function ownShell(){
   const p = P(), f = F(), nb = (act, v, t, on) => `<a role="button" tabindex="0" data-act="${act}" data-v="${v}" ${on?'aria-current="page"':""}>${t}</a>`;
   $("rail").innerHTML = `<a class="logo" href="index.html">${brandLogo("rail")}</a>
     ${W.user&&W.co?`<button type="button" class="ws" data-act="wsBackP"><small>${L("Компанія","Компания")}</small><b>${esc(W.co.name)}</b></button>
-    <nav class="navg navg--co"><span>${L("Компанія","Компания")}</span>${nb("wsCtab","map",L("Карта","Карта"),!p&&W.ctab==="map")}${nb("wsCtab","projects",L("Проєкти","Проекты")+(W.projs.length?` <b class="cnt">${W.projs.length}</b>`:""),!p&&W.ctab==="projects")}${nb("wsCtab","kb",L("База знань","База знаний")+(W.co.kb.length?` <b class="cnt">${W.co.kb.length}</b>`:""),!p&&W.ctab==="kb")}${nb("wsCtab","team",L("Команда","Команда"),!p&&W.ctab==="team")}${nb("wsCtab","set",L("Налаштування","Настройки"),!p&&W.ctab==="set")}</nav>`:""}
+    <nav class="navg navg--co"><span>${L("Компанія","Компания")}</span>${nb("wsCtab","today",L("Сьогодні","Сегодня"),!p&&W.ctab==="today")}${nb("wsCtab","map",L("Карта","Карта"),!p&&W.ctab==="map")}${nb("wsCtab","projects",L("Проєкти","Проекты")+(W.projs.length?` <b class="cnt">${W.projs.length}</b>`:""),!p&&W.ctab==="projects")}${(() => { const inMore = !p && ["kb","team","set"].includes(W.ctab), open = inMore || railMore(); return `<button type="button" class="navmore" data-act="railMore" aria-expanded="${open}">${open ? L("Менше","Меньше") : L("Ще: база знань, команда, налаштування","Ещё: база знаний, команда, настройки")} <span aria-hidden="true">${open ? "▴" : "▾"}</span></button>${open ? nb("wsCtab","kb",L("База знань","База знаний")+(W.co.kb.length?` <b class="cnt">${W.co.kb.length}</b>`:""),!p&&W.ctab==="kb")+nb("wsCtab","team",L("Команда","Команда"),!p&&W.ctab==="team")+nb("wsCtab","set",L("Налаштування компанії","Настройки компании"),!p&&W.ctab==="set") : ""}`; })()}</nav>`:""}
     ${W.user&&p?`<nav class="navg"><span>${esc(p.name)}</span>${pChain(p).map(c=>nb("wsTab",c[0],c[1]+(c[2]?"":" <em>·</em>"),!f&&W.tab===c[0])).join("")}</nav>`:""}
-    ${W.user&&f?`<nav class="navg"><span>${esc(f.name)}</span>${fChain(f,p).map(c=>nb("wsFtab",c[0],c[1]+(c[2]?"":" <em>·</em>"),W.ftab===c[0])).join("")}</nav>`:""}
+    ${W.user&&f?`<nav class="navg"><span>${esc(f.name)}</span>${FTABS().map(c=>nb("wsFtab",c[0],c[1],ftNorm(W.ftab)===c[0])).join("")}</nav>`:""}
     <div class="rail__foot">${W.user&&W.co?`<button type="button" class="me me--btn" data-act="wsCtab" data-v="me"${!p&&W.ctab==="me"?' aria-current="page"':""} title="${L("Профіль","Профиль")}"><b>${esc(ME.name || W.user.name || W.user.id)}</b><small>${esc(ME.title || (ME.name ? W.user.name || W.user.id : L("профіль","профиль")))}</small></button>`:""}
       <div class="rail__ico"><button type="button" class="ib" data-act="theme" aria-label="${L("Тема: світла / темна","Тема: светлая / тёмная")}" title="${L("Тема: світла / темна","Тема: светлая / тёмная")}">${isDark() ? ICO.moon : ICO.sun}</button>${W.user?`<button type="button" class="ib" data-act="wsLogout" aria-label="${L("Вийти","Выйти")}" title="${L("Вийти","Выйти")}">${ICO.exit}</button>`:""}<a href="index.html" title="${L("На сайт","На сайт")}">← ${L("сайт","сайт")}</a></div></div>`;
   $("bar").innerHTML = `<span class="crumb">${[W.co&&W.co.name, p&&p.name, f&&f.name].filter(Boolean).map(esc).join(" › ") || (W.user?L("Нова компанія","Новая компания"):L("Реєстрація","Регистрация"))}</span><span id="sync" role="status">${CLOUD ? cloudBadgeHTML() : `<span class="badge">${L("прототип · дані у браузері","прототип · данные в браузере")}</span>`}</span>
@@ -507,6 +533,7 @@ Object.assign(ACT, {
   themeSet(d){ const el = document.documentElement; if (d.v === "auto") delete el.dataset.theme; else el.dataset.theme = d.v; try { if (d.v === "auto") localStorage.removeItem("rakurs_theme"); else localStorage.setItem("rakurs_theme", d.v); } catch (e) {} },
   mePeriod(d){ ME.period = d.v; meSave(); PR.touched = 0; PR.mode = meMode(); },
   wsCtab(d){ W.cur = null; W.fun = null; W.ctab = d.v; save(); },
+  railMore(){ try { localStorage.setItem("rakurs_rail_more", railMore() ? "0" : "1"); } catch (e) { /* */ } },
   wsGoCoKb(){ W.cur = null; W.fun = null; W.ctab = "kb"; save(); },
   wsBrandOwn(d){ P().brand.own = d.v === "1"; save(); },
   kbOpen(d){ KBO = (KBO === d.id && !d.on) ? null : d.id; },
@@ -539,7 +566,7 @@ Object.assign(ACT, {
   wsDelFile(d){ const a = wget(d.k), x = a[+d.id]; if (x && x.p) cloudFileDel(x.p); a.splice(+d.id, 1); save(); },
   fileOpen(d){ cloudFileOpen(d.p); return false; },
   wsConn(d){ const p = P(); p.conn[d.id] = p.conn[d.id] ? 0 : 3; save(); },
-  wsOpenF(d){ W.fun = d.id; W.ftab = "an"; save(); },
+  wsOpenF(d){ W.fun = d.id; W.ftab = "go"; save(); },
   wsBackF(){ W.fun = null; W.tab = "funnels"; save(); },
   wsFtab(d){ W.ftab = d.v; save(); },
   wsDelF(d){ const p = d.p ? W.projs.find(x => x.id === d.p) : P(), df = p && p.funnels.find(f => f.id === d.id); if (!df) return false;
@@ -567,7 +594,7 @@ Object.assign(ACT, {
     const sp = $("nf-sale").value === "+" ? pathRead("nf") : (saleGet($("nf-sale").value) || saleGet("web")); if (!sp) return false;
     const f = {id:uid(), name:n, goal:$("nf-goal").value, sale:sp.id, saleName:sp.name, mode:"btn", an:{offer:val("nf-offer"), promo:"", until:"", path:sp.steps, event:L("оплати","оплаты"), diff:"", obj:""},
       aud:{off:[], add:[], note:""}, lands:u?[{id:uid(), url:u, note:""}]:[], crs:[], ch:[...document.querySelectorAll(".nf-ch:checked")].map(e => e.value), tg:{pay: first ? Math.max(1, Math.round(pT(p).rev / check)) : 10, check, l2b:p.tg.l2b, b2p:p.tg.b2p}};
-    p.funnels.push(f); W.fun = f.id; W.ftab = "an"; S.modal = null; save(); toast(L("Воронку створено","Воронка создана")); }
+    p.funnels.push(f); W.fun = f.id; W.ftab = "set"; S.modal = null; save(); toast(L("Воронку створено","Воронка создана")); }
 });
 document.addEventListener("input", e => { const t = e.target; if (t.dataset.me) { ME[t.dataset.me] = t.value; meSave(); return; } if (!t.dataset.w || !own()) return; const path = t.dataset.w, isN = /\.tg\./.test(path);
   if (isN) { const z = /\.ltv$/.test(path), em = !String(t.value).trim(), n = z && em ? (path[0] === "f" ? null : 0) : pnum(t.value); if (!(n > 0) && !(z && (n === 0 || n === null))) return; wset(path, n); const c = $("w-calc"); if (c) c.innerHTML = F() ? calcF(F(), P()) : calcP(P()); const cp = $("ch-plan"); if (cp && F()) cp.innerHTML = chPlanBody(F(), P()); } else { wset(path, t.value); const m = path.match(/^p\.(desc|product|worked|site)$/), pp = m && P(); if (pp && pp.auto) delete pp.auto[m[1]]; } });

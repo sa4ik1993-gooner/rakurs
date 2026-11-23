@@ -771,3 +771,24 @@ body.has-tabbar .only-m{display:flex}
 .ar .arc button{border:0;background:none;color:inherit;cursor:pointer;font-size:15px;line-height:1;padding:0 4px}
 
 .mpop--still .mpop__in{animation:none}
+
+.navmore{display:flex;justify-content:space-between;gap:6px;width:100%;border:0;background:none;color:var(--muted);font:inherit;font-size:12.5px;text-align:left;cursor:pointer;padding:8px 12px;opacity:.85}
+.navmore:hover{opacity:1}
+
+/* вкладки воронки и свёрнутые блоки */
+.seg--f{margin:4px 0 14px}
+.fold>summary{display:flex;align-items:center;gap:10px;cursor:pointer;list-style:none;min-height:24px}
+.fold>summary::-webkit-details-marker{display:none}
+.fold>summary .tag{margin:0}
+.fold .fsum{font:13px/1.3 var(--f-mono);color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}
+.fold .fchev{margin-left:auto;width:8px;height:8px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg);opacity:.6;flex:0 0 auto}
+.fold[open] .fchev{transform:rotate(-135deg)}
+.fold[open]>summary{margin-bottom:10px}
+.fold__b>.panel{border:0;padding:0;margin:0 0 12px;box-shadow:none;background:none}
+.fold__b>.panel>span.tag:first-child{display:none}
+
+.stepf{margin:4px 0 14px}.stepf>summary{cursor:pointer;font-size:13px;list-style:none;display:flex;gap:10px;align-items:center}.stepf>summary::-webkit-details-marker{display:none}.stepf[open]>summary{margin-bottom:10px}
+
+.more{margin:10px 0}.more>summary{cursor:pointer;font:600 12.5px/1.3 var(--f-mono);color:var(--muted);list-style:none;padding:6px 0}
+.more>summary::-webkit-details-marker{display:none}.more>summary::after{content:" ▸"}.more[open]>summary::after{content:" ▾"}
+.more>summary:hover{color:var(--ink)}
