@@ -23,7 +23,7 @@ const TRL = {а:"a",б:"b",в:"v",г:"g",ґ:"g",д:"d",е:"e",ё:"e",є:"ye",ж:
 const slug = s => String(s || "").toLowerCase().replace(/\.[a-z0-9]{2,4}$/,"").split("").map(c => TRL[c] !== undefined ? TRL[c] : c).join("").replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 28);
 const GEO = {ukraina:"UA",ukrayina:"UA",polsha:"PL",polscha:"PL",kazakhstan:"KZ",germaniya:"DE",nimechchina:"DE",ssha:"US",usa:"US",evropa:"EU",yevropa:"EU",moldova:"MD",litva:"LT",latviya:"LV",estoniya:"EE",chekhiya:"CZ",ispaniya:"ES",italiya:"IT",izrail:"IL",kanada:"CA"};
 const geoCode = g => { const first = String(g||"").split(/[,;\/]/)[0], hit = geoFind(first); if (hit) return hit[0]; const w = slug(first); return GEO[w] || (w ? w.slice(0,2).toUpperCase() : ""); };
-const UTM = "utm_source={{site_source_name}}&utm_medium=paid&utm_campaign={{campaign.name}}&utm_content={{ad.name}}&utm_term={{adset.name}}";
+const UTM = "utm_source={{site_source_name}}&utm_medium=paid&utm_campaign={{campaign.name}}&utm_content={{ad.name}}&utm_term={{adset.name}}&hr_ad={{ad.id}}";
 /* Шаблон меток закладывается один раз и наследуется: компания → проект → воронка → запуск. Пустой уровень берёт шаблон уровня выше;
    если не задан нигде — действуют рекомендованные. */
 const utmClean = t => String(t || "").replace(/\s+/g, "").replace(/^[?&]+/, "");
@@ -319,7 +319,7 @@ function vProject(p){
         <div class="row"><button class="btn btn--sm btn--solid" data-act="wsOpenF" data-id="${f.id}">${L("Відкрити","Открыть")}</button></div></div>`; }).join("")}</div>`
         : empty(L("Воронок ще немає","Воронок ещё нет"), L("Воронка — це один офер з ціною: вебінар, акція, лід-форма. У неї свої сайт, канали трафіку, креативи й цілі.","Воронка — это один оффер с ценой: вебинар, акция, лид-форма. У неё свои сайт, каналы трафика, креативы и цели."), `<button class="btn btn--solid" data-act="modal" data-id="funnel">${L("Додати першу воронку","Добавить первую воронку")}</button>`)}`,
     conn: () => `${MT.open === p.id ? metaGuide(p) : MT.g && MT.g.p === p.id ? guidePanel(p, MT.g.prov) : ""}<div class="hrow">${hint(L("Meta Ads — ключем доступу, Google і TikTok — входом у вікні майданчика. Для Telegram Ads відкритого способу забирати статистику немає: витрати вносяться вручну.","Meta Ads — ключом доступа, Google и TikTok — входом в окне площадки. Для Telegram Ads открытого способа забирать статистику нет: расход вносится вручную."), "wide")}</div>
-      <div class="conn">${OBCONN().map(c=>{ const v = p.conn[c[0]]; return `<div class="panel"><div class="row sp"><h2>${c[1]}</h2>${c[0]==="meta"&&mtBroken(p)?pill("crit",L("потрібна увага","нужно внимание")):v===1?pill("good",L("підключено","подключено")):v?pill("warn",L("до підключення","к подключению")):pill("mute",L("немає","нет"))}</div>${c[0]==="meta" ? metaCard(p) : AD_FN[c[0]] ? adCard(p, c[0], c[2] + ".") : GUIDES()[c[0]] ? guideCard(p, c[0], c[2] + ".") : `<p class="sub">${c[2]}</p><div class="row"><button class="btn btn--sm" data-act="wsConn" data-id="${c[0]}">${v?L("Прибрати","Убрать"):L("Є, підключити","Есть, подключить")}</button></div>`}</div>`; }).join("")}</div>${sourcesPanel(p)}${utmPanel("p")}`
+      ${typeof trPanel === "function" ? trPanel(p) : ""}<div class="conn">${OBCONN().map(c=>{ const v = p.conn[c[0]]; return `<div class="panel"><div class="row sp"><h2>${c[1]}</h2>${c[0]==="meta"&&mtBroken(p)?pill("crit",L("потрібна увага","нужно внимание")):v===1?pill("good",L("підключено","подключено")):v?pill("warn",L("до підключення","к подключению")):pill("mute",L("немає","нет"))}</div>${c[0]==="meta" ? metaCard(p) : AD_FN[c[0]] ? adCard(p, c[0], c[2] + ".") : GUIDES()[c[0]] ? guideCard(p, c[0], c[2] + ".") : `<p class="sub">${c[2]}</p><div class="row"><button class="btn btn--sm" data-act="wsConn" data-id="${c[0]}">${v?L("Прибрати","Убрать"):L("Є, підключити","Есть, подключить")}</button></div>`}</div>`; }).join("")}</div>${sourcesPanel(p)}${utmPanel("p")}`
   }[t]();
   const next = ch.find(c=>!c[2]);
   return `<button class="back" data-act="wsBackP">← ${esc(W.co.name)}</button>
@@ -376,6 +376,7 @@ function vFunnel(f, p){
         <div class="panel vf"><span class="tag">${L("План воронки","План воронки")}</span><div id="w-calc">${calcF(f,p)}</div></div></div>
       ${chPlanPanel(f, p)}
       ${factPanel(p, f)}
+      ${typeof trReport === "function" ? trReport(p, f) : ""}
       <div class="panel"><span class="tag">${L("Аналітика","Аналитика")}</span>
         <div class="tw tw--in"><table><thead><tr><th>${L("Показник","Показатель")}</th><th class="n">${L("Ціль","Цель")}</th><th class="n">${L("Факт","Факт")}</th></tr></thead><tbody>
         ${(()=>{ const x = fT(f,p); return [[L("Витрати","Расход"),money(x.bud)],[L("Ліди","Лиды"),num(x.leads)],[L("Ціна ліда","Цена лида"),"≤ $"+dec(x.cap)],[L("Лід → бронь","Лид → бронь"),pc(f.tg.l2b)],[L("Бронь → оплата","Бронь → оплата"),pc(f.tg.b2p,0)],[L("Оплати","Оплаты"),num(x.pay)],[L("Виручка","Выручка"),money(x.rev)],["ROAS",dec(100/p.tg.share)]].map(a=>`<tr><td>${a[0]}</td><td class="n mono">${a[1]}</td><td class="n mono sub">—</td></tr>`).join(""); })()}</tbody></table></div>

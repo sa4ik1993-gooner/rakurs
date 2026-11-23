@@ -713,3 +713,11 @@ body.has-tabbar .only-m{display:flex}
 .ge tr.ge--crit td:first-child{box-shadow:inset 3px 0 0 var(--play)} .ge tr.ge--warn td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
 .kpis--4{grid-template-columns:repeat(4,minmax(0,1fr))}
 @media (max-width:640px){ .kpis--4{grid-template-columns:repeat(2,minmax(0,1fr))} }
+
+.tr .trf{border-top:1px solid var(--line);padding:10px 0;display:flex;flex-direction:column;gap:6px}
+.tr .trc{gap:8px;align-items:center;flex-wrap:nowrap}
+.tr .trc code,.tr .trx code{font-size:11.5px;background:var(--bg);border:1px solid var(--line);padding:6px 8px;border-radius:2px;overflow-x:auto;white-space:nowrap;min-width:0;flex:1;display:block}
+.tr .trx code{display:inline;padding:1px 4px;white-space:normal;overflow-wrap:anywhere}
+.tr .trx{margin:8px 0}.tr .trx summary{cursor:pointer;font-size:13px}
+.tr .trh{border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:6px}
+.tr .trh input{flex:1;min-width:0}
