@@ -1,6 +1,6 @@
 /* Пилот «ведение аккаунта» в кабинете: настройки, подключение Telegram, журнал отчётов и предложений с «Да / Нет».
    Работу делает серверная функция pilot (каждый час по расписанию). Подключается после rek.js. */
-const PL = {st:{}, busy:{}, edit:{}, msg:{}, tab:{}};
+const PL = {st:{}, busy:{}, edit:{}, msg:{}, tab:{}, safe:{}};
 async function plCall(body){ if (!CLOUD || !sb) return {ok:false, error:"offline"};
   try { const r = await sb.functions.invoke("pilot", {body}); if (r.error || !r.data) return {ok:false, error:"net", detail:(r.error && r.error.message) || ""}; return r.data; } catch (e) { return {ok:false, error:"net", detail:e && e.message}; } }
 const plErr = r => ({net:L("Сервер не відповів — можливо, функцію pilot ще не викладено.","Сервер не ответил — возможно, функцию pilot ещё не выложили."), denied:L("Налаштовувати може власник або керівник.","Настраивать может собственник или руководитель."), no_bot:L("Немає ключа бота: додай TG_BOT_TOKEN у Secrets.","Нет ключа бота: добавь TG_BOT_TOKEN в Secrets."), no_chats:L("Спершу підключи Telegram.","Сначала подключи Telegram."), not_connected:L("Meta не підключено.","Meta не подключена.")})[r.error] || (r.error || "") + (r.detail ? ": " + r.detail : "");
@@ -20,9 +20,17 @@ const plTime = at => new Date(at).toLocaleString(lang === "uk" ? "uk-UA" : "ru-R
 const plMoney = v => fxM(v) + " $";
 /* кнопка решения — глагол и объект */
 const plVerb = (op, lv) => ({pause:lv === "campaign" ? L("Вимкнути кампанію","Выключить кампанию") : L("Вимкнути групу","Выключить группу"), pause_ad:L("Вимкнути оголошення","Выключить объявление"), budget:L("Змінити бюджет","Изменить бюджет"), activate:L("Увімкнути кампанію","Включить кампанию"), relaunch:L("Перезапустити групу","Перезапустить группу"), watch:L("Залишити як є","Оставить как есть")}[op] || L("Зробити вночі","Сделать ночью"));
-/* ---------- карточка ленты (heyrow-ui/DESIGN.md, «Предложение автопилота») ----------
-   Слева значок действия; заголовок — только действие; под ним путь объекта: кампания › группа › объявление, у каждого уровня свой цвет и значок;
-   факты в цифрах (число-причина красным); плашка результата; одна строка пояснения, остальное — под «Подробнее». */
+/* ---------- карточка ленты (heyrow-ui/DESIGN.md, раздел 6 «Предложение автопилота») ----------
+   Цифры причины и экономия — из статистики объекта за 3 последних закрытых дня (ad_metrics: ad_summary / ad_adsets / ad_creatives),
+   из тех же сумм расхода и лидов, на которых Хиро строит решение. Экономия в день = средний расход объекта за эти дни — только для «выключить».
+   Для бюджета, перезапуска, включения и «оставить» денег в экономии нет — плашку не показываем, цифру не придумываем. */
+const PLM = {};
+const plD = n => { const d = new Date(Date.now() + n * 864e5); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+function plMoneyLoad(p){ if (PLM[p.id] || !CLOUD || !sb) return; PLM[p.id] = {load:true}; const a = {p:p.id, d1:plD(-3), d2:plD(-1)}, q = fn => Promise.resolve(sb.rpc(fn, a)).then(r => r.data || [], () => []);
+  Promise.all([q("ad_summary"), q("ad_adsets"), q("ad_creatives")]).then(([c, g, ad]) => { const m = {camp:{}, set:{}, ad:{}, adn:{}}, v = o => ({s:+o.spend || 0, l:+o.leads || 0});
+    c.forEach(o => { m.camp[o.campaign_id] = v(o); }); g.forEach(o => { if (o.adset_id) m.set[o.adset_id] = Object.assign(v(o), {cid:o.campaign_id}); });
+    ad.forEach(o => { const k = o.campaign_id + "|" + o.ad_name, x = m.ad[k] = m.ad[k] || {s:0, l:0}; x.s += +o.spend || 0; x.l += +o.leads || 0; const y = m.adn[o.ad_name] = m.adn[o.ad_name] || {s:0, l:0}; y.s += +o.spend || 0; y.l += +o.leads || 0; });
+    PLM[p.id] = m; render(); }); }
 const PLV = () => ({campaign:[L("Кампанія","Кампания"), "campaigns"], adset:[L("Група","Группа"), "audiences"], ad:[L("Оголошення","Объявление"), "creatives"]});
 function plObj(p, x){ const y = x.payload || {}, op = y.op === "watch" && y.from_op ? y.from_op : y.op, body = String(x.body || "");
   const bm = body.match(/^<b>([^<]*)<\/b>\s*\n<i>([^<]*)<\/i>/), lv = op === "pause_ad" || y.level === "ad" ? "ad" : y.level === "campaign" || op === "activate" ? "campaign" : y.level === "adset" || op ? "adset" : "";
@@ -30,28 +38,59 @@ function plObj(p, x){ const y = x.payload || {}, op = y.op === "watch" && y.from
   if (lv === "campaign") camp = y.name || camp; else if (lv === "adset") set = y.name || (bm ? bm[1] : ""); else if (lv === "ad") { ad = y.name || ""; const g = String(x.title || "").match(/·\s*(?:група|группа)\s+(.+)$/i); if (g) set = set || g[1]; }
   if (!camp && y.cid && typeof prOf === "function") { const c = (prOf(p).cur || []).find(o => String(o.id) === String(y.cid)); if (c) camp = c.name; }
   return {lv, op, path:[["campaign", camp], ["adset", set], ["ad", ad]].filter(z => z[1])}; }
-const plPath = o => o.path.length ? `<div class="plpath">${o.path.map((z, i) => `${i ? `<span class="plpath__s" aria-hidden="true">›</span>` : ""}<span class="plo plo--${z[0]}${z[0] === o.lv ? " plo--me" : ""}"><span class="plo__i">${ico(PLV()[z[0]][1])}</span><span class="plo__k">${PLV()[z[0]][0]}</span><b>${esc(z[1])}</b></span>`).join("")}</div>` : "";
-/* значок действия: выключить — красный, перезапуск — оранжевый, бюджет вверх и включение — зелёный, «оставить» — серый */
+/* чип объекта: первый — со знаком площадки (Meta), дальше путь вниз до объекта действия */
+const plPath = o => o.path.length ? `<div class="plpath">${o.path.map((z, i) => `${i ? `<span class="plpath__s" aria-hidden="true">›</span>` : ""}<span class="plo plo--${z[0]}${z[0] === o.lv ? " plo--me" : ""}">${!i && typeof chIcon === "function" ? chIcon("meta") : ""}<span class="plo__i">${ico(PLV()[z[0]][1])}</span><span class="plo__k">${PLV()[z[0]][0]}</span><b>${esc(z[1])}</b></span>`).join("")}</div>` : "";
 const plAct = (x, op, y) => x.kind === "alert" ? ["warn", "warning"] : op === "pause" || op === "pause_ad" ? ["off", "pause"] : op === "relaunch" ? ["re", "launch"] : op === "activate" ? ["up", "launch"] : op === "budget" ? (y.down ? ["mute", "down"] : ["up", "up"]) : ["mute", "clock"];
-function plRow(p, x, dis){ const pay = x.payload || {}, rep = x.kind === "report";
-  const day = x.exec_on ? x.exec_on.slice(8, 10) + "." + x.exec_on.slice(5, 7) : "";
-  const state = x.kind === "alert" && x.status === "new" ? `<div class="row plbtn"><button type="button" class="btn btn--sm btn--text" data-act="plDecide" data-p="${p.id}" data-id="${x.id}" data-v="x"${dis}>${L("Прибрати","Убрать")}</button></div>` : x.kind !== "reco" ? "" : x.status === "new" ? `<div class="row plbtn"><button type="button" class="btn btn--sm btn--solid" data-act="${plOff(pay) ? "plOffNow" : "plDecide"}" data-p="${p.id}" data-id="${x.id}" data-v="y"${dis}>${pay.op === "watch" ? L("Так, залишити","Да, оставить") : plVerb(pay.op, pay.level)}</button><button type="button" class="btn btn--sm" data-act="plDecide" data-p="${p.id}" data-id="${x.id}" data-v="n"${dis}>${L("Запропонуй інше","Предложи другое")}</button><button type="button" class="btn btn--sm btn--text" data-act="plDecide" data-p="${p.id}" data-id="${x.id}" data-v="x"${dis}>${L("Прибрати","Убрать")}</button></div>`
+/* заголовок и кнопка — на языке интерфейса, по типу действия (тексты сервера бывают на украинском) */
+function plTitle(op, y, lv){ return op === "pause" || op === "pause_ad" ? (lv === "ad" ? L("Вимкнути оголошення","Выключить объявление") : lv === "campaign" ? L("Вимкнути кампанію","Выключить кампанию") : L("Вимкнути групу","Выключить группу"))
+  : op === "relaunch" ? L("Перезапустити групу","Перезапустить группу") : op === "budget" ? (y.down ? L("Знизити бюджет","Снизить бюджет") : L("Підняти бюджет","Поднять бюджет")) : op === "activate" ? L("Увімкнути кампанію","Включить кампанию") : op === "watch" ? L("Залишити до завтра","Оставить до завтра") : ""; }
+const plBtn = (op, y) => op === "pause" || op === "pause_ad" ? L("Вимкнути","Выключить") : op === "relaunch" ? L("Перезапустити","Перезапустить") : op === "budget" ? (y.down ? L("Знизити","Снизить") : L("Підняти","Поднять")) : op === "activate" ? L("Увімкнути","Включить") : L("Залишити","Оставить");
+/* статистика объекта за 3 дня: для группы, кампании, объявления */
+function plStat(p, x, o){ const m = PLM[p.id]; if (!m || m.load) return null; const y = x.payload || {};
+  if (o.lv === "campaign") return m.camp[String(y.id || y.cid || "")] || null;
+  if (o.lv === "adset") return m.set[String(y.id || "")] || null;
+  if (o.lv === "ad") return (y.cid && m.ad[y.cid + "|" + (y.name || "")]) || m.adn[y.name || ""] || null;
+  return null; }
+const plSaveOf = (p, x) => { const y = x.payload || {}; if (x.kind !== "reco" || !plOff(y)) return 0; const st = plStat(p, x, plObj(p, x)); return st && st.s > 0 ? st.s / 3 : 0; };
+const plIsUk = t => /[іїєґІЇЄҐ]/.test(t);
+function plRow(p, x, dis, top){ const pay = x.payload || {}, rep = x.kind === "report";
+  const day = x.exec_on ? x.exec_on.slice(8, 10) + "." + x.exec_on.slice(5, 7) : "", T = Number((((PL.st[p.id] || {}).settings) || {}).target_cpl) || 0, money = v => plMoney(v);
+  if (rep) return `<li class="plc plc--rep">${hava("win", 40)}<div class="plc__m"><div class="plc__h"><b>${esc(x.title)}</b><time>${esc(plTime(x.at))}</time></div><details class="more"><summary>${L("Показати звіт","Показать отчёт")}${ico("chevron")}</summary><pre class="plpre">${esc(plStrip(x.body))}</pre></details></div></li>`;
+  const o = plObj(p, x), act = plAct(x, o.op, pay), st = x.kind === "reco" ? plStat(p, x, o) : null, save = plSaveOf(p, x);
+  const title = x.kind === "reco" ? plTitle(o.op, pay, o.lv) || x.title : x.title;
+  /* причина в цифрах: расход и лиды объекта за 3 дня; число-причина красное */
+  let facts = [];
+  if (st && plOff(pay)) facts = [[L("Витрачено за 3 дні","Потрачено за 3 дня"), money(st.s), !st.l], [L("Лідів","Лидов"), String(st.l), false], st.l ? [L("Ціна ліда","Цена лида"), money(st.s / st.l), !!(T && st.s / st.l > T)] : T ? [L("Ціль ліда","Цель лида"), money(T), false] : null].filter(Boolean);
+  else if (o.op === "budget" && pay.from) facts = [[L("Бюджет на день","Бюджет в день"), money(pay.from) + " → " + money(pay.to), false]].concat(st ? [[L("Лідів за 3 дні","Лидов за 3 дня"), String(st.l), false], st.l ? [L("Ціна ліда","Цена лида"), money(st.s / st.l), false] : null].filter(Boolean) : []);
+  else if (st) facts = [[L("Витрачено за 3 дні","Потрачено за 3 дня"), money(st.s), false], [L("Лідів","Лидов"), String(st.l), false]];
+  const factsH = facts.length ? `<div class="plf2">${facts.map(f => `<div><span>${esc(f[0])}</span><b${f[2] ? ' class="is-bad"' : ""}>${esc(f[1])}</b></div>`).join("")}</div>` : "";
+  const gain = save ? `<div class="plgain">${ico("done")}<span>${L("Заощадить близько ","Сэкономит около ")}${money(save)}${L(" на день"," в день")}</span></div>` : "";
+  /* пояснение одной строкой — на языке интерфейса */
+  const why = x.kind === "alert" ? "" : plOff(pay) ? (st ? (st.l ? L("Ліди дорожчі за ціль. Вимкнення зупиняє цей розхід.","Лиды дороже цели. Выключение останавливает этот расход.") : L("За 3 дні жодного ліда — розхід іде впусту.","За 3 дня ни одного лида — расход идёт впустую.")) : L("Ціна ліда гірша за норму. Вимкнення зупиняє розхід.","Цена лида хуже нормы. Выключение останавливает расход."))
+    : o.op === "relaunch" ? L("Група не навчиться за такої ціни. Уночі запущу копію без слабких оголошень.","Группа не обучится при такой цене. Ночью запущу копию без слабых объявлений.")
+    : o.op === "budget" ? (pay.down ? L("Зменшую втрати, поки шукаємо причину. Зміню вночі.","Уменьшаю потери, пока ищем причину. Изменю ночью.") : L("Лід стабільно дешевший за ціль, навчання пройдено. Зміню вночі.","Лид стабильно дешевле цели, обучение пройдено. Изменю ночью."))
+    : o.op === "activate" ? (pay.kind === "new" ? L("Створена вимкненою й ще не крутилась. Увімкну після 00:00.","Создана выключенной и ещё не крутилась. Включу после 00:00.") : L("Давала ліди дешевше за ціль, зараз вимкнена. Увімкну після 00:00.","Давала лиды дешевле цели, сейчас выключена. Включу после 00:00."))
+    : L("Нічого не змінюю, завтра перевірю ще раз.","Ничего не меняю, завтра проверю ещё раз.");
+  const raw = plStrip(x.body).replace(/[⚪\u{1F7E2}\u{1F7E1}\u{1F534}]️?\s?/gu, "").trim(), names = o.path.map(z => z[1]);
+  const rawT = raw.split("\n").filter(l => !names.includes(l.trim())).join("\n").trim(), same = plIsUk(rawT) === (lang === "uk");
+  const line = x.kind === "alert" ? (same ? rawT.split("\n")[0] : "") : why;
+  const more = same && rawT && (x.kind !== "alert" || rawT.includes("\n")) ? `<details class="more plmore"><summary>${L("Детальніше","Подробнее")}${ico("chevron")}</summary><div class="plb">${esc(rawT)}</div></details>` : "";
+  const isNew = x.kind === "reco" && x.status === "new";
+  const state = x.kind === "alert" && x.status === "new" ? `<div class="row plbtn"><button type="button" class="btn btn--sm btn--text" data-act="plDecide" data-p="${p.id}" data-id="${x.id}" data-v="x"${dis}>${L("Прибрати","Убрать")}</button></div>` : x.kind !== "reco" ? ""
+    : isNew ? `<div class="row plbtn"><button type="button" class="btn btn--sm ${top ? "btn--main" : "btn--solid"}" data-act="${plOff(pay) ? "plOffNow" : "plDecide"}" data-p="${p.id}" data-id="${x.id}" data-v="y"${dis}>${plBtn(o.op, pay)}</button><button type="button" class="btn btn--sm" data-act="plDecide" data-p="${p.id}" data-id="${x.id}" data-v="n"${dis}>${L("Запропонуй інше","Предложи другое")}</button><button type="button" class="btn btn--sm btn--text" data-act="plDecide" data-p="${p.id}" data-id="${x.id}" data-v="x"${dis}>${L("Прибрати","Убрать")}</button></div>`
     : x.status === "scheduled" ? `<div class="row plbtn">${plOff(pay) ? `<button type="button" class="btn btn--sm btn--solid" data-act="plOffNow" data-p="${p.id}" data-id="${x.id}"${dis}>${L("Вимкнути зараз","Выключить сейчас")}</button>` : `<span class="st st--pause">${L("Зроблю вночі ","Сделаю ночью ")}<span class="mono">${day}</span></span>`}<button type="button" class="btn btn--sm btn--text" data-act="plDecide" data-p="${p.id}" data-id="${x.id}" data-v="c"${dis}>${L("Прибрати з графіка","Убрать из графика")}</button></div>`
     : x.status === "done" ? `<span class="st ${x.result === "watch" ? "st--on" : "st--fix"}">${x.result === "watch" ? L("Залишив, стежу","Оставил, слежу") : L("Виправив автопілот","Исправил автопилот")}</span>`
     : x.status === "fail" ? `<span class="st st--err">${L("Не вийшло: ","Не получилось: ")}${esc(x.result || "")}</span>`
     : `<span class="st">${{yes:L("Ти погодив","Ты согласовал"), canceled:L("Прибрано з графіка","Убрано из графика"), no:L("Ти відхилив","Ты отклонил"), expired:L("Без відповіді, застаріло","Без ответа, устарело"), dismissed:L("Прибрано","Убрано")}[x.status] || esc(x.status)}${x.decided_by ? " · " + esc(x.decided_by) : ""}</span>`;
-  if (rep) return `<li class="plc plc--rep">${hava("win", 40)}<div class="plc__m"><div class="plc__h"><b>${esc(x.title)}</b><time>${esc(plTime(x.at))}</time></div><details class="more"><summary>${L("Показати звіт","Показать отчёт")}${ico("chevron")}</summary><pre class="plpre">${esc(plStrip(x.body))}</pre></details></div></li>`;
-  const o = plObj(p, x), act = plAct(x, o.op, pay), names = o.path.map(z => z[1]);
-  /* заголовок — только действие: без названия объекта и группы (они в пути) */
-  const title = String(x.title || "").replace(/\s*«[^»]*»/, "").replace(/\s*·\s*(?:група|группа)\s+.+$/i, "").trim();
-  const txt = plStrip(x.body).replace(/[⚪\u{1F7E2}\u{1F7E1}\u{1F534}]️?\s?/gu, "").trim(), parts = txt.split(/\n\s*\n/);
-  const first = parts[0].split("\n").filter(l => !names.includes(l.trim())).join(" ").trim(), rest = parts.slice(1).join("\n\n").trim();
-  const facts = Array.isArray(pay.facts) && pay.facts.length ? `<div class="plf2">${pay.facts.slice(0, 3).map(f => `<div><span>${esc(f[0])}</span><b${f[2] ? ' class="is-bad"' : ""}>${esc(f[1])}</b></div>`).join("")}</div>` : "";
-  const gain = pay.gain ? `<div class="plgain">${ico("done")}<span>${esc(pay.gain)}</span></div>` : "";
-  const money = pay.op === "budget" && pay.from ? `<div class="plf2"><div><span>${L("Бюджет на день","Бюджет в день")}</span><b>${plMoney(pay.from)} → ${plMoney(pay.to)}</b></div></div>` : "";
-  const more = rest || first.length > 140 ? `<details class="more plmore"><summary>${L("Детальніше","Подробнее")}${ico("chevron")}</summary><div class="plb">${esc(first.length > 140 ? first + (rest ? "\n\n" + rest : "") : rest)}</div></details>` : "";
-  return `<li class="plc plc--${act[0]}"${x.kind === "reco" && x.status === "new" ? ' data-st="new"' : ""}><span class="plc__a">${ico(act[1])}</span><div class="plc__m">
-    <div class="plc__h"><b>${esc(title || x.title)}</b><time>${esc(plTime(x.at))}</time></div>${plPath(o)}${facts}${money}${gain}${first ? `<p class="plc__t">${esc(first)}</p>` : ""}${more}${state}</div></li>`; }
+  const lead = top ? hava("stop", 40) : `<span class="plc__a">${ico(act[1])}</span>`;
+  return `<li class="plc plc--${act[0]}${top ? " plc--top" : ""}"${isNew ? ' data-st="new"' : ""}>${lead}<div class="plc__m">${top ? `<span class="heytag">${L("Hey! Найважливіше","Hey! Самое важное")}</span>` : ""}
+    <div class="plc__h"><b>${esc(title)}</b><time>${esc(plTime(x.at))}</time></div>${plPath(o)}${factsH}${gain}${line ? `<p class="plc__t">${esc(line)}</p>` : ""}${more}${state}</div></li>`; }
+/* панель Хиро над списком: сколько предложений и сколько вместе сэкономят в день; «Принять все безопасные» — только выключения (останавливают расход, включить обратно можно в любой момент) */
+function plSum(p, list, dis){ const n = list.length, sv = list.reduce((a, x) => a + plSaveOf(p, x), 0), safe = list.filter(x => plOff(x.payload)), none = list.filter(x => !plSaveOf(p, x)).length, ask = PL.safe[p.id];
+  const t = plural(n, L("пропозиція","предложение"), L("пропозиції","предложения"), L("пропозицій","предложений")) + (sv ? L(". Разом заощадять близько ",". Вместе сэкономят около ") + plMoney(sv) + L(" на день"," в день") : "");
+  const btn = !safe.length ? "" : ask ? `<button type="button" class="btn btn--main btn--sm" data-act="plSafeAll" data-p="${p.id}" data-v="go"${dis}>${L("Так, вимкнути ","Да, выключить ")}${safe.length}</button><button type="button" class="btn btn--glass btn--sm" data-act="plSafeAll" data-p="${p.id}" data-v="no">${L("Скасувати","Отмена")}</button>`
+    : `<button type="button" class="btn btn--glass btn--sm" data-act="plSafeAll" data-p="${p.id}" data-v="ask"${dis}>${L("Прийняти всі безпечні","Принять все безопасные")}</button>`;
+  return `<section class="plhp" aria-label="${L("Хіро: підсумок пропозицій","Хиро: итог предложений")}">${hava("idea", 48)}<div class="plhp__t"><b>${esc(t)}</b><span>${ask ? L("Вимкну ","Выключу ") + safe.length + L(" об'єктів одразу. Увімкнути назад можна будь-коли.", " объектов сразу. Включить обратно можно в любой момент.") : safe.length ? L("Безпечні — це вимкнення: вони лише зупиняють розхід. Бюджети й увімкнення — окремо, по одному.","Безопасные — это выключения: они только останавливают расход. Бюджеты и включение — отдельно, по одному.") : ""}${none && sv ? " " + L("Без оцінки в грошах: ","Без оценки в деньгах: ") + none + "." : ""}</span></div>${btn ? `<div class="row">${btn}</div>` : ""}</section>`; }
 function plPanel(p){ if (!CLOUD) return "";
   const r = PL.st[p.id]; if (r === undefined && !PL.busy[p.id]) setTimeout(() => plLoad(p), 0);
   const head = t => `<div class="row sp"><h2>${t}</h2>`;
@@ -65,10 +104,13 @@ function plPanel(p){ if (!CLOUD) return "";
   const TABS = [["new", L("Пропозиції","Предложения")], ["plan", L("У графіку","В графике")], ["done", L("Зроблено","Сделано")], ["no", L("Відхилено","Отклонено")], ["rep", L("Сигнали і звіти","Сигналы и отчёты")]];
   const cnt = {}; log.forEach(x => { const t = tabOf(x); cnt[t] = (cnt[t] || 0) + 1; });
   let tab = PL.tab[p.id]; if (!tab) tab = TABS.map(t => t[0]).find(k => cnt[k] && k !== "rep" && k !== "no") || (cnt.rep ? "rep" : "new");
-  const list = log.filter(x => tabOf(x) === tab), rows = list.map(x => plRow(p, x, dis)).join("");
-  const tabs = log.length ? `<div class="seg pltabs" role="tablist">${TABS.map(t => `<button type="button" role="tab" data-act="plTab" data-p="${p.id}" data-v="${t[0]}" aria-pressed="${tab === t[0]}">${t[1]}${cnt[t[0]] ? ` <span class="mono">${cnt[t[0]]}</span>` : ""}</button>`).join("")}</div>` : "";
+  plMoneyLoad(p);
+  let list = log.filter(x => tabOf(x) === tab);
+  if (tab === "new") list = list.slice().sort((a, b) => plSaveOf(p, b) - plSaveOf(p, a) || (b.at > a.at ? 1 : -1));
+  const topId = tab === "new" && list[0] && plSaveOf(p, list[0]) ? list[0].id : null, rows = list.map(x => plRow(p, x, dis, x.id === topId)).join("");
+  const tabs = log.length ? `<div class="seg pltabs" role="tablist">${TABS.map(t => `<button type="button" role="tab" data-act="plTab" data-p="${p.id}" data-v="${t[0]}" aria-pressed="${tab === t[0]}">${t[1]}${t[0] === "new" && cnt.new ? ` <span class="plcnt">${cnt.new}</span>` : ""}</button>`).join("")}</div>` : "";
   const none = {new:L("Нових пропозицій немає. Стежу далі.","Новых предложений нет. Слежу дальше."), plan:L("У графіку нічого немає.","В графике ничего нет."), done:L("Поки нічого не зроблено.","Пока ничего не сделано."), no:L("Відхилених немає.","Отклонённых нет."), rep:L("Звітів ще немає.","Отчётов ещё нет.")}[tab];
-  const feed = log.length ? `${tabs}${rows ? `<ul class="pllog${list.length > 3 ? " pllog--scroll" : ""}">${rows}</ul>` : `<p class="sub">${none}</p>`}` : `<div class="empty empty--sm">${hava("watch", 48)}<div><b>${L("Тут буде все, що я зробив з рекламою.","Здесь будет всё, что я сделал с рекламой.")}</b> <span class="sub">${on ? L("Перевіряю акаунт щогодини, перший звіт надішлю о ","Проверяю аккаунт каждый час, первый отчёт пришлю в ") + String(s.report_hour).padStart(2, "0") + ":00." : L("Увімкни автопілот у налаштуваннях нижче.","Включи автопилот в настройках ниже.")}</span></div></div>`;
+  const feed = log.length ? `${tabs}${tab === "new" && list.length ? plSum(p, list, dis) : ""}${rows ? `<ul class="pllog${list.length > 3 ? " pllog--scroll" : ""}">${rows}</ul>` : `<p class="sub">${none}</p>`}` : `<div class="empty empty--sm">${hava("watch", 48)}<div><b>${L("Тут буде все, що я зробив з рекламою.","Здесь будет всё, что я сделал с рекламой.")}</b> <span class="sub">${on ? L("Перевіряю акаунт щогодини, перший звіт надішлю о ","Проверяю аккаунт каждый час, первый отчёт пришлю в ") + String(s.report_hour).padStart(2, "0") + ":00." : L("Увімкни автопілот у налаштуваннях нижче.","Включи автопилот в настройках ниже.")}</span></div></div>`;
   const accOpts = accs.map(a => `<label class="ck"><input type="checkbox" data-placc="${esc(String(a.id))}"${e.account_ids.includes(String(a.id)) ? " checked" : ""}${dis}> ${esc(a.name || a.id)}</label>`).join("");
   const hours = [...Array(16)].map((_, i) => i + 7);
   const settings = `<div class="form plf">
@@ -119,6 +161,11 @@ Object.assign(ACT, {
   async plNow(d){ PL.msg[d.p] = L("Перевіряємо…","Проверяем…"); render(); const r = await plCall({action:"now", project_id:d.p, report:d.v === "1", send:d.v === "1"});
     PL.msg[d.p] = r.ok ? L("Груп у роботі: ","Групп в работе: ") + r.groups + L(" · пропозицій: "," · предложений: ") + r.recos + (r.errs && r.errs.length ? " · " + esc(r.errs.join(", ")) : "") : esc(plErr(r)); delete PL.st[d.p]; const p = W.projs.find(x => x.id === d.p); if (p) plLoad(p); return false; },
   plTab(d){ PL.tab[d.p] = d.v; },
+  async plSafeAll(d){ if (d.v !== "go") { PL.safe[d.p] = d.v === "ask"; return; } PL.safe[d.p] = false;
+    const r0 = PL.st[d.p], ids = ((r0 && r0.log) || []).filter(x => x.kind === "reco" && x.status === "new" && plOff(x.payload)).map(x => x.id); let ok = 0;
+    PL.msg[d.p] = L("Вимикаю…","Выключаю…"); render();
+    for (const id of ids) { try { const r = (await sb.functions.invoke("hiro-propose", {body:{action:"exec_now", project_id:d.p, id}})).data || {}; if (r.ok) ok++; } catch (e) { /* дальше */ } }
+    PL.msg[d.p] = ""; toast(L("Вимкнено: ","Выключено: ") + ok + L(" з "," из ") + ids.length); delete PL.st[d.p]; delete PLM[d.p]; const p = W.projs.find(x => x.id === d.p); if (p) plLoad(p); return false; },
   async plOffNow(d){ if (!CLOUD || !sb) return false; PL.msg[d.p] = L("Вимикаю…","Выключаю…"); render();
     let r = {}; try { r = (await sb.functions.invoke("hiro-propose", {body:{action:"exec_now", project_id:d.p, id:+d.id}})).data || {}; } catch (e) { r = {}; }
     PL.msg[d.p] = ""; toast(r.text || (r.ok ? L("Вимкнено","Выключено") : plErr(r))); delete PL.st[d.p]; const p = W.projs.find(x => x.id === d.p); if (p) plLoad(p); return false; },
