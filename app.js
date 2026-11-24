@@ -574,7 +574,7 @@ function hintFit(h){ const t = h && h.querySelector(".hint__t"); if (!t || match
     const r2 = t.getBoundingClientRect(); if (r2.right > vw - 8) t.style.transform = "translateX(" + Math.round(vw - 8 - r2.right) + "px)"; else if (r2.left < 8) t.style.transform = "translateX(" + Math.round(8 - r2.left) + "px)"; }); }
 ["mouseover", "focusin", "click"].forEach(ev => document.addEventListener(ev, e => { const h = e.target && e.target.closest && e.target.closest(".hint"); if (h) hintFit(h); }, true));/* иконки вместо слов там, где знак понятен всем */
 const ICO = {collapse:ico("collapse"), expand:ico("expand"), eye:ico("eye"), exit:ico("exit")};
-const icoBtn = (ico, label, attrs) => `<button type="button" class="btn btn--sm btn--ico" aria-label="${label}" title="${label}" ${attrs}>${ICO[ico]}</button>`;
+const icoBtn = (k, label, attrs) => `<button type="button" class="btn btn--sm btn--ico" aria-label="${label}" title="${label}" ${attrs}>${ICO[k] || ico(k)}</button>`;
 document.addEventListener("click", e => {
   const hb = e.target.closest(".hint__b"); document.querySelectorAll(".hint.on").forEach(h => { if (!hb || h !== hb.parentNode) { h.classList.remove("on"); h.firstChild.setAttribute("aria-expanded", "false"); } });
   if (hb) { const on = hb.parentNode.classList.toggle("on"); hb.setAttribute("aria-expanded", String(on)); return; }
