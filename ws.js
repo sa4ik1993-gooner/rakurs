@@ -485,6 +485,7 @@ function ownShell(){
   let ap = $("apb"); if (!ap) { ap = document.createElement("div"); ap.id = "apb"; ap.className = "apb"; ap.setAttribute("role", "status"); $("view").before(ap); }
   ap.hidden = true; ap.innerHTML = "";
   if (typeof hiroRail === "function") { const ft = document.querySelector("#rail .rail__foot"); if (ft) ft.insertAdjacentHTML("beforebegin", hiroRail()); hiroChat(); }
+  if (typeof hcMount === "function") hcMount();
 }
 function ownView(){ const p = P(), f = F(); if (CLOUD && (!CL.ready || CL.entering || CL.opening)) return skelCab();
   if (!W.user) return vAuth(); if (!W.co) return vWelcome();
