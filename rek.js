@@ -30,9 +30,9 @@ function tfBar(){ const ps = pfProjs(), t = tfS(), fs = ps.flatMap(p => p.funnel
   if (t.c && !chs.includes(t.c)) t.c = "";
   const sel = (k, opts, cur, lbl) => `<label class="tfb__i"><span class="lbl">${lbl}</span><select data-tf="${k}" aria-label="${lbl}">${opts.map(o => `<option value="${esc(o[0])}"${o[0] === cur ? " selected" : ""}>${esc(o[1])}</option>`).join("")}</select></label>`;
   return `<div class="tfb" role="group" aria-label="${L("Фільтр","Фильтр")}">
-    ${W.projs.length > 1 ? sel("p", [["", L("Усі проєкти","Все проекты")]].concat(W.projs.map(p => [p.id, p.name])), W.pf || "", L("Проєкт","Проект")) : ""}
-    ${fs.length > 1 ? sel("f", [["", L("Усі воронки","Все воронки")]].concat(fs.map(x => [x.f.id, (ps.length > 1 ? x.p.name + " · " : "") + x.f.name])), t.f, L("Воронка","Воронка")) : ""}
-    ${chs.length > 1 ? sel("c", [["", L("Усі канали","Все каналы")]].concat(chs.map(c => [c, chOf(c)[1]])), t.c, L("Канал","Канал")) : ""}
+    ${W.projs.length ? sel("p", [["", L("Усі проєкти","Все проекты")]].concat(W.projs.map(p => [p.id, p.name])), W.pf || "", L("Проєкт","Проект")) : ""}
+    ${sel("f", [["", L("Усі воронки","Все воронки")]].concat(fs.map(x => [x.f.id, (ps.length > 1 ? x.p.name + " · " : "") + x.f.name])), t.f, L("Воронка","Воронка"))}
+    ${chs.length ? sel("c", [["", L("Усі канали","Все каналы")]].concat(chs.map(c => [c, chOf(c)[1]])), t.c, L("Канал","Канал")) : ""}
     ${tfOn() || W.pf ? `<button type="button" class="btn btn--sm btn--text" data-act="tfReset">${ico("close")} ${L("Скинути","Сбросить")}</button>` : ""}
     ${hint(L("Фільтр діє на весь екран: цифри, рішення, стрічку Хіро й задачі. Обери дорогу воронку — побачиш лише її проблеми.","Фильтр действует на весь экран: цифры, решения, ленту Хиро и задачи. Выбери дорогую воронку — увидишь только ее проблемы."))}</div>`; }
 document.addEventListener("change", e => { const el = e.target, k = el.dataset && el.dataset.tf; if (!k) return; const t = tfS();
