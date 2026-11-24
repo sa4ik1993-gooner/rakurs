@@ -1576,3 +1576,39 @@ td:first-child{font:600 var(--t-body)/1.3 var(--font-ui)}
 .mtall__add{gap:var(--s-2);justify-content:flex-end;flex-wrap:nowrap}
 .mtall__f{height:32px;max-width:180px;border:1px solid var(--line-strong);border-radius:var(--r-control);background:var(--surface);color:var(--ink);padding:0 var(--s-2);font:inherit;font-size:13px}
 @media (max-width:640px){.mtall table td{display:block;border:0;padding:2px 0}.mtall table tr{display:block;padding:var(--s-2) 0;border-bottom:1px solid var(--line)}.mtall table td.n{text-align:left}.mtall__add{justify-content:flex-start}}
+
+/* ---------- выбор периода календарём (datepick.js) ---------- */
+.dp{position:relative}
+.dp__b{display:inline-flex;align-items:center;gap:var(--s-2);min-height:34px;padding:0 var(--s-3);border:1px solid var(--line-strong);border-radius:var(--r-pill);background:var(--surface);color:var(--ink);font:600 var(--t-body) var(--font-ui);cursor:pointer;white-space:nowrap}
+.dp__b svg{width:16px;height:16px;flex:none}
+.dp__b svg:last-child{transition:transform .15s}
+.dp.is-open .dp__b{border-color:var(--signal);background:var(--signal-soft)}
+.dp.is-open .dp__b svg:last-child{transform:rotate(180deg)}
+.dp__p{position:absolute;right:0;top:calc(100% + 8px);z-index:40;display:flex;background:var(--surface);border-radius:var(--r-panel);box-shadow:var(--lift),0 12px 32px rgba(0,0,0,.12);overflow:hidden}
+.dp__pre{list-style:none;margin:0;padding:var(--s-3) 0;border-right:1px solid var(--line);min-width:170px}
+.dp__pre button{display:block;width:100%;text-align:left;padding:8px var(--s-4);border:0;background:none;color:var(--ink);font:400 14px var(--font-ui);cursor:pointer}
+.dp__pre button:hover{background:var(--paper)}
+.dp__pre button[aria-pressed=true]{color:var(--signal);font-weight:600;background:var(--signal-soft)}
+.dp__cal{padding:var(--s-3) var(--s-4) var(--s-4)}
+.dp__nav{display:flex;align-items:center;justify-content:space-between;gap:var(--s-2);margin-bottom:var(--s-2)}
+.dp__nav .btn--ico:first-child svg{transform:rotate(90deg)}
+.dp__nav .btn--ico:last-child svg{transform:rotate(-90deg)}
+.dp__nav .sub{font-size:13px}
+.dp__ms{display:flex;gap:var(--s-5)}
+.dp__mt{display:block;text-align:center;font:600 15px var(--font-ui);margin:0 0 var(--s-2)}
+.dp__g{display:grid;grid-template-columns:repeat(7,40px);row-gap:2px}
+.dp__w{text-align:center;font:600 11px var(--font-ui);text-transform:uppercase;letter-spacing:.04em;color:var(--muted);padding:6px 0}
+.dp__d{height:40px;border:0;background:none;color:var(--ink);font:400 14px var(--font-ui);cursor:pointer;border-radius:0}
+.dp__d:hover:not(:disabled):not(.is-edge){background:var(--paper);border-radius:var(--r-control)}
+.dp__d.is-in{background:var(--signal-soft)}
+.dp__d.is-edge{background:var(--signal);color:#fff;font-weight:600;border-radius:var(--r-control)}
+.dp__d.is-today:not(.is-edge){font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.dp__d:disabled{color:var(--muted);opacity:.4;cursor:default}
+.dp__d--x{height:40px}
+@media (max-width:760px){
+  .dp__p{position:fixed;left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));top:auto;bottom:16px;flex-direction:column;max-height:80vh;overflow:auto}
+  .dp__pre{display:flex;flex-wrap:wrap;gap:4px;padding:var(--s-2);border-right:0;border-bottom:1px solid var(--line);min-width:0}
+  .dp__pre li{flex:none}.dp__pre button{padding:6px 10px;border-radius:var(--r-pill);background:var(--paper);font-size:13px}
+  .dp__ms .dp__m:first-child{display:none}
+  .dp__g{grid-template-columns:repeat(7,1fr)}
+}

@@ -13,11 +13,8 @@ document.addEventListener("change", e => { const t = e.target; if (t.dataset && 
 
 /* ---------- шапка: период, свежесть данных, обновить — одной строкой справа ---------- */
 function prHeadR(){ if (!W.projs.some(prOn)) return ""; const r = prRange(), busy = W.projs.some(p => prOn(p) && fxOf(p).syncing), one = pfProjs().find(prOn) || W.projs.find(prOn);
-  const md = [["t", L("Сьогодні","Сегодня")], ["y", L("Вчора","Вчера")], ["3", "3 " + L("дні","дня")], ["7", "7 " + L("днів","дней")], ["14", "14 " + L("днів","дней")], ["30", "30 " + L("днів","дней")], ["m", L("Цей місяць","Этот месяц")], ["c", L("Свої дати…","Свои даты…")]];
-  return `<div class="phr"><select data-prm="1" aria-label="${L("Період","Период")}">${md.map(m => `<option value="${m[0]}"${String(PR.mode) === m[0] ? " selected" : ""}>${m[1]}</option>`).join("")}</select>
-    ${PR.mode === "c" ? `<input type="date" id="pr-d1" value="${PR.d1 || r.d1}" max="${prToday()}" aria-label="${L("з","с")}"><input type="date" id="pr-d2" value="${PR.d2 || r.d2}" max="${prToday()}" aria-label="${L("по","по")}"><button class="btn btn--sm" data-act="prCustom">${L("Показати період","Показать период")}</button>` : `<span class="sub">${prLabel(r)}</span>`}
+  return `<div class="phr">${dpPick()}
     ${prFresh(one)}<button class="btn btn--sm btn--main" data-act="prSync"${busy ? " disabled" : ""}>${ico("refresh")} ${busy ? L("Оновлюємо…","Обновляем…") : L("Оновити дані","Обновить данные")}</button></div>`; }
-document.addEventListener("change", e => { const t = e.target; if (t.dataset && t.dataset.prm) { ACT.prMode({v:t.value}); render(); } });
 
 /* ---------- цена лида цветом и легенда порогов (потолок воронки) ---------- */
 const cplLv = (cpl, cap) => !cap || !cpl ? "" : cpl <= cap * 0.9 ? "good" : cpl <= cap ? "warn" : "crit";
