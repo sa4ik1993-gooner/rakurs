@@ -11,6 +11,35 @@ const pfOne = () => (W.pf && W.projs.find(x => x.id === W.pf)) || null;
 const pfSel = () => W.projs.length > 1 ? `<select class="pfsel" data-pf="1" aria-label="${L("Проєкт","Проект")}"><option value="">${L("Усі проєкти","Все проекты")}</option>${W.projs.map(p => `<option value="${p.id}"${p.id === W.pf ? " selected" : ""}>${esc(p.name)}</option>`).join("")}</select>` : "";
 document.addEventListener("change", e => { const t = e.target; if (t.dataset && t.dataset.pf) { W.pf = t.value; save(); render(); } });
 
+/* ---------- фильтр «Сьогодні»: проект → воронка → канал (Дмитрий, 24.11.2026: «зашёл решить проблему с дорогой воронкой») ----------
+   Фильтр общий для пульса, решений, ленты Хиро и задач. Хранится в W.tf = {f, c}; проект — тот же W.pf, что в шапке. */
+const tfS = () => { W.tf = W.tf || {f:"", c:""}; const ps = pfProjs(); if (W.tf.f && !ps.some(p => p.funnels.some(f => f.id === W.tf.f))) W.tf.f = ""; return W.tf; };
+const tfOn = () => { const t = tfS(); return !!(t.f || t.c); };
+const tfF = f => { const t = tfS(); return !t.f || f.id === t.f; };
+const tfC = c => { const t = tfS(); return !t.c || c === t.c; };
+/* строка статистики проходит фильтр: воронка кампании (как на карте) и канал */
+const tfRow = (p, o) => { const t = tfS(); return (!t.f || fxFunnel(p, o) === t.f) && (!t.c || (o.prov || "meta") === t.c); };
+/* запись ленты Хиро: воронку берём по кампании записи; если не понять — показываем (лучше лишнее, чем спрятать решение) */
+function tfLog(p, x){ const t = tfS(); if (!t.f && !t.c) return true; if (t.c && t.c !== "meta") return false; if (!t.f) return true;
+  const y = x.payload || {}, cid = String(y.cid || ""), rows = (typeof prOn === "function" && prOn(p) && prOf(p).cur) || [];
+  const r = cid && rows.find(o => String(o.id) === cid); if (r) return fxFunnel(p, r) === t.f;
+  const byN = typeof fxByName === "function" ? fxByName(p, y.cname || y.campaign || y.name || "") : ""; if (byN) return byN === t.f;
+  return p.funnels.length === 1 ? p.funnels[0].id === t.f : true; }
+function tfBar(){ const ps = pfProjs(), t = tfS(), fs = ps.flatMap(p => p.funnels.map(f => ({p, f}))); if (!fs.length) return "";
+  const chs = [...new Set(fs.filter(x => tfF(x.f)).flatMap(x => x.f.ch || []))];
+  if (t.c && !chs.includes(t.c)) t.c = "";
+  const sel = (k, opts, cur, lbl) => `<label class="tfb__i"><span class="lbl">${lbl}</span><select data-tf="${k}" aria-label="${lbl}">${opts.map(o => `<option value="${esc(o[0])}"${o[0] === cur ? " selected" : ""}>${esc(o[1])}</option>`).join("")}</select></label>`;
+  return `<div class="tfb" role="group" aria-label="${L("Фільтр","Фильтр")}">
+    ${W.projs.length > 1 ? sel("p", [["", L("Усі проєкти","Все проекты")]].concat(W.projs.map(p => [p.id, p.name])), W.pf || "", L("Проєкт","Проект")) : ""}
+    ${fs.length > 1 ? sel("f", [["", L("Усі воронки","Все воронки")]].concat(fs.map(x => [x.f.id, (ps.length > 1 ? x.p.name + " · " : "") + x.f.name])), t.f, L("Воронка","Воронка")) : ""}
+    ${chs.length > 1 ? sel("c", [["", L("Усі канали","Все каналы")]].concat(chs.map(c => [c, chOf(c)[1]])), t.c, L("Канал","Канал")) : ""}
+    ${tfOn() || W.pf ? `<button type="button" class="btn btn--sm btn--text" data-act="tfReset">${ico("close")} ${L("Скинути","Сбросить")}</button>` : ""}
+    ${hint(L("Фільтр діє на весь екран: цифри, рішення, стрічку Хіро й задачі. Обери дорогу воронку — побачиш лише її проблеми.","Фильтр действует на весь экран: цифры, решения, ленту Хиро и задачи. Выбери дорогую воронку — увидишь только ее проблемы."))}</div>`; }
+document.addEventListener("change", e => { const el = e.target, k = el.dataset && el.dataset.tf; if (!k) return; const t = tfS();
+  if (k === "p") { W.pf = el.value; t.f = ""; t.c = ""; } else if (k === "f") { t.f = el.value; if (el.value) { const p = W.projs.find(p => p.funnels.some(f => f.id === el.value)); if (p && W.projs.length > 1) W.pf = p.id; } } else t[k] = el.value;
+  save(); render(); });
+Object.assign(ACT, { tfReset(){ W.tf = {f:"", c:""}; W.pf = ""; save(); }, tfGo(d){ W.tf = {f:d.f || "", c:d.c || ""}; if (d.p && W.projs.length > 1) W.pf = d.p; W.ctab = "today"; save(); } });
+
 /* ---------- шапка: период, свежесть данных, обновить — одной строкой справа ---------- */
 function prHeadR(){ if (!W.projs.some(prOn)) return ""; const r = prRange(), busy = W.projs.some(p => prOn(p) && fxOf(p).syncing), one = pfProjs().find(prOn) || W.projs.find(prOn);
   return `<div class="phr">${dpPick()}

@@ -241,9 +241,9 @@ function prOverview(only){ const ps = (only ? [only] : W.projs).filter(prOn); if
   const curs = [...new Set(ps.map(p => prCur(p) || "USD"))], cur = curs.length === 1 ? curs[0] : "", lost = []; let att = [];
   let s = {spend:0, imp:0, clicks:0, leads:0, book:0, pay:0, rev:0}, v = Object.assign({}, s);
   ps.forEach(p => { const x = prOf(p); if (!x.cur) return; const add = (a, b) => { ["spend", "imp", "clicks", "leads", "book", "pay", "rev"].forEach(k => { a[k] += b[k] || 0; }); };
-    const all = x.cur.map(o => Object.assign({}, o, x.sb[fxKey(o.name)] || {})); all.forEach(o => add(s, o)); x.prev.forEach(o => add(v, o));
-    const nl = all.filter(o => o.spend > 0 && !fxFunnel(p, o)); if (nl.length) lost.push({p, n:nl.length, spend:nl.reduce((a, o) => a + o.spend, 0)});
-    p.funnels.forEach(f => (f.ch || []).forEach(c => { const prev = prRows(p, x.prev, f, c), cap = prT(f, p);
+    const all = x.cur.map(o => Object.assign({}, o, x.sb[fxKey(o.name)] || {})); all.filter(o => tfRow(p, o)).forEach(o => add(s, o)); x.prev.filter(o => tfRow(p, o)).forEach(o => add(v, o));
+    const nl = tfOn() ? [] : all.filter(o => o.spend > 0 && !fxFunnel(p, o)); if (nl.length) lost.push({p, n:nl.length, spend:nl.reduce((a, o) => a + o.spend, 0)});
+    p.funnels.filter(tfF).forEach(f => (f.ch || []).filter(tfC).forEach(c => { const prev = prRows(p, x.prev, f, c), cap = prT(f, p);
       prRows(p, x.cur, f, c, x).filter(o => o.spend > 0).forEach(o => { const j = prMain(prJudge(o, prev.find(q => q.id === o.id) || {}, cap, prCur(p)));
         if (j && j.lv === "crit") att.push({p, f, c, o, j}); }); })); });
   att.sort((a, b) => PRANK[b.j.lv] - PRANK[a.j.lv] || b.o.spend - a.o.spend);
@@ -256,7 +256,7 @@ function prOverview(only){ const ps = (only ? [only] : W.projs).filter(prOn); if
   const td = tdLoad(), tk = a => a.o.id + "|" + a.j.t, done = att.filter(a => td[tk(a)] && td[tk(a)].until > Date.now()); att = att.filter(a => !done.includes(a));
   /* Хиро сам выбирает действие по каждой проблемной кампании и кладёт его в свою ленту («Да / Предложи другое / Убрать»). Здесь остаётся то, что в ленту не попало. */
   att = tdFeed(att);
-  const fresh = ps.reduce((n, p) => n + ((typeof PL !== "undefined" && PL.st[p.id] && PL.st[p.id].log) || []).filter(x => x.kind === "reco" && x.status === "new").length, 0);
+  const fresh = ps.reduce((n, p) => n + ((typeof PL !== "undefined" && PL.st[p.id] && PL.st[p.id].log) || []).filter(x => x.kind === "reco" && x.status === "new" && tfLog(p, x)).length, 0);
   PR.cnt = att.length + lost.length + fresh;
   const items = att.slice(0, 5).map(a => { const h = hiroPlan(a), mk = "co/" + a.p.id + "/" + a.f.id + "/" + a.c + "/" + prAK(prAccOf(prOf(a.p), a.o.id)) + "/" + a.o.id;
     return `<li class="prv--${a.j.lv}" data-cid="${esc(a.o.id)}"><div><b>${esc(a.j.t)}</b> · <span class="nm">${esc(a.o.name)}</span> <span class="sub">${esc((ps.length > 1 ? a.p.name + " · " : "") + a.f.name)}</span></div><div class="hpro">${hava("idea", 24)}<span><b>${esc(h.title)}.</b> ${esc(h.why)}</span></div><div class="row"><span class="sub">${esc(tdWhyOff(a.p))}</span><span class="tdo"><button type="button" class="btn btn--sm btn--ico" data-act="prGo" data-k="${esc(mk)}" title="${L("Показати на карті","Показать на карте")}" aria-label="${L("Показати на карті","Показать на карте")}">${ico("map")}</button>${[["d",ico("done"),L("Зробив","Сделал")],["l",ico("clock"),L("Відкласти до завтра","Отложить до завтра")],["n",ico("archive"),L("Це норма, сховати на 7 днів","Это норма, скрыть на 7 дней")]].map(o => `<button type="button" class="btn btn--sm btn--ico" data-act="tdMark" data-k="${esc(tk(a))}" data-v="${o[0]}" title="${o[2]}" aria-label="${o[2]}">${o[1]}</button>`).join("")}</span></div></li>`; }).join("")

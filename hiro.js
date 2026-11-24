@@ -11,12 +11,12 @@ function hiroEv(only){
   const curs = [...new Set(ps.map(p => prCur(p) || "USD"))], cur = curs.length === 1 ? curs[0] : "USD";
   const s = {spend:0, leads:0}, v = {spend:0, leads:0}, bad = [];
   ps.forEach(p => { const x = prOf(p); if (!x.cur) return;
-    x.cur.forEach(o => { s.spend += +o.spend || 0; s.leads += +o.leads || 0; }); x.prev.forEach(o => { v.spend += +o.spend || 0; v.leads += +o.leads || 0; });
-    p.funnels.forEach(f => (f.ch || []).forEach(c => { const prev = prRows(p, x.prev, f, c), cap = typeof prT === "function" ? prT(f, p) : prCap(f, p);
+    x.cur.filter(o => tfRow(p, o)).forEach(o => { s.spend += +o.spend || 0; s.leads += +o.leads || 0; }); x.prev.filter(o => tfRow(p, o)).forEach(o => { v.spend += +o.spend || 0; v.leads += +o.leads || 0; });
+    p.funnels.filter(tfF).forEach(f => (f.ch || []).filter(tfC).forEach(c => { const prev = prRows(p, x.prev, f, c), cap = typeof prT === "function" ? prT(f, p) : prCap(f, p);
       prRows(p, x.cur, f, c, x).filter(o => o.spend > 0).forEach(o => { const j = prMain(prJudge(o, prev.find(q => q.id === o.id) || {}, cap, prCur(p)));
         if (j && j.lv === "crit") bad.push({p, f, c, o, j, cap, cpl:o.leads ? o.spend / o.leads : 0}); }); })); });
   bad.sort((a, b) => b.o.spend - a.o.spend);
-  const f0 = ps[0].funnels[0], cap = bad[0] ? bad[0].cap : f0 ? prCap(f0, ps[0]) : 0;
+  const f0 = ps[0].funnels.find(tfF) || ps[0].funnels[0], cap = bad[0] ? bad[0].cap : f0 ? prCap(f0, ps[0]) : 0;
   return {s, v, cpl:s.leads ? s.spend / s.leads : 0, pcpl:v.leads ? v.spend / v.leads : 0, cap, cur, bad, ps, err:ps.some(p => prOf(p).err && !prOf(p).cur)};
 }
 const hiroKey = (b) => "co/" + b.p.id + "/" + b.f.id + "/" + b.c + "/" + prAK(prAccOf(prOf(b.p), b.o.id)) + "/" + b.o.id;

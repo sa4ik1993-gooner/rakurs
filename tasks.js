@@ -345,6 +345,7 @@ function tsToday(){ const ps = (typeof pfProjs === "function" ? pfProjs() : W.pr
   const today = prToday(), act = ps.flatMap(p => (p.tasks || []).filter(t => t.status === "run")); TS.cnt.run = act.length; TS.cnt.due = act.filter(t => { const n = t.steps.find(x => !x.done); return n && n.d <= today; }).length;
   const opts = []; ps.forEach(p => { p.funnels.forEach(f => { opts.push(["co/" + p.id + "/" + f.id, (ps.length > 1 ? p.name + " · " : "") + f.name]);
     (f.ch || []).forEach(c => prAccs(p, c).forEach(a => opts.push(["co/" + p.id + "/" + f.id + "/" + c + "/" + prAK(String(a.id)), (ps.length > 1 ? p.name + " · " : "") + f.name + " · " + (a.name || a.id)]))); }); });
+  if (typeof tfS === "function" && tfS().f) { const keep = opts.filter(o => o[0].split("/")[2] === tfS().f); if (keep.length) opts.splice(0, opts.length, ...keep); }
   if (!opts.some(o => o[0] === TS.sc)) TS.sc = opts[0][0];
   const pick = `<label class="tsw"><span class="lbl">${L("Для чого","Для чего")}</span><select data-tssc="1">${opts.map(o => `<option value="${esc(o[0])}"${o[0] === TS.sc ? " selected" : ""}>${esc(o[1])}</option>`).join("")}</select></label>`;
   const has = ps.some(p => (p.tasks || []).some(t => t.status === "run" || t.status === "plan") || ((((typeof PL !== "undefined" && PL.st[p.id]) || {}).log) || []).some(x => x.status === "scheduled"));

@@ -554,7 +554,7 @@ function plPanel(p){ if (!CLOUD) return "";
   const dirty = s ? (!!e.enabled !== !!s.enabled) : !!e.enabled;
   const st = dirty ? `<span class="st st--pause">${L("Зміни не збережено","Изменения не сохранены")}</span>` : on ? `<span class="st st--on">${L("Працює, перевіряю щогодини","Работает, проверяю каждый час")}</span>` : `<span class="st st--pause">${L("На паузі","На паузе")}</span>`;
   /* лента по вкладкам (Дмитрий, 24.11.2026): предложения · в графике (принято, ждёт ночи) · сделано · отклонено · отчёты и сигналы */
-  const log = r.log || [], tabOf = x => x.kind === "report" || x.kind === "alert" ? "rep" : x.status === "new" ? "new" : x.status === "scheduled" || x.status === "yes" ? "plan" : x.status === "done" || x.status === "fail" ? "done" : x.status === "outdated" || x.status === "expired" ? "old" : "no";
+  const log = (r.log || []).filter(x => typeof tfLog !== "function" || W.ctab !== "today" || P() || tfLog(p, x)), tabOf = x => x.kind === "report" || x.kind === "alert" ? "rep" : x.status === "new" ? "new" : x.status === "scheduled" || x.status === "yes" ? "plan" : x.status === "done" || x.status === "fail" ? "done" : x.status === "outdated" || x.status === "expired" ? "old" : "no";
   const TABS = [["new", L("Пропозиції","Предложения")], ["later", L("Пізніше","Позже")], ["plan", L("У графіку","В графике")], ["done", L("Зроблено","Сделано")], ["no", L("Відхилено","Отклонено")], ["old", L("Застаріло","Устарело")], ["rep", L("Сигнали і звіти","Сигналы и отчеты")]];
   const cnt = {}; log.forEach(x => { const t = tabOf(x); cnt[t] = (cnt[t] || 0) + 1; });
   const nLater = plHypCount(p, "later");

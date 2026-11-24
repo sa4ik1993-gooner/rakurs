@@ -1612,3 +1612,12 @@ td:first-child{font:600 var(--t-body)/1.3 var(--font-ui)}
   .dp__ms .dp__m:first-child{display:none}
   .dp__g{grid-template-columns:repeat(7,1fr)}
 }
+
+/* фильтр «Сьогодні»: проект → воронка → канал */
+.tfb{display:flex;flex-wrap:wrap;align-items:flex-end;gap:var(--s-2) var(--s-3);margin:0 0 var(--s-3)}
+.tfb__i{display:flex;flex-direction:column;gap:4px;min-width:0}
+.tfb__i .lbl{font-size:12px;color:var(--muted)}
+.tfb select{min-height:36px;max-width:260px;padding:0 var(--s-5) 0 var(--s-3);border:1px solid var(--line-strong);border-radius:var(--r-control);background:var(--surface);color:var(--ink);font:400 var(--t-body) var(--font-ui);cursor:pointer}
+.tfb select:focus-visible{outline:2px solid var(--signal);outline-offset:1px}
+.tfb .hint{align-self:center}
+@media (max-width:560px){.tfb__i{flex:1 1 140px}.tfb select{max-width:none;width:100%}}
