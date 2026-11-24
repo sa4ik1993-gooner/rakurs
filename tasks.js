@@ -77,8 +77,17 @@ async function tsRows(p, s, d1, d2){ const r = await sb.rpc("ad_summary", {p:p.i
   const days = Math.round((Date.parse(d2) - Date.parse(d1)) / 864e5) + 1, x = prOf(p);
   return (r.data || []).filter(o => { if (s.camp) return o.campaign_id === s.camp; if (s.c && tsCh(o.provider) !== s.c) return false;
       if (s.f && fxFunnel(p, {id:o.campaign_id, f:o.funnel_id || "", name:o.campaign_name, prov:tsCh(o.provider)}) !== s.f) return false;
-      if (s.acc && x.am && prAccOf(x, o.campaign_id, tsCh(o.provider)) !== s.acc) return false; return true; })
+      if (s.acc && x.am && prAccOf(x, o.campaign_id, tsCh(o.provider)) !== s.acc) return false;
+      if (!s.camp && !tsZoneOk(p, o.campaign_name)) return false; return true; })
     .map(o => ({id:o.campaign_id, name:o.campaign_name, spend:+o.spend || 0, leads:+o.leads || 0, day:(+o.spend || 0) / days, cpl:+o.leads ? (+o.spend) / (+o.leads) : 0})).filter(o => o.spend > 0); }
+/* зона Хиро: слова «Кампанії, назва містить / не містить» из настроек Хиро — те же правила, что в ленте (Дмитрий, 24.11.2026: задача взяла кампанию не из воронки) */
+const tsWords = v => String(v || "").split(/[,;\n]+/).map(w => w.trim().toLowerCase()).filter(Boolean);
+function tsZoneOk(p, name){ const st = typeof PL !== "undefined" && PL.st[p.id], z = st && st.ok && st.settings; if (!z) return true;
+  const n = String(name || "").toLowerCase(), inc = tsWords(z.inc), exc = tsWords(z.exc);
+  return (!inc.length || inc.some(w => n.includes(w))) && !exc.some(w => n.includes(w)); }
+/* кампания сейчас крутится: есть активная группа по данным Meta. Нет данных — считаем включённой */
+const tsOn = (p, id) => { const o = TS.lrn[p.id]; return !(o && o.ok) || !!o.by[id]; };
+const tsSetOn = (p, cid, sid) => { const o = TS.lrn[p.id]; if (!(o && o.ok)) return true; const c = o.by[cid]; return !!(c && c.sets.some(g => String(g.adset_id) === String(sid))); };
 const tsSum = rows => { const s = rows.reduce((a, o) => { a.spend += o.spend; a.leads += o.leads; a.day += o.day; return a; }, {spend:0, leads:0, day:0}); s.cpl = s.leads ? s.spend / s.leads : 0; return s; };
 
 /* план по шагам */
@@ -93,7 +102,7 @@ function tsPlan(p, s, o, rows, ext){ const tot = tsSum(rows), f = s.f && p.funne
   const nm = a => a.slice(0, 4).map(x => x.name).join(", ") + (a.length > 4 ? L(" і ще "," и еще ") + (a.length - 4) : "");
   const out = {guard, base:{day:tot.day, cpl:tot.cpl, leads:tot.leads}, start, steps:st, note:"", target:0, ext};
   if (!rows.length) { out.note = L("За 7 днів у цьому охопленні не було витрат — плану не буде. Обери інший рівень або запусти рекламу.","За 7 дней в этом охвате не было расхода — плана не будет. Выбери другой уровень или запусти рекламу."); return out; }
-  const win = rows.filter(r => r.leads >= 5 && r.cpl && r.cpl <= guard), lose = rows.filter(r => r.spend >= Math.max(cap, 5) * 2 && (!r.leads || r.cpl > Math.max(guard, cap) * 1.3));
+  const win = rows.filter(r => r.leads >= 5 && r.cpl && r.cpl <= guard), lose = rows.filter(r => tsOn(p, r.id) && r.spend >= Math.max(cap, 5) * 2 && (!r.leads || r.cpl > Math.max(guard, cap) * 1.3));
   if (o.type === "scale" || o.type === "leads") {
     let target = o.dayTo || tot.day * (o.factor || 1.5);
     if (o.type === "leads") { const days = Math.max(1, o.days || 7), cpl = tot.cpl || cap; target = Math.max(tot.day, o.leads / days * cpl, o.dayTo || 0); out.leadsNeed = o.leads; out.days = days; if (o.date) out.date = o.date;
@@ -110,7 +119,7 @@ function tsPlan(p, s, o, rows, ext){ const tot = tsSum(rows), f = s.f && p.funne
     if (lose.length) why.push(L("Спершу вимикаємо те, що тягне ціну вгору: ","Сначала выключаем то, что тянет цену вверх: ") + nm(lose) + ".");
     /* бизнесу нужно больше лидов — не «ждать обучения», а дубль лучшей связки отдельной группой на ночь (Дмитрий, 24.11.2026) */
     if (!learned.length) { const ex = out.ext || {}, inScope = new Set(rows.map(r => r.id)), mx = Math.max(guard, cap) * 1.2;
-      const sets = (ex.sets || []).filter(x => x.sid && inScope.has(x.cid) && x.leads >= 3).map(x => Object.assign({}, x, {cpl:x.spend / x.leads})).filter(x => x.cpl <= mx).sort((a, b) => a.cpl - b.cpl), best = sets[0];
+      const sets = (ex.sets || []).filter(x => x.sid && inScope.has(x.cid) && x.leads >= 3 && tsSetOn(p, x.cid, x.sid)).map(x => Object.assign({}, x, {cpl:x.spend / x.leads})).filter(x => x.cpl <= mx).sort((a, b) => a.cpl - b.cpl), best = sets[0];
       if (best) { const crs = (ex.crs || []).filter(c => c.cid === best.cid && c.leads >= 2).sort((a, b) => a.spend / a.leads - b.spend / b.leads).slice(0, 3).map(c => c.name);
         const bud = Math.round(Math.min(500, Math.max(10, target - tot.day)));
         out.note = (out.note ? out.note + " " : "") + L("Групи ще вчаться — піднімати їм бюджет не буду, це зіб’є навчання. Більше лідів беру дублем найкращої зв’язки окремою групою: навчання поточних груп не чіпаю.","Группы еще учатся — поднимать им бюджет не буду, это собьет обучение. Больше лидов беру дублем лучшей связки отдельной группой: обучение текущих групп не трогаю.");
@@ -149,7 +158,7 @@ function tsPlan(p, s, o, rows, ext){ const tot = tsSum(rows), f = s.f && p.funne
     st.push({d:tsDay(start, i * TS_GAP + 3), t:L("Перевірка: 3 дні на новому бюджеті. Якщо ціна ліда в межах — задачу виконано.","Проверка: 3 дня на новом бюджете. Если цена лида в пределах — задача выполнена."), check:1});
   } else if (o.type === "cut") {
     const tg = o.cpl || tot.cpl * 0.8; out.guard = tg; out.target = tg;
-    const bad = rows.filter(r => r.spend >= tg * 2 && (!r.leads || r.cpl > tg * 1.3)), good = rows.filter(r => r.leads >= 3 && r.cpl <= tg);
+    const bad = rows.filter(r => tsOn(p, r.id) && r.spend >= tg * 2 && (!r.leads || r.cpl > tg * 1.3)), good = rows.filter(r => r.leads >= 3 && r.cpl <= tg);
     if (bad.length) st.push({d:start, t:L("Вимкни: ","Выключи: ") + nm(bad) + L(" — ліди дорожчі за $"," — лиды дороже $") + dec(tg * 1.3) + "."});
     if (bad.length && good.length) st.push({d:start, t:L("Перенеси їхній бюджет ($","Перенеси их бюджет ($") + dec(bad.reduce((a, r) => a + r.day, 0), 0) + L("/день) у: ","/день) в: ") + nm(good) + L(" — не більше +20% за раз."," — не больше +20% за раз.")});
     st.push({d:tsDay(start, 2), t:L("Перевір вигорання креативів: Запуск → Дослідження воронки. Вигорілі заміни новими.","Проверь выгорание креативов: Запуск → Исследование воронки. Выгоревшие замени новыми."), act:"launch"});
@@ -165,7 +174,8 @@ async function tsCreate(k, text){ const s = tsScope(k), p = s && W.projs.find(x 
   const o = tsParse(text); if (!o.type) { toast(L("Не зрозумів задачу. Напиши, що змінити й до скількох: «підняти бюджет до 200 $ на день», «ціна ліда до 5 $», «100 лідів за тиждень».","Не понял задачу. Напиши, что изменить и до скольких: «поднять бюджет до 200 $ в день», «цена лида до 5 $», «100 лидов за неделю».")); return false; }
   if (!CLOUD || !sb) { toast(L("Задачі працюють із сервером","Задачи работают с сервером")); return false; }
   let ok = false;
-  try { await tsLrnLoad(p); const d2 = tsDay(prToday(), -1), rows = await tsRows(p, s, tsDay(d2, -6), d2);
+  try { await tsLrnLoad(p); if (typeof PL !== "undefined" && !(PL.st[p.id] && PL.st[p.id].ok) && typeof plCall === "function") { const r0 = await plCall({action:"get", project_id:p.id}); if (r0 && r0.ok) PL.st[p.id] = r0; }
+    const d2 = tsDay(prToday(), -1), rows = await tsRows(p, s, tsDay(d2, -6), d2);
     const [gs, cs] = await Promise.all([sb.rpc("ad_adsets", {p:p.id, d1:tsDay(d2, -6), d2}), sb.rpc("ad_creatives", {p:p.id, d1:tsDay(d2, -6), d2})]);
     const ext = {sets:(gs.data || []).map(x => ({cid:x.campaign_id, sid:String(x.adset_id || ""), name:x.adset_name || x.adset_id, spend:+x.spend || 0, leads:+x.leads || 0})), crs:(cs.data || []).map(x => ({cid:x.campaign_id, name:x.ad_name, spend:+x.spend || 0, leads:+x.leads || 0}))};
     const pl = tsPlan(p, s, o, rows, ext); delete pl.ext;
