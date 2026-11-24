@@ -32,7 +32,8 @@ function prLoad(p){ if (!prOn(p)) return; const x = prOf(p), fx = fxOf(p), r = x
   x.loading = true; x.err = "";
   const q = (fn, a) => Promise.resolve(sb.rpc(fn, Object.assign({p:p.id}, a))).then(res => res.error ? (x.err = x.err || fxErr(res.error.message), null) : (res.data || []), e => (x.err = x.err || fxErr(e && e.message), null));
   const camp = o => ({prov:PROV_CH[o.provider] || o.provider, f:o.funnel_id || "", id:o.campaign_id, name:o.campaign_name || o.campaign_id, spend:+o.spend || 0, imp:+o.impressions || 0, clicks:+o.clicks || 0, leads:+o.leads || 0});
-  Promise.all([q("ad_summary", {d1:r.d1, d2:r.d2}), q("ad_summary", {d1:r.p1, d2:r.p2}), q("ad_adsets", {d1:r.d1, d2:r.d2}), q("ad_creatives", {d1:r.d1, d2:r.d2}), q("sales_summary", {d1:r.d1, d2:r.d2}), prAccMap(p, x)]).then(([c, pv, gs, as, ss]) => {
+  Promise.all([q("ad_summary", {d1:r.d1, d2:r.d2}), q("ad_summary", {d1:r.p1, d2:r.p2}), q("ad_adsets", {d1:r.d1, d2:r.d2}), q("ad_creatives", {d1:r.d1, d2:r.d2}), q("sales_summary", {d1:r.d1, d2:r.d2}), prAccMap(p, x), Promise.resolve(sb.rpc("ad_camp_window", {p:p.id, d:prToday()})).then(z => z.data || [], () => [])]).then(([c, pv, gs, as, ss, am, cw]) => {
+    (cw || []).forEach(o => { PW[o.campaign_id] = {first:o.first_day, start:o.data_start, s3:+o.s3 || 0, l3:+o.l3 || 0, s0:+o.s0 || 0, l0:+o.l0 || 0}; });
     x.cur = c ? c.map(camp) : null; x.prev = pv ? pv.map(camp) : [];
     if (x.am && x.am.map) { const off = r0 => { const a = x.am.map[r0.id], w = prAccs(p, r0.prov).map(z => String(z.id)); return a && w.length && !w.includes(a); }, gone = new Set();
       if (x.cur) x.cur = x.cur.filter(r0 => off(r0) ? (gone.add(r0.id), false) : true); x.prev = x.prev.filter(r0 => !off(r0)); x.gone = gone; }
@@ -67,35 +68,57 @@ const prRowsA = (p, list, f, c, x, acc) => prRows(p, list, f, c, x).filter(r => 
 const prCap = (f, p) => { const c = fT(f, p).cap; return c > 0 && isFinite(c) ? c : 0; };
 
 /* Пороги выводов и число кампаний на доске — настройки компании (раздел «Настройки»); здесь значения по умолчанию. */
-const PR_DEF = {early:5, noLead:2, crit:20, up:30, ctr:30, top:5};
+/* ---------- Хиро: «цена лида точно плохая или это разброс» (knowledge/small-numbers.md §6, решение Дмитрия 24.11.2026) ----------
+   Лиды — случайные события (Пуассон). «Плохо» — только если с уверенностью 95% (до 10:00 — 99%) цена хуже нормы.
+   Норма в обучении выше: дни 1–3 — потолок ×1,3, дни 4–7 — ×1,15. Сегодняшние лиды Meta досчитывает: видно ~85%.
+   В режимах «сегодня» и «вчера» решаем по 3 дням (с сегодня), а не по одному дню. */
+function poissonCdf(k, lam){ if (k < 0) return 0; if (lam <= 0) return 1; let t = -lam, sum = Math.exp(t); for (let i = 1; i <= k; i++){ t += Math.log(lam / i); sum += Math.exp(t); } return Math.min(1, sum); }
+function poissonUpper(k, p){ let lo = 0, hi = k + 60 + 10 * Math.sqrt(k + 1); for (let i = 0; i < 80; i++){ const m = (lo + hi) / 2; if (poissonCdf(k, m) > p) lo = m; else hi = m; } return (lo + hi) / 2; }
+const HJ = {lag:0.85, bad:0.95, early:0.99, lf:d => !d || d < 1 ? 1 : d <= 3 ? 1.3 : d <= 7 ? 1.15 : 1};
+function judgeCpl(o){ const k = Math.max(0, Math.floor(o.leads || 0)), Lf = HJ.lf(o.ld), Teff = o.target * Lf, c = o.lag || 1, Seff = o.spend * c;
+  const q = poissonCdf(k, Seff / Teff), confBad = 1 - q, need = o.hour != null && o.hour < 10 ? HJ.early : HJ.bad;
+  const extra = Math.max(1, Math.floor(poissonUpper(k, 0.2) / c) - k), cplIf = o.spend / (k + extra), stopAt = Math.max(o.spend, poissonUpper(k, 1 - need) * Teff / c);
+  const verdict = confBad >= need ? "bad" : k >= 1 && Seff / k <= Teff ? "ok" : "wait";
+  return {verdict, q, confBad, Teff, Lf, k, cpl:k ? o.spend / k : 0, extra, cplIf, stopAt, early:o.spend < Teff && !k}; }
+/* окно кампании: день обучения (от первого дня с расходом, если он есть в загруженной истории) и расход/лиды за 3 дня с сегодня */
+const PW = {};
+const prWin = id => PW[id] || null;
+const prLday = w => { if (!w || !w.first || !w.start || w.first <= w.start) return null; const d = Math.round((Date.parse(prToday()) - Date.parse(w.first)) / 864e5) + 1; return d >= 1 && d <= 7 ? d : null; };
+const prIf = (J, m) => J.cplIf <= J.Teff ? L("Ще ","Ещё ") + plural(J.extra, L("лід","лид"), L("ліди","лида"), L("лідів","лидов")) + L(" — і ціна буде "," — и цена будет ") + m(J.cplIf) + L(": це звичайний розкид, у нормі.",": это обычный разброс, в норме.")
+  : L("Навіть з ще ","Даже с ещё ") + plural(J.extra, L("лідом","лидом"), L("лідами","лидами"), L("лідами","лидами")) + L(" ціна була б "," цена была бы ") + m(J.cplIf) + L(" — вище норми "," — выше нормы ") + m(J.Teff) + ".";
+/* что судим: в режимах «сегодня»/«вчера» — окно 3 дней кампании; иначе — выбранный период (с поправкой, если в нём сегодня) */
+function prJ(s, cap){ const w = s.id ? prWin(s.id) : null, short = PR.mode === "t" || PR.mode === "y", today = PR.mode === "t" || PR.mode === "m";
+  let S = s.spend, K = s.leads, s0 = today && w ? w.s0 : 0, win = "";
+  if (w && short && w.s3 > 0){ S = w.s3; K = w.l3; s0 = w.s0; win = L(" за 3 дні"," за 3 дня"); }
+  const lag = S > 0 ? (S - s0 * (1 - HJ.lag)) / S : 1, hour = s0 > 0 ? new Date().getHours() : null, ld = prLday(w);
+  return Object.assign(judgeCpl({spend:S, leads:K, target:cap, ld, hour, lag}), {S, win, ld, hour}); }
+const PR_DEF = {up:30, ctr:30, top:5};
 function prTh(){ const o = Object.assign({}, PR_DEF), c = (W.co && W.co.set) || {}; Object.keys(PR_DEF).forEach(k => { const n = parseFloat(String(c[k] == null ? "" : c[k]).replace(",", ".")); if (n > 0) o[k] = n; }); o.top = Math.max(1, Math.min(20, Math.round(o.top))); return o; }
 /* Правила вывода. s — текущий период, v — прошлый такой же, cap — потолок цены лида воронки (в долларах).
-   Судим, когда потрачено 5 потолков или пришло 5 лидов; раньше — «рано судить». */
-function prJudge(s, v, cap, cur){ const out = [], m = n => prM(n, cur), T = prTh(); if (!s.spend) return out;
+   Цена лида — через judgeCpl (статистика малых чисел, обучение, окно 3 дней), не по фиксированным порогам. */
+function prJudge(s, v, cap, cur){ const out = [], m = n => prM(n, cur), T = prTh(); if (!s.spend && !(s.id && prWin(s.id) && prWin(s.id).s3)) return out;
   const cpl = s.leads ? s.spend / s.leads : 0, pc = v && v.leads ? v.spend / v.leads : 0, ctr = s.imp ? s.clicks / s.imp : 0, pctr = v && v.imp ? v.clicks / v.imp : 0;
-  const enough = cap ? s.spend >= T.early * cap || s.leads >= 5 : s.spend >= 30 || s.leads >= 5;
-  if (cap && !s.leads && s.spend >= T.noLead * cap) return [{lv:"crit", t:L("Витрати без лідів","Расход без лидов"),
-    why:L("Витрачено ","Потрачено ") + m(s.spend) + L(" — це "," — это ") + dec(s.spend / cap, 1) + L(" стелі ціни ліда, а лідів немає."," потолка цены лида, а лидов нет."),
-    todo:L("Відкрий сайт за посиланням з оголошення: чи відкривається, чи працює форма, чи надсилає пиксель подію. Якщо все гаразд — вимкни кампанію або заміни креативи.","Открой сайт по ссылке из объявления: открывается ли, работает ли форма, отправляет ли пиксель событие. Если всё в порядке — выключи кампанию или замени креативы.")}];
-  if (!enough) return [{lv:"mute", t:L("Рано судити","Рано судить"),
-    why:L("Витрачено ","Потрачено ") + m(s.spend) + (s.leads ? L(", лідів ",", лидов ") + s.leads : "") + L(". Висновок буде після ",". Вывод будет после ") + (cap ? m(T.early * cap) : m(30)) + L(" витрат або 5 лідів."," расхода или 5 лидов."),
-    todo:L("Нічого не змінювати, дивитися далі.","Ничего не менять, смотреть дальше.")}];
   if (!cap) out.push({lv:"mute", t:L("Немає стелі ціни ліда","Нет потолка цены лида"), why:L("У воронки не задано ціль, тому ціну ліда не з чим порівняти.","У воронки не задана цель, поэтому цену лида не с чем сравнить."), todo:L("Задай ціль воронки: оплати, чек і конверсії.","Задай цель воронки: оплаты, чек и конверсии.")});
-  else if (cpl > cap * (1 + T.crit / 100)) out.push({lv:"crit", t:L("Лід дорожчий за стелю","Лид дороже потолка"),
-    why:L("Ціна ліда ","Цена лида ") + m(cpl) + L(" при стелі "," при потолке ") + m(cap) + " (+" + Math.round((cpl / cap - 1) * 100) + "%).",
-    todo:L("Подивись, які оголошення дають найдорожчі ліди, і вимкни гірші. Якщо дорого всюди — справа в офері, сторінці або аудиторії.","Посмотри, какие объявления дают самые дорогие лиды, и выключи худшие. Если дорого везде — дело в оффере, странице или аудитории.")});
-  else if (cpl > cap) out.push({lv:"warn", t:L("Лід трохи вищий за стелю","Лид чуть выше потолка"),
-    why:L("Ціна ліда ","Цена лида ") + m(cpl) + L(" при стелі "," при потолке ") + m(cap) + ".",
-    todo:L("Поки тримати й подивитися завтра. Оголошення з ціною ліда понад 1,5 стелі можна вимикати вже зараз.","Пока держать и посмотреть завтра. Объявления с ценой лида выше 1,5 потолка можно выключать уже сейчас.")});
-  else out.push({lv:"good", t:L("У нормі","В норме"),
-    why:L("Ціна ліда ","Цена лида ") + m(cpl) + L(" при стелі "," при потолке ") + m(cap) + ".",
-    todo:L("Якщо ціна тримається кілька днів поспіль — можна додати бюджет на 20–30%.","Если цена держится несколько дней подряд — можно добавить бюджет на 20–30%.")});
-  if (pc && cpl > pc * (1 + T.up / 100)) out.push({lv:"warn", t:L("Лід подорожчав","Лид подорожал"),
+  else { const J = prJ(s, cap), lrn = J.Lf > 1 ? L(" (навчання, день ", " (обучение, день ") + J.ld + L(": норма "," : норма ").replace(" : ", ": ") + m(J.Teff) + L(" = стеля ×"," = потолок ×") + dec(J.Lf, 2).replace(/0$/, "") + ")" : "";
+    const pre = J.hour != null ? L(" Сьогоднішні цифри попередні: Meta дораховує ліди до 3 днів."," Сегодняшние цифры предварительные: Meta досчитывает лиды до 3 дней.") : "";
+    if (J.verdict === "bad") out.push(!J.k ? {lv:"crit", t:L("Витрати без лідів","Расход без лидов"),
+        why:L("Витрачено ","Потрачено ") + m(J.S) + J.win + L(" без лідів — "," без лидов — ") + dec(J.S / J.Teff, 1) + L(" норми ціни ліда"," нормы цены лида") + lrn + L(". Шанс, що ціна насправді в нормі, ",". Шанс, что цена на самом деле в норме, ") + Math.round(J.q * 100) + "%.",
+        todo:L("Відкрий сайт за посиланням з оголошення: чи відкривається, чи працює форма, чи надсилає піксель подію. Якщо все гаразд — вимкни кампанію або заміни креативи.","Открой сайт по ссылке из объявления: открывается ли, работает ли форма, отправляет ли пиксель событие. Если всё в порядке — выключи кампанию или замени креативы.")}
+      : {lv:"crit", t:L("Лід дорожчий за норму","Лид дороже нормы"),
+        why:L("Ціна ліда ","Цена лида ") + m(J.cpl) + J.win + L(" при нормі "," при норме ") + m(J.Teff) + lrn + L(". Шанс, що це випадковість, ",". Шанс, что это случайность, ") + Math.round(J.q * 100) + "%.",
+        todo:L("Вимкни найгірші оголошення. Якщо дорого всюди — справа в офері, сторінці або аудиторії.","Выключи худшие объявления. Если дорого везде — дело в оффере, странице или аудитории.")});
+    else if (J.verdict === "wait") out.push({lv:J.confBad >= 0.8 ? "warn" : "mute", t:J.early ? L("Рано судити","Рано судить") : L("Поки не ясно","Пока не ясно"),
+        why:(J.k ? L("Ціна ліда ","Цена лида ") + m(J.cpl) : L("Витрачено ","Потрачено ") + m(J.S) + L(", лідів немає",", лидов нет")) + J.win + L(" при нормі "," при норме ") + m(J.Teff) + lrn + ". " + (J.early ? L("Витрачено менше за одну норму ліда.","Потрачено меньше одной нормы лида.") : prIf(J, m)) + pre,
+        todo:L("Нічого не змінювати. Стоп, якщо до ","Ничего не менять. Стоп, если до ") + m(J.stopAt) + L(" витрат не буде нового ліда."," расхода не будет нового лида.")});
+    else out.push({lv:"good", t:J.cpl > cap ? L("У межах навчання","В пределах обучения") : L("У нормі","В норме"),
+        why:L("Ціна ліда ","Цена лида ") + m(J.cpl) + J.win + L(" при нормі "," при норме ") + m(J.Teff) + lrn + "." + pre,
+        todo:J.cpl > cap ? L("Не чіпати: у навчанні ціна вища, Meta ще шукає аудиторію.","Не трогать: в обучении цена выше, Meta ещё ищет аудиторию.") : L("Бюджет — за цифрами 7 днів: якщо ціна тримається тиждень, можна додати 20–30%.","Бюджет — по цифрам 7 дней: если цена держится неделю, можно добавить 20–30%.")}); }
+  if (pc && cpl > pc * (1 + T.up / 100) && s.leads >= 5 && v.leads >= 5 && poissonCdf(s.leads, s.spend / pc) < 0.05) out.push({lv:"warn", t:L("Лід подорожчав","Лид подорожал"),
     why:m(pc) + " → " + m(cpl) + " (+" + Math.round((cpl / pc - 1) * 100) + L("%) до минулого такого ж періоду.","%) к прошлому такому же периоду."),
-    todo:L("Порівняй оголошення: якщо подорожчало все — втомилися аудиторія або креативи; якщо одне — вимкни його.","Сравни объявления: если подорожало всё — устали аудитория или креативы; если одно — выключи его.")});
+    todo:L("Порівняй оголошення: якщо подорожчало одне — вимкни його. Якщо все — перевір статус Meta і зміни на сайті; бюджет вирішуй за 7 днями.","Сравни объявления: если подорожало одно — выключи его. Если всё — проверь статус Meta и изменения на сайте; бюджет решай по 7 дням.")});
   if (pctr && s.imp >= 1000 && ctr < pctr * (1 - T.ctr / 100)) out.push({lv:"warn", t:L("CTR падає","CTR падает"),
     why:"CTR " + prPct(pctr) + " → " + prPct(ctr) + L(" до минулого періоду."," к прошлому периоду."),
-    todo:L("Схоже на вигорання креативів: підготуй нові ролики або нові перші секунди.","Похоже на выгорание креативов: подготовь новые ролики или новые первые секунды.")});
+    todo:L("Перевір у Meta статус «Втома креативу». Якщо є — додай нові ролики, старі не вимикай, доки нові не наберуть результат. Висока частота сама по собі не ознака вигорання.","Проверь в Meta статус «Усталость креатива». Если есть — добавь новые ролики, старые не выключай, пока новые не наберут результат. Высокая частота сама по себе не признак выгорания.")});
   if (s.pay && s.rev && s.spend) out.push({lv:"good", t:L("Є оплати","Есть оплаты"), why:plural(s.pay, L("оплата","оплата"), L("оплати","оплаты"), L("оплат","оплат")) + " · ROAS " + dec(s.rev / s.spend, 1) + L(" (за датою вебінару, оплати ще можуть дозріти)."," (по дате вебинара, оплаты ещё могут дозреть)."), todo:""});
   return out; }
 const PRANK = {crit:3, warn:2, good:1, mute:0};
@@ -196,9 +219,9 @@ function prCampPanel(p, f, c, id){ const x = prOf(p), cur = prCur(p), cap = prCa
   const back = `<button class="btn btn--sm" data-act="mapSel" data-k="${esc(ck)}">${L("← Акаунт ","← Аккаунт ")}${esc(prAccName(p, prAccOf(x, id, c), c))}</button>`;
   if (!r) return `<div class="panel">${lvTag(5)}<p class="sub">${L("За цей період у кампанії немає даних.","За этот период у кампании нет данных.")}</p><div class="row">${back}</div></div>`;
   const js = prJudge(r, v, cap, cur), sets = (x.sets || []).filter(o => o.cid === id && o.spend > 0).sort((a, b) => b.spend - a.spend), ads = (x.ads || []).filter(o => o.cid === id && o.spend > 0).sort((a, b) => b.spend - a.spend);
-  const TH = prTh(), stop = cap ? ads.filter(a => !a.leads && a.spend >= TH.noLead * cap) : [];
-  if (stop.length) js.push({lv:"crit", t:L("Оголошення без лідів: ","Объявления без лидов: ") + stop.length, why:stop.map(a => a.name + " — " + prM(a.spend, cur)).join("; "), todo:L("Кожне витратило ","Каждое потратило ") + dec(TH.noLead, 1).replace(/[.,]0$/, "") + L(" стелі ціни ліда без жодного ліда — кандидати на вимкнення."," потолка цены лида без единого лида — кандидаты на выключение.")});
-  const row = (o, nm, add) => { const cpl = o.leads ? o.spend / o.leads : 0, lv = !cap ? "" : !o.leads ? (o.spend >= TH.noLead * cap ? "crit" : "") : cpl > cap * 1.5 ? "crit" : cpl > cap ? "warn" : "good";
+  const lw = prLday(prWin(id)), adJ = o => cap ? judgeCpl({spend:o.spend, leads:o.leads, target:cap, ld:lw}) : null, stop = cap ? ads.filter(a => !a.leads && adJ(a).verdict === "bad") : [];
+  if (stop.length) js.push({lv:"crit", t:L("Оголошення без лідів: ","Объявления без лидов: ") + stop.length, why:stop.map(a => a.name + " — " + prM(a.spend, cur)).join("; "), todo:L("Без жодного ліда за такий розхід ціна майже напевно (95%) вища за норму — кандидати на вимкнення.","Без единого лида за такой расход цена почти наверняка (95%) выше нормы — кандидаты на выключение.")});
+  const row = (o, nm, add) => { const cpl = o.leads ? o.spend / o.leads : 0, J = adJ(o), lv = !J ? "" : J.verdict === "bad" ? "crit" : J.verdict === "ok" ? "good" : o.leads && cpl > cap ? "warn" : "";
     return `<tr><td class="nm">${esc(nm)}</td><td class="n mono">${prM(o.spend, cur)}</td><td class="n mono">${num(o.clicks)}</td><td class="n mono">${o.imp ? prPct(o.clicks / o.imp) : "—"}</td><td class="n mono">${num(o.leads)}</td><td class="n">${cpl ? `<span class="mono">${prM(cpl, cur)}</span>` : "—"} ${lv ? pill(lv, lv === "good" ? L("у стелі","в потолке") : lv === "warn" ? L("вище стелі","выше потолка") : o.leads ? L("понад 1,5 стелі","выше 1,5 потолка") : L("без лідів","без лидов")) : ""}</td>${add !== undefined ? `<td class="n">${add}</td>` : ""}</tr>`; };
   const th = (first, ex) => `<thead><tr><th>${first}</th><th class="n">${L("Витрати","Расход")}</th><th class="n">${L("Кліки","Клики")}</th><th class="n">CTR</th><th class="n">${L("Ліди","Лиды")}</th><th class="n">${L("Ціна ліда","Цена лида")}</th>${ex ? "<th></th>" : ""}</tr></thead>`;
   return `<div class="panel">${lvTag(5)}<div class="row sp"><h2 class="prname">${esc(r.name)}</h2>${prFresh(p)}</div><p class="sub">${chOf(c)[1]} · ${esc(f.name)} · ${esc(p.name)} · <span class="mono">${prLabel(x.r)}</span></p>
@@ -219,7 +242,7 @@ function prOverview(only){ const ps = (only ? [only] : W.projs).filter(prOn); if
     const nl = all.filter(o => o.spend > 0 && !fxFunnel(p, o)); if (nl.length) lost.push({p, n:nl.length, spend:nl.reduce((a, o) => a + o.spend, 0)});
     p.funnels.forEach(f => (f.ch || []).forEach(c => { const prev = prRows(p, x.prev, f, c), cap = prCap(f, p);
       prRows(p, x.cur, f, c, x).filter(o => o.spend > 0).forEach(o => { const j = prMain(prJudge(o, prev.find(q => q.id === o.id) || {}, cap, prCur(p)));
-        if (j && (j.lv === "crit" || j.lv === "warn")) att.push({p, f, c, o, j}); }); })); });
+        if (j && j.lv === "crit") att.push({p, f, c, o, j}); }); })); });
   att.sort((a, b) => PRANK[b.j.lv] - PRANK[a.j.lv] || b.o.spend - a.o.spend);
   const cpl = s.leads ? s.spend / s.leads : 0, pcpl = v.leads ? v.spend / v.leads : 0;
   const kp = cur ? `<div class="hero">${prHero(cpl, pcpl, cur, 0, true)}<div class="kpis kpis--5">${prKpi(L("Витрати","Расход"), prM(s.spend, cur), prDelta(s.spend, v.spend, "n"))}${prKpi(L("Лідів","Лидов"), num(s.leads), prDelta(s.leads, v.leads))}${prKpi("CTR", s.imp ? prPct(s.clicks / s.imp) : "—", s.imp && v.imp ? prDelta(s.clicks / s.imp, v.clicks / v.imp) : "")}${prKpi(L("Броні · оплати","Брони · оплаты"), num(s.book) + " · " + num(s.pay), s.rev && s.spend ? `<small>ROAS ${dec(s.rev / s.spend, 1)}</small>` : "")}</div></div>` : `<p class="sub">${L("У кабінетів різна валюта, тому загальну суму не складаємо — дивись по проєктах.","У кабинетов разная валюта, поэтому общую сумму не складываем — смотри по проектам.")}</p>`;
@@ -233,7 +256,7 @@ function prOverview(only){ const ps = (only ? [only] : W.projs).filter(prOn); if
   const items = att.slice(0, 5).map(a => { const h = hiroPlan(a), mk = "co/" + a.p.id + "/" + a.f.id + "/" + a.c + "/" + prAK(prAccOf(prOf(a.p), a.o.id)) + "/" + a.o.id;
     return `<li class="prv--${a.j.lv}" data-cid="${esc(a.o.id)}"><div><b>${esc(a.j.t)}</b> · <span class="nm">${esc(a.o.name)}</span> <span class="sub">${esc((ps.length > 1 ? a.p.name + " · " : "") + a.f.name)}</span></div><div class="hpro">${hava("idea", 24)}<span><b>${esc(h.title)}.</b> ${esc(h.why)}</span></div><div class="row"><span class="sub">${esc(tdWhyOff(a.p))}</span><span class="tdo"><button type="button" class="btn btn--sm btn--ico" data-act="prGo" data-k="${esc(mk)}" title="${L("Показати на карті","Показать на карте")}" aria-label="${L("Показати на карті","Показать на карте")}">${ico("map")}</button>${[["d",ico("done"),L("Зробив","Сделал")],["l",ico("clock"),L("Відкласти до завтра","Отложить до завтра")],["n",ico("archive"),L("Це норма, сховати на 7 днів","Это норма, скрыть на 7 дней")]].map(o => `<button type="button" class="btn btn--sm btn--ico" data-act="tdMark" data-k="${esc(tk(a))}" data-v="${o[0]}" title="${o[2]}" aria-label="${o[2]}">${o[1]}</button>`).join("")}</span></div></li>`; }).join("")
     + lost.map(l => `<li class="prv--warn"><div><b>${L("Кампанії без воронки: ","Кампании без воронки: ")}${l.n}</b> <span class="sub">${esc(l.p.name)}</span></div><div class="sub">${L("Їхні витрати ","Их расход ")}${prM(l.spend, prCur(l.p))}${L(" не потрапляють на карту й у висновки воронок."," не попадает на карту и в выводы воронок.")}</div><div class="row"><button class="btn btn--sm" data-act="wsOpenP" data-id="${l.p.id}">${L("Прив’язати у проєкті","Привязать в проекте")}</button></div></li>`).join("");
-  return `<div class="panel"><div class="row sp"><span class="tag">${L("Пульс реклами","Пульс рекламы")} · ${prLabel(r)}${only ? " · " + esc(only.name) : ""}</span></div>${errs}${s.spend || s.imp ? kp : `<p class="sub">${L("За цей період показів не було.","За этот период показов не было.")}</p>`}
+  return `<div class="panel"><div class="row sp"><span class="tag">${L("Пульс реклами","Пульс рекламы")} · ${prLabel(r)}${only ? " · " + esc(only.name) : ""}</span></div>${errs}${TDF.t ? `<div class="hpro">${hava("watch", 24)}<span>${esc(TDF.t)}</span></div>` : ""}${s.spend || s.imp ? kp : `<p class="sub">${L("За цей період показів не було.","За этот период показов не было.")}</p>`}
     ${items ? `<div class="row sp"><span class="tag">${L("Без автопілота","Без автопилота")} · ${att.length + lost.length}</span><span class="scrl-cnt sub"></span>${done.length ? `<button type="button" class="btn btn--sm" data-act="tdReset">${L("Сховано: ","Скрыто: ")}${done.length}</button>` : ""}</div><ul class="prv scrl">${items}</ul>${att.length > 5 ? `<p class="sub">${L("Ще ","Ещё ")}${att.length - 5}${L(" — після цих"," — после этих")}</p>` : ""}` : ""}</div>`; }
 /* карточка кампании: вместо «Что сделать» — решение Хиро. Есть в ленте — та же строка с «Да / Предложи другое»; нет — его выбор и как его включить */
 function tdCampHiro(p, f, r, js){ const j = prMain(js); if (!j || (j.lv !== "crit" && j.lv !== "warn")) return "";
@@ -245,29 +268,30 @@ const TD_KEY = "heyrow_today";
 /* ---------- решение Хиро по проблемной кампании ----------
    Хиро сам выбирает одно действие: выключить кампанию без лидов, выключить худшее объявление или оставить до завтра.
    Действие уходит в ленту автопилота (функция pilot, action propose); в Meta — только после «Да», ночью. */
-function hiroPlan(a){ const x = prOf(a.p), cur = prCur(a.p), cap = prCap(a.f, a.p), TH = prTh(), o = a.o, m = n => prM(n, cur);
+function hiroPlan(a){ const x = prOf(a.p), cur = prCur(a.p), cap = prCap(a.f, a.p), o = a.o, m = n => prM(n, cur);
   const ads = (x.ads || []).filter(d => d.cid === o.id && d.spend > 0), key = "td:" + o.id + ":" + prToday() + ":";
-  const cplO = o.leads ? o.spend / o.leads : 0;
-  if (cap && !o.leads && o.spend >= TH.noLead * cap) return {key:key + "pc", title:L("Вимкнути кампанію","Выключить кампанию"),
-    why:L("Витрачено ","Потрачено ") + m(o.spend) + L(" — це "," — это ") + dec(o.spend / cap, 1) + L(" стелі ціни ліда, лідів немає. Вимикаю, щоб не витрачати далі."," потолка цены лида, лидов нет. Выключаю, чтобы не тратить дальше."),
-    payload:{op:"pause", cid:o.id, name:o.name}};
-  const bad = cap ? ads.filter(d => !d.leads ? d.spend >= TH.noLead * cap : d.spend / d.leads > cap * 1.5)
-    .sort((p, q) => (p.leads ? 1 : 0) - (q.leads ? 1 : 0) || (p.leads ? q.spend / q.leads - p.spend / p.leads : q.spend - p.spend)) : [];
-  if (bad.length && ads.length > 1) { const w = bad[0], rl = o.leads - w.leads, after = rl > 0 ? (o.spend - w.spend) / rl : 0;
+  const J = cap ? prJ(o, cap) : null, lw = J ? J.ld : null, cplO = o.leads ? o.spend / o.leads : 0;
+  /* худшее объявление: само «плохо» по статистике, и без него кампания в норме */
+  const bad = cap ? ads.map(d => ({d, j:judgeCpl({spend:d.spend, leads:d.leads, target:cap, ld:lw})})).filter(z => z.j.verdict === "bad")
+    .sort((p, q) => q.j.confBad - p.j.confBad || q.d.spend - p.d.spend) : [];
+  if (bad.length && ads.length > 1 && bad.length < ads.length) { const w = bad[0].d, rl = o.leads - w.leads, after = rl > 0 ? (o.spend - w.spend) / rl : 0;
     return {key:key + "pa:" + w.name, title:L("Вимкнути оголошення «","Выключить объявление «") + w.name + "»",
-      why:m(w.spend) + (w.leads ? L(", лідів " , ", лидов ") + w.leads + L(" по "," по ") + m(w.spend / w.leads) : L(", лідів немає",", лидов нет")) + "." + (after && cplO ? L(" Без нього лід у кампанії ~"," Без него лид в кампании ~") + m(after) + L(" замість "," вместо ") + m(cplO) + "." : ""),
-      payload:{op:"pause_ad", cid:o.id, name:w.name}}; }
+      why:m(w.spend) + (w.leads ? L(", лідів " , ", лидов ") + w.leads + L(" по "," по ") + m(w.spend / w.leads) : L(", лідів немає",", лидов нет")) + L(" — ціна гірша за норму з упевненістю "," — цена хуже нормы с уверенностью ") + Math.round(bad[0].j.confBad * 100) + "%." + (after && cplO ? L(" Без нього лід у кампанії ~"," Без него лид в кампании ~") + m(after) + L(" замість "," вместо ") + m(cplO) + "." : ""),
+      payload:{op:"pause_ad", cid:o.id, name:w.name, cname:o.name, facts:[[L("Витрачено","Потрачено"), m(w.spend), !w.leads], [L("Лідів","Лидов"), String(w.leads), false], [L("Ціна ліда","Цена лида"), w.leads ? m(w.spend / w.leads) : "—", !!w.leads]], gain:after && cplO ? L("Лід у кампанії стане ~","Лид в кампании станет ~") + m(after) + L(" замість "," вместо ") + m(cplO) : L("Зупинить витрати без лідів","Остановит расход без лидов")}}; }
+  if (J && J.verdict === "bad") return {key:key + "pc", title:L("Вимкнути кампанію","Выключить кампанию"),
+    why:(J.k ? L("Лід ","Лид ") + m(J.cpl) : L("Витрачено ","Потрачено ") + m(J.S) + L(" без лідів"," без лидов")) + J.win + L(" при нормі "," при норме ") + m(J.Teff) + (J.Lf > 1 ? L(" (з поправкою на навчання)"," (с поправкой на обучение)") : "") + L(". Шанс, що це випадковість, ",". Шанс, что это случайность, ") + Math.round(J.q * 100) + L("%. Слабкого оголошення, яке можна прибрати, немає — вимикаю кампанію, щоб не витрачати далі.","%. Слабого объявления, которое можно убрать, нет — выключаю кампанию, чтобы не тратить дальше."),
+    payload:{op:"pause", level:"campaign", cid:o.id, name:o.name, cname:o.name, facts:[[L("Витрачено","Потрачено"), m(J.S), !J.k], [L("Лідів","Лидов"), String(J.k), false], J.k ? [L("Ціна ліда","Цена лида"), m(J.cpl), true] : [L("Норма ліда","Норма лида"), m(J.Teff), false]], gain:L("Зупинить витрати: ","Остановит расход: ") + (J.k ? L("ліди тут дорожчі за норму","лиды здесь дороже нормы") : L("лідів немає","лидов нет"))}};
   return {key:key + "w", title:L("Залишити до завтра","Оставить до завтра"),
-    why:(cplO && cap ? L("Дорого в усіх оголошеннях: лід ","Дорого во всех объявлениях: лид ") + m(cplO) + L(" при стелі "," при потолке ") + m(cap) + L(". Вимикати по одному немає сенсу — справа в офері, сторінці чи аудиторії. Сьогодні нічого не чіпаю, завтра перевірю.",". Выключать по одному смысла нет — дело в оффере, странице или аудитории. Сегодня ничего не трогаю, завтра проверю.") : L("Даних поки мало для дії. Завтра перевірю ще раз.","Данных пока мало для действия. Завтра проверю ещё раз.")),
-    payload:{op:"watch", cid:o.id, name:o.name}}; }
+    why:J ? prIf(J, m) + L(" Стоп, якщо до "," Стоп, если до ") + m(J.stopAt) + L(" не буде нового ліда."," не будет нового лида.") : L("Даних поки мало для дії. Завтра перевірю ще раз.","Данных пока мало для действия. Завтра проверю ещё раз."),
+    payload:{op:"watch", level:"campaign", cid:o.id, name:o.name, cname:o.name}}; }
 /* куда идут решения: в ленту, если автопилот проекта настроен и ты можешь решать; пока лента грузится — не показываем дважды */
-const TDP = {};
+const TDP = {}, TDF = {t:""}; /* TDF — Хиро на паузе из-за сбоя Meta (ответ hiro-propose) */
 async function tdPropose(body){ if (!CLOUD || !sb) return {ok:false}; try { const r = await sb.functions.invoke("hiro-propose", {body}); return r.data || {ok:false}; } catch (e) { return {ok:false}; } }
 function tdFeed(att){ if (typeof PL === "undefined" || !CLOUD) return att; const push = {};
   const ok = p => { const r = PL.st[p.id]; return r === undefined ? (p.meta && p.meta.conn ? "wait" : "") : r && r.ok && r.admin && r.settings ? "yes" : ""; };
   const left = att.filter(a => { const s = ok(a.p); if (s === "yes") { const h = hiroPlan(a); if (!TDP[a.p.id + h.key]) (push[a.p.id] = push[a.p.id] || []).push(h); } return !s; });
   Object.keys(push).forEach(pid => { push[pid].forEach(h => { TDP[pid + h.key] = 1; });
-    tdPropose({project_id:pid, items:push[pid].map(h => ({key:h.key, title:h.title, body:h.payload.name + "\n" + h.why, payload:h.payload}))}).then(r => { if (r.ok && r.added) { delete PL.st[pid]; const p = W.projs.find(x => x.id === pid); if (p) plLoad(p); } }); });
+    tdPropose({project_id:pid, items:push[pid].map(h => ({key:h.key, title:h.title, body:h.payload.name + "\n" + h.why, payload:h.payload}))}).then(r => { if (r.ok && r.frozen) { TDF.t = r.frozen; render(); } if (r.ok && r.added) { delete PL.st[pid]; const p = W.projs.find(x => x.id === pid); if (p) plLoad(p); } }); });
   return left; }
 const tdWhyOff = p => { const r = typeof PL !== "undefined" ? PL.st[p.id] : null; return !r || !r.ok ? L("Автопілот недоступний — зроби це сам у кабінеті.","Автопилот недоступен — сделай это сам в кабинете.") : !r.settings ? L("Увімкни автопілот у проєкті, і я зроблю це сам після твого «Так».","Включи автопилот в проекте, и я сделаю это сам после твоего «Да».") : r.admin ? L("Кладу в стрічку автопілота…","Кладу в ленту автопилота…") : L("Вирішує власник або керівник.","Решает собственник или руководитель."); };
 function tdLoad(){ try { return JSON.parse(localStorage.getItem(TD_KEY) || "{}"); } catch (e) { return {}; } }

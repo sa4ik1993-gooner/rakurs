@@ -1402,3 +1402,41 @@ td:first-child{font:600 var(--t-body)/1.3 var(--font-ui)}
 /* вкладки ленты Хиро */
 .pltabs{flex-wrap:wrap;max-width:100%;margin-bottom:var(--s-2)}
 .pltabs button .mono{opacity:.7;margin-left:2px}
+
+/* ---------- карточки ленты Хиро (DESIGN.md «Предложение автопилота», 24.11.2026) ---------- */
+.pllog{gap:var(--s-3)}
+.pllog--scroll{max-height:min(70vh,660px);overflow-y:auto;overscroll-behavior:contain;padding:2px var(--s-1) var(--s-2) 2px;scroll-snap-type:y proximity}
+.plc{display:grid;grid-template-columns:40px minmax(0,1fr);gap:var(--s-3);background:var(--surface);border-radius:var(--r-panel);box-shadow:var(--lift);padding:var(--s-4);scroll-snap-align:start}
+.plc__a{width:40px;height:40px;border-radius:var(--r-pill);display:grid;place-items:center;background:var(--track);color:var(--muted)}
+.plc__a .ic{width:20px;height:20px;--icon-accent:currentColor}
+.plc--off .plc__a,.plc--warn .plc__a{background:var(--minus-soft);color:var(--minus)}
+.plc--re .plc__a{background:var(--signal-soft);color:var(--signal)}
+.plc--up .plc__a{background:var(--plus-soft);color:var(--plus)}
+.plc__m{display:flex;flex-direction:column;gap:var(--s-2);min-width:0}
+.plc__h{display:flex;justify-content:space-between;align-items:baseline;gap:var(--s-3)}
+.plc__h b{font:700 16px/1.3 var(--font-ui)}
+.plc__h time{font-size:var(--t-small);color:var(--muted);white-space:nowrap}
+.plc__t{margin:0;color:var(--muted);font-size:var(--t-data);line-height:1.45;max-width:680px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* путь объекта: кампания › группа › объявление */
+.plpath{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s-1) var(--s-2)}
+.plpath__s{color:var(--muted)}
+.plo{display:inline-flex;align-items:center;gap:var(--s-2);max-width:100%;background:var(--track);border-radius:var(--r-pill);padding:3px var(--s-3) 3px 3px;font:600 13px/1.3 var(--font-ui);min-width:0}
+.plo b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.plo__k{font:700 var(--t-label)/1 var(--font-display);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);white-space:nowrap}
+.plo__i{width:22px;height:22px;border-radius:var(--r-pill);display:grid;place-items:center;flex:none;background:var(--lvc);color:var(--on-dark)}
+.plo__i .ic{width:13px;height:13px;--icon-accent:var(--on-dark)}
+.plo--campaign{--lvc:var(--lvl-campaign)}.plo--adset{--lvc:var(--lvl-adset)}.plo--ad{--lvc:var(--lvl-ad)}
+.plo--me{background:var(--surface);box-shadow:inset 0 0 0 2px var(--lvc)}
+/* факты и результат */
+.plf2{display:flex;flex-wrap:wrap;gap:var(--s-2) var(--s-5)}
+.plf2>div{display:flex;flex-direction:column;gap:2px}
+.plf2 span{font-size:11px;color:var(--muted)}
+.plf2 b{font:700 18px/1.2 var(--font-data);font-variant-numeric:tabular-nums}
+.plf2 b.is-bad{color:var(--minus)}
+.plgain{display:flex;align-items:center;gap:var(--s-2);background:var(--plus-soft);color:var(--plus);border-radius:var(--r-control);padding:var(--s-2) var(--s-3);font:600 14px/1.35 var(--font-ui);max-width:680px}
+.plgain .ic{width:18px;height:18px;flex:none;--icon-accent:currentColor}
+.plbtn{gap:var(--s-2);flex-wrap:wrap}
+.plc--rep{grid-template-columns:40px minmax(0,1fr)}
+.pllog li.plc.is-hl{box-shadow:0 0 0 2px var(--signal),var(--lift)}
+@media (max-width:600px){.plc{grid-template-columns:32px minmax(0,1fr);padding:var(--s-3)}.plc__a{width:32px;height:32px}.plc__h{flex-direction:column;gap:2px}}
+.hava--40{width:40px;height:40px}
