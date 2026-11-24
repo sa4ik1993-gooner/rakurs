@@ -74,7 +74,7 @@ Object.assign(ACT, {
    «Перевірю сторінку за 10 HEY?» → «Так» → монеты списываются, проверка идет, результат — в той же карточке. «Ні» — убрать предложение. */
 const SCI = {}, scNorm = u => String(u || "").replace(/^https?:\/\//i, "").replace(/\/+$/, "").toLowerCase();
 function plSiteOffer(p, A, why){ const k = p.id + A.f.id, s = SCI[k] = SCI[k] || {}, st = SCK.st; scLoad();
-  const land = s.url || ((A.f.lands || [])[0] || {}).url || "", price = st && st.price || 10, bal = st && st.balance != null ? st.balance : null, hist = st && st.hist || [];
+  const LI = typeof plLandInfo === "function" ? plLandInfo(p, A) : {url:((A.f.lands || [])[0] || {}).url || "", src:"cfg"}, land = s.url || LI.url, price = st && st.price || 10, bal = st && st.balance != null ? st.balance : null, hist = st && st.hist || [];
   const res = s.id ? hist.find(h => h.id === s.id) : null, last = !res && land ? hist.find(h => h.status === "ok" && scNorm(h.url) === scNorm(land) && Date.now() - Date.parse(h.at) < 7 * 864e5) : null;
   const wrap = b => `<div class="scoffer">${hava("idea", 40)}<div class="scoffer__m">${b}</div></div>`;
   if (res) { const prev = hist.find(h => h.id !== res.id && h.status === "ok" && scNorm(h.url) === scNorm(res.url) && h.at < res.at), ps = prev && prev.result && prev.result.psi, rs = res.result && res.result.psi;
@@ -87,7 +87,9 @@ function plSiteOffer(p, A, why){ const k = p.id + A.f.id, s = SCI[k] = SCI[k] ||
   const low = bal != null && bal < price;
   return wrap(`<span class="heytag">Hey!</span><b>${esc(why)} ${L("Перевірю її за ","Проверю ее за ")}${price} ${COIN}?</b>
     <p class="sub">${L("Подивлюся, як сторінку бачить людина з реклами на телефоні: швидкість, піксель Meta, форма, важкі блоки. Результат покажу тут, з тим, що виправити.","Посмотрю, как страницу видит человек из рекламы на телефоне: скорость, пиксель Meta, форма, тяжелые блоки. Результат покажу здесь, с тем, что исправить.")}</p>
-    ${land ? `<p class="sub">${L("Сторінка: ","Страница: ")}<b>${esc(land)}</b></p>` : `<input id="sci-${k}" class="tin" type="url" inputmode="url" placeholder="${L("Адреса сторінки, https://…","Адрес страницы, https://…")}">`}
+    <label class="sc__lab" for="sci-${k}">${L("Сторінка","Страница")} <span class="sub">${s.url ? L("(вписав ти)","(вписал ты)") : LI.src === "ads" ? L("(з оголошень воронки, веде ","(из объявлений воронки, ведет ") + LI.n + L(" оголош.)"," объявл.)") : LI.load ? L("(шукаю в оголошеннях…)","(ищу в объявлениях…)") : LI.src === "cfg" ? L("(з налаштувань воронки)","(из настроек воронки)") : ""}</span></label>
+    <input id="sci-${k}" class="tin" type="url" inputmode="url" value="${esc(land)}" placeholder="${L("Адреса сторінки, https://…","Адрес страницы, https://…")}">
+    ${LI.all && LI.all.length > 1 ? `<p class="sub">${L("Інші сторінки в оголошеннях: ","Другие страницы в объявлениях: ")}${LI.all.slice(1, 4).map(u => esc(u.url)).join(", ")}</p>` : ""}
     ${s.err ? `<p class="mterr">${esc(s.err)}</p>` : ""}
     <div class="row"><button type="button" class="btn btn--main btn--sm" data-act="scInlGo" data-k="${k}" data-p="${p.id}"${low ? " disabled" : ""}>${L("Так, перевір · ","Да, проверь · ")}${price} ${COIN}</button><button type="button" class="btn btn--sm" data-act="scInlNo" data-k="${k}">${L("Ні","Нет")}</button>
     ${last ? `<button type="button" class="btn btn--sm btn--text" data-act="scInlShow" data-k="${k}" data-v="${last.id}">${L("Показати перевірку від ","Показать проверку от ")}${new Date(last.at).toLocaleDateString(lang === "uk" ? "uk-UA" : "ru-RU", {day:"2-digit", month:"2-digit"})}</button>` : ""}</div>
@@ -95,7 +97,8 @@ function plSiteOffer(p, A, why){ const k = p.id + A.f.id, s = SCI[k] = SCI[k] ||
 Object.assign(ACT, {
   async scInlGo(d){ const s = SCI[d.k] = SCI[d.k] || {}; if (d.again) { const r0 = s.id && SCK.st ? (SCK.st.hist || []).find(h => h.id === s.id) : null; if (r0) s.url = r0.url; s.id = null; s.no = 0; }
     const el = document.getElementById("sci-" + d.k), p = (W.projs || []).find(x => x.id === d.p);
-    const f = p && (p.funnels || []).find(x => d.k === p.id + x.id), url = s.url || (el && el.value.trim()) || (f && ((f.lands || [])[0] || {}).url) || "";
+    const f = p && (p.funnels || []).find(x => d.k === p.id + x.id), A = p && f && typeof plAcctAll === "function" ? plAcctAll(p).find(a => a.f.id === f.id) : null;
+    const url = (el && el.value.trim()) || s.url || (A && typeof plLand === "function" ? plLand(p, A) : "") || (f && ((f.lands || [])[0] || {}).url) || "";
     if (!url) { s.err = L("Впиши адресу сторінки.","Впиши адрес страницы."); render(); return false; }
     s.url = url; s.busy = true; s.err = ""; render();
     const r = await scCall({action:"check", url, project_id:d.p}); s.busy = false;
