@@ -101,8 +101,9 @@ function hiroSay(scr){
   if (e.bad.length) { const n = e.bad.length, b = e.bad[0];
     out.pose = "stop"; out.title = plural(n, L("кампанія дорожча за стелю","кампания дороже потолка"), L("кампанії дорожчі за стелю","кампании дороже потолка"), L("кампаній дорожчі за стелю","кампаний дороже потолка"));
     out.text = (e.cpl ? L("Ціна ліда ","Цена лида ") + m(e.cpl) + (e.cap ? L(" при стелі "," при потолке ") + m(e.cap) : "") + ". " : "") + L("Найбільше витрачає ","Больше всех тратит ") + b.o.name + (b.cpl ? L(": лід по ",": лид по ") + m(b.cpl) : L(": лідів немає",": лидов нет")) + ".";
-    out.main = scr === "today" ? hiroBtn("btn--main", L("Відкрити кампанію","Открыть кампанию"), `data-act="prGo" data-k="${esc(hiroKey(b))}"`) : hiroBtn("btn--main", L("Відкрити рішення","Открыть решения"), 'data-act="wsCtab" data-v="today"');
-    out.sec = scr === "map" ? hiroBtn("btn--glass", L("Показати кампанію","Показать кампанию"), `data-act="prGo" data-k="${esc(hiroKey(b))}"`) : hiroBtn("btn--glass", L("Показати на карті","Показать на карте"), `data-act="prGo" data-k="${esc(hiroKey(b))}"`);
+    /* на «Сегодня» решение раскрывается тут же, в списке ниже, без перехода на карту */
+    out.main = scr === "today" ? hiroBtn("btn--main", L("Відкрити рішення","Открыть решение"), `data-act="tdOpen" data-k="${esc(hiroKey(b))}"`) : hiroBtn("btn--main", L("Відкрити рішення","Открыть решения"), 'data-act="wsCtab" data-v="today"');
+    out.sec = scr === "today" ? "" : scr === "map" ? hiroBtn("btn--glass", L("Показати кампанію","Показать кампанию"), `data-act="prGo" data-k="${esc(hiroKey(b))}"`) : hiroBtn("btn--glass", L("Показати на карті","Показать на карте"), `data-act="prGo" data-k="${esc(hiroKey(b))}"`);
     return out; }
   if (paused) { out.pose = "sleep"; out.title = L("Автопілот на паузі","Автопилот на паузе"); out.text = L("Нічого не змінюю в рекламі, лише рахую цифри. Увімкни, і я знову стежитиму щогодини.","Ничего не меняю в рекламе, только считаю цифры. Включи, и я снова буду следить каждый час.");
     out.main = hiroBtn("btn--main", L("Увімкнути автопілот","Включить автопилот"), `data-act="apbToggle" data-p="${paused.id}"`, "autopilot"); return out; }
