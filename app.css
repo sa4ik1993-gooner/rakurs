@@ -1633,3 +1633,10 @@ td:first-child{font:600 var(--t-body)/1.3 var(--font-ui)}
 .wsx__m button:hover{background:var(--paper)}
 .wsx__m button.is-on{font-weight:700}
 .wsx__m button svg,.wsx__m button i{width:16px;height:16px;flex:none;color:var(--signal)}
+
+/* автопилот: воронки, которые ведёт Хиро */
+.plz{display:flex;flex-direction:column;gap:6px;width:100%}
+.plz__r{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s-2) var(--s-4);padding:8px 12px;border:1px solid var(--line);border-radius:var(--r-control);background:var(--surface)}
+.plz__r .ck{flex:1 1 180px;min-width:0}
+.plz__t{display:flex;align-items:center;gap:6px}
+.plz__t .tin{width:90px;min-height:34px}

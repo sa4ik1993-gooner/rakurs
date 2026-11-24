@@ -15,7 +15,10 @@ async function plLoad(p){ if (PL.busy[p.id]) return; PL.busy[p.id] = true; let r
 function plDefaults(p, s){ const accs = prAccs(p, "meta").map(a => String(a.id)), f = p.funnels[0], cap = f ? fT(f, p).cap : 0;
   const ruled = accs.find(id => ((p.accRules || {})["meta:" + id] || []).length), acc = (s && s.account_ids && s.account_ids[0]) || ruled || accs[0] || "", rule = ((p.accRules || {})["meta:" + acc] || []).find(r => !f || r.f === f.id) || {};
   return {enabled:s ? s.enabled : false, account_ids:s && s.account_ids && s.account_ids.length ? s.account_ids.slice() : acc ? [acc] : [], target_cpl:s && s.target_cpl ? s.target_cpl : Math.round(cap * 100) / 100,
-    inc:s ? s.inc : (rule.inc || ""), exc:s ? s.exc : (rule.exc || ""), report_hour:s ? s.report_hour : 9, mode:s && s.mode === "auto" ? "auto" : "propose", auto:!s}; }
+    inc:s ? s.inc : (rule.inc || ""), exc:s ? s.exc : (rule.exc || ""), report_hour:s ? s.report_hour : 9, mode:s && s.mode === "auto" ? "auto" : "propose", auto:!s,
+    /* воронки, которые ведёт Хиро: своя цель у каждой; какие кампании в воронке — по правилам воронки (как на карте), а не словами в автопилоте (24.11.2026) */
+    zones:p.funnels.map((fn, i) => { const z = s && Array.isArray(s.zones) ? s.zones.find(x => x.fid === fn.id) : null, c = fT(fn, p).cap;
+      return z ? {fid:fn.id, target_cpl:z.target_cpl, on:z.on !== false} : {fid:fn.id, target_cpl:i === 0 && s && s.target_cpl ? s.target_cpl : Math.round((c > 0 && isFinite(c) ? c : 0) * 100) / 100, on:i === 0 && !(s && Array.isArray(s.zones) && s.zones.length)}; })}; }
 /* выключение (группа, кампания, объявление) делаем сразу после «Да», не ночью (Дмитрий, 24.11.2026) */
 const plOff = pay => pay && (pay.op === "pause" || pay.op === "pause_ad");
 const plStrip = t => String(t || "").replace(/<[^>]+>/g, "");
@@ -571,10 +574,12 @@ function plPanel(p){ if (!CLOUD) return "";
   const hours = [...Array(16)].map((_, i) => i + 7);
   const settings = `<div class="form plf">
       <div class="field w"><span class="lbl">${L("Акаунти","Аккаунты")}</span><div class="row">${accOpts || `<span class="sub">${L("Немає підключених акаунтів Meta. Підключи кабінет у проєкті.","Нет подключенных аккаунтов Meta. Подключи кабинет в проекте.")}</span>`}</div></div>
-      <div class="field"><label for="pl-t">${L("Ціль: ціна ліда до, $","Цель: цена лида до, $")}</label><input id="pl-t" data-plf="target_cpl" inputmode="decimal" value="${esc(String(e.target_cpl || ""))}"${dis}>${e.auto ? `<span class="sub">${L("Узяв граничну ціну з воронки","Взял потолок из воронки")}</span>` : ""}</div>
+      <div class="field w"><span class="lbl">${L("Воронки, які веде Хіро","Воронки, которые ведет Хиро")} ${hint(L("Логіка рішень одна для всіх воронок. Різне — ціль ціни ліда. Які кампанії належать до воронки, задається в самій воронці: «Цілі» → «Які кампанії належать до воронки» (містить / не містить за акаунтами).","Логика решений одна для всех воронок. Разное — цель цены лида. Какие кампании относятся к воронке, задается в самой воронке: «Цели» → «Какие кампании относятся к воронке» (содержит / не содержит по аккаунтам)."))}</span>
+        <div class="plz">${(e.zones || []).map(z => { const fn = p.funnels.find(x => x.id === z.fid); if (!fn) return ""; const nr = Object.values(p.accRules || {}).flat().filter(r => r.f === fn.id).length;
+          return `<div class="plz__r"><label class="ck"><input type="checkbox" data-plz="on" data-fid="${fn.id}"${z.on ? " checked" : ""}${dis}> <b>${esc(fn.name)}</b></label>
+            <label class="plz__t"><span class="sub">${L("лід до, $","лид до, $")}</span><input class="tin" data-plz="t" data-fid="${fn.id}" inputmode="decimal" value="${esc(String(z.target_cpl || ""))}"${dis}></label>
+            <button type="button" class="btn btn--sm btn--text" data-act="plzRules" data-p="${p.id}" data-fid="${fn.id}">${nr ? L("Правила кампаній","Правила кампаний") + " · " + nr : L("Задати, які кампанії","Задать, какие кампании")}</button></div>`; }).join("")}</div></div>
       <div class="field"><label for="pl-h">${L("Звіт щодня о","Отчет каждый день в")}</label><select id="pl-h" data-plf="report_hour"${dis}>${hours.map(h => `<option value="${h}"${+e.report_hour === h ? " selected" : ""}>${String(h).padStart(2, "0")}:00</option>`).join("")}</select></div>
-      <div class="field"><label for="pl-i">${L("Кампанії, назва містить","Кампании, название содержит")}</label><input id="pl-i" data-plf="inc" value="${esc(e.inc || "")}" placeholder="${L("порожньо — усі","пусто — все")}"${dis}></div>
-      <div class="field"><label for="pl-x">${L("Не містить","Не содержит")}</label><input id="pl-x" data-plf="exc" value="${esc(e.exc || "")}"${dis}></div>
       <div class="field w"><span class="lbl">${L("Як я працюю","Как я работаю")}</span>
         <div class="seg plseg" role="group">${[["propose", L("Пропоную, ти вирішуєш","Предлагаю, ты решаешь")], ["auto", L("Роблю сам","Делаю сам")]].map(m => `<button type="button" data-act="plMode" data-p="${p.id}" data-v="${m[0]}" aria-pressed="${e.mode === m[0]}"${dis}>${m[1]}</button>`).join("")}</div>
         <span class="sub">${e.mode === "auto" ? L("Одразу ставлю зміни в графік на ніч і пишу, що запланував. Ти можеш прибрати зміну до півночі.","Сразу ставлю изменения в график на ночь и пишу, что запланировал. Ты можешь убрать изменение до полуночи.") : L("Пропозиція приходить сюди й у Telegram. Вимкнення роблю одразу після «Так», бюджет і ввімкнення — вночі. Відхилиш — запропоную інше.","Предложение приходит сюда и в Telegram. Выключение делаю сразу после «Да», бюджет и включение — ночью. Отклонишь — предложу другое.")} ${L("Усі зміни в Meta роблю після 00:00 за Києвом. Рекламу вмикаю лише після твого погодження.","Все изменения в Meta делаю после 00:00 по Киеву. Рекламу включаю только после твоего согласования.")}</span></div>
@@ -606,13 +611,18 @@ document.addEventListener("input", e => { const t = e.target; if (!t.dataset || 
 document.addEventListener("change", e => { const t = e.target; if (!t.dataset) return; const p = P() || pfProjs()[0]; if (!p || !PL.edit[p.id]) return; const ed = PL.edit[p.id];
   if (t.dataset.plf && t.type === "checkbox") { ed[t.dataset.plf] = t.checked; render(); }
   if (t.dataset.plf === "report_hour") ed.report_hour = +t.value;
+  if (t.dataset.plz) { const z = (ed.zones || []).find(x => x.fid === t.dataset.fid); if (z) { if (t.dataset.plz === "on") { z.on = t.checked; render(); } else z.target_cpl = t.value; } }
   if (t.dataset.placc) { ed.account_ids = t.checked ? [...new Set(ed.account_ids.concat(t.dataset.placc))] : ed.account_ids.filter(x => x !== t.dataset.placc); } });
 Object.assign(ACT, {
+  plzRules(d){ W.cur = d.p; W.fun = d.fid; W.ftab = "goals"; MP.fold = MP.fold || {}; save(); setTimeout(() => { const el = document.querySelector(".fm"); if (el) el.scrollIntoView({behavior:"smooth", block:"center"}); }, 150); },
   apbToggle(d){ const p = W.projs.find(x => x.id === d.p), r = PL.st[d.p]; if (!p || !r || !r.ok) return false; if (!PL.edit[d.p]) PL.edit[d.p] = plDefaults(p, r.settings);
     PL.edit[d.p].enabled = !(r.settings && r.settings.enabled); return ACT.plSave({p:d.p}); },
   plMode(d){ const e = PL.edit[d.p]; if (!e) return false; e.mode = d.v === "auto" ? "auto" : "propose"; },
-  async plSave(d){ const e = PL.edit[d.p]; if (!e) return false; if (e.enabled && !(+String(e.target_cpl).replace(",", ".") > 0)) { toast(L("Вкажи цільову ціну ліда","Укажи целевую цену лида")); return false; }
-    const r = await plCall({action:"save", project_id:d.p, settings:Object.assign({}, e, {target_cpl:+String(e.target_cpl).replace(",", ".")})});
+  async plSave(d){ const e = PL.edit[d.p]; if (!e) return false; const num0 = v => +String(v || "").replace(",", ".") || 0;
+    const zones = (e.zones || []).map(z => ({fid:z.fid, target_cpl:num0(z.target_cpl), on:!!z.on})), z0 = zones.find(z => z.on && z.target_cpl > 0);
+    if (zones.some(z => z.on && !(z.target_cpl > 0))) { toast(L("Вкажи ціль ціни ліда для кожної увімкненої воронки","Укажи цель цены лида для каждой включенной воронки")); return false; }
+    if (e.enabled && !z0) { toast(L("Обери хоча б одну воронку й ціль ціни ліда","Выбери хотя бы одну воронку и цель цены лида")); return false; }
+    const r = await plCall({action:"save", project_id:d.p, settings:Object.assign({}, e, {zones, target_cpl:z0 ? z0.target_cpl : num0(e.target_cpl)})});
     toast(r.ok ? (e.enabled ? L("Збережено: Хіро веде акаунт","Сохранено: Хиро ведет аккаунт") : L("Збережено","Сохранено")) : plErr(r)); if (r.ok) { delete PL.st[d.p]; const p = W.projs.find(x => x.id === d.p); if (p) plLoad(p); } return false; },
   async plNow(d){ PL.msg[d.p] = L("Перевіряємо…","Проверяем…"); render(); const r = await plCall({action:"now", project_id:d.p, report:d.v === "1", send:d.v === "1"});
     PL.msg[d.p] = r.ok ? L("Груп у роботі: ","Групп в работе: ") + r.groups + L(" · пропозицій: "," · предложений: ") + r.recos + (r.errs && r.errs.length ? " · " + esc(r.errs.join(", ")) : "") : esc(plErr(r)); delete PL.st[d.p]; const p = W.projs.find(x => x.id === d.p); if (p) plLoad(p); return false; },
