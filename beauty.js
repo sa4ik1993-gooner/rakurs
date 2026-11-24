@@ -144,10 +144,27 @@ function vOnboard(){ return `<section class="hp lite-hero"><div class="hp__t"><s
   <form class="lite-login" data-form="ob"><label class="sr" for="ob-name">${L("Назва","Название")}</label><input id="ob-name" required maxlength="80" placeholder="${L("напр. Студія краси Олени","напр. Студия красоты Елены")}" value="${esc(S.ob.name)}"><button class="btn btn--main" type="submit"${S.ob.busy ? " disabled" : ""}>${L("Створити кабінет","Создать кабинет")}</button></form>
   </div><img class="hp__h" src="ui/hiro3d/hey.webp" alt="" width="210" height="250"></section>`; }
 /* ---------- подключение рекламного аккаунта Meta: ключ → проверка → акаунт і сторінка → зберегти ---------- */
-const MTSTEPS = () => [L("У налаштуваннях компанії Meta: Користувачі → Системні користувачі → Додати, роль «Адміністратор».","В настройках компании Meta: Пользователи → Системные пользователи → Добавить, роль «Администратор»."),
-  L("«Призначити об’єкти»: видай йому рекламний акаунт і сторінку Facebook, прив’язану до Instagram.","«Назначить объекты»: выдай ему рекламный аккаунт и страницу Facebook, привязанную к Instagram."),
-  L("«Згенерувати токен»: термін «Ніколи», права ads_read, pages_show_list, pages_read_engagement, а для переписок — instagram_basic, instagram_manage_messages, pages_manage_metadata.","«Сгенерировать токен»: срок «Никогда», права ads_read, pages_show_list, pages_read_engagement, а для переписок — instagram_basic, instagram_manage_messages, pages_manage_metadata."),
-  L("Скопіюй ключ і встав нижче. Meta показує його один раз.","Скопируй ключ и вставь ниже. Meta показывает его один раз.")];
+/* инструкция для мастера: по шагу на действие, у каждого — кнопка на нужную страницу Meta и отметка «Зроблено» (запоминается в браузере).
+   Названия пунктов Meta — с английскими в скобках: интерфейс у людей на разных языках. */
+const MTSTEPS = () => [
+  {t:L("Створи застосунок","Создай приложение"), url:"https://developers.facebook.com/apps/creation/", go:L("Відкрити Meta for Developers","Открыть Meta for Developers"),
+    how:[L("Увійди тим самим Facebook, що й до рекламного кабінету.","Войди тем же Facebook, что и в рекламный кабинет."),
+      L("Назва — «HEYROW». Тип або сценарій — «Інше» (Other), потім «Бізнес» (Business).","Название — «HEYROW». Тип или сценарий — «Другое» (Other), потом «Бизнес» (Business)."),
+      L("Обери своє бізнес-портфоліо й натисни «Створити застосунок» (Create app). Більше в застосунку нічого не налаштовуй.","Выбери своё бизнес-портфолио и нажми «Создать приложение» (Create app). Больше в приложении ничего не настраивай.")]},
+  {t:L("Додай системного користувача","Добавь системного пользователя"), url:"https://business.facebook.com/settings/system-users", go:L("Відкрити налаштування компанії","Открыть настройки компании"),
+    how:[L("Користувачі → Системні користувачі (Users → System users) → «Додати» (Add).","Пользователи → Системные пользователи (Users → System users) → «Добавить» (Add)."),
+      L("Ім’я — «HEYROW», роль — «Адміністратор» (Admin) → «Створити».","Имя — «HEYROW», роль — «Администратор» (Admin) → «Создать».")]},
+  {t:L("Дай йому доступ до реклами й сторінки","Дай ему доступ к рекламе и странице"), url:"https://business.facebook.com/settings/system-users", go:L("Відкрити системних користувачів","Открыть системных пользователей"),
+    how:[L("Обери користувача «HEYROW» → «Призначити ресурси» (Assign assets).","Выбери пользователя «HEYROW» → «Назначить ресурсы» (Assign assets)."),
+      L("«Рекламні акаунти» → твій акаунт → увімкни «Переглядати ефективність» (View performance) → «Зберегти».","«Рекламные аккаунты» → твой аккаунт → включи «Просматривать эффективность» (View performance) → «Сохранить»."),
+      L("«Сторінки» → сторінка Facebook, до якої прив’язаний твій Instagram → «Переглядати вміст» і «Повідомлення» → «Зберегти».","«Страницы» → страница Facebook, к которой привязан твой Instagram → «Просматривать контент» и «Сообщения» → «Сохранить»."),
+      L("Застосунки (Apps) → «Додати» → обери «HEYROW» → «Керувати застосунком» (Manage app).","Приложения (Apps) → «Добавить» → выбери «HEYROW» → «Управлять приложением» (Manage app).")]},
+  {t:L("Створи ключ","Создай ключ"), url:"https://business.facebook.com/settings/system-users", go:L("Відкрити системних користувачів","Открыть системных пользователей"),
+    how:[L("У користувача «HEYROW» натисни «Створити маркер» (Generate new token).","У пользователя «HEYROW» нажми «Создать маркер» (Generate new token)."),
+      L("Застосунок — «HEYROW». Термін дії — «Ніколи» (Never).","Приложение — «HEYROW». Срок действия — «Никогда» (Never)."),
+      L("Постав галочки: ads_read, business_management, pages_show_list, pages_read_engagement. Щоб клієнти з Direct самі з’являлися в журналі — ще instagram_basic, instagram_manage_messages, pages_manage_metadata.","Поставь галочки: ads_read, business_management, pages_show_list, pages_read_engagement. Чтобы клиенты из Direct сами появлялись в журнале — ещё instagram_basic, instagram_manage_messages, pages_manage_metadata."),
+      L("«Створити маркер» → «Копіювати». Meta покаже ключ лише один раз — встав його одразу нижче.","«Создать маркер» → «Копировать». Meta покажет ключ только один раз — вставь его сразу ниже.")]}];
+const mtDone = () => { try { return JSON.parse(localStorage.getItem("beauty_mt_done") || "{}"); } catch (e) { return {}; } };
 function vMeta(){ const p = S.projects.find(x => x.id === S.pid) || {}, m = S.mt, dis = m.busy ? " disabled" : "";
   if (p.meta) return `<section class="panel"><div class="row sp"><span class="tag">${L("Рекламний акаунт Meta","Рекламный аккаунт Meta")}</span><span class="st st--on">${L("підключено","подключено")}</span></div>
     <p><b>${esc(p.account || "")}</b>${p.currency ? ` <span class="sub">· ${esc(p.currency)}</span>` : ""}</p>
@@ -155,8 +172,10 @@ function vMeta(){ const p = S.projects.find(x => x.id === S.pid) || {}, m = S.mt
   const accs = (m.seen && m.seen.accounts) || [], pages = (m.seen && m.seen.pages) || [];
   return `<section class="panel"><div class="row sp"><span class="tag">${L("Підключи рекламний акаунт Meta","Подключи рекламный аккаунт Meta")}</span><span class="st st--pause">${L("не підключено","не подключено")}</span></div>
     <p class="sub">${L("Без нього я не бачу витрат на рекламу й не порахую, скільки коштує клієнт. Ключ лише читає статистику — змінювати рекламу не може.","Без него я не вижу расходов на рекламу и не посчитаю, сколько стоит клиент. Ключ только читает статистику — менять рекламу не может.")}</p>
-    <ol class="bty-steps">${MTSTEPS().map(t => `<li>${t}</li>`).join("")}</ol>
-    <div class="row"><a class="btn btn--sm" href="https://business.facebook.com/settings/system-users" target="_blank" rel="noopener">${L("Відкрити налаштування компанії","Открыть настройки компании")}</a></div>
+    <p class="sub">${L("Робиться один раз, близько 10 хвилин. Потрібен доступ адміністратора до бізнес-портфоліо, де лежить твій рекламний акаунт. Якщо рекламу тобі веде таргетолог — можеш переслати йому цю сторінку.","Делается один раз, около 10 минут. Нужен доступ администратора к бизнес-портфолио, где лежит твой рекламный аккаунт. Если рекламу тебе ведёт таргетолог — можешь переслать ему эту страницу.")}</p>
+    <ol class="bty-steps">${MTSTEPS().map((st, i) => { const dn = mtDone()[i]; return `<li class="bty-step${dn ? " is-done" : ""}"><div class="bty-step__h"><span class="bty-step__n">${dn ? (typeof ico === "function" ? ico("done") : "✓") : i + 1}</span><b>${st.t}</b></div>
+      <ul>${st.how.map(h => `<li>${h}</li>`).join("")}</ul><div class="row"><a class="btn btn--sm" href="${st.url}" target="_blank" rel="noopener">${st.go}</a><label class="ck"><input type="checkbox" data-ch="mtdone" data-i="${i}"${dn ? " checked" : ""}> ${L("Зроблено","Сделано")}</label></div></li>`; }).join("")}
+      <li class="bty-step"><div class="bty-step__h"><span class="bty-step__n">${MTSTEPS().length + 1}</span><b>${L("Встав ключ сюди","Вставь ключ сюда")}</b></div></li></ol>
     ${!m.seen ? `<form class="bty-form" data-form="mt"><label for="mt-token">${L("Ключ доступу","Ключ доступа")}</label><input id="mt-token" type="password" autocomplete="off" required placeholder="EAA…" value="${esc(m.token)}"><button class="btn btn--main" type="submit"${dis}>${m.busy ? L("Перевіряю…","Проверяю…") : L("Перевірити ключ","Проверить ключ")}</button></form>`
     : `<div class="bty-form"><label for="mt-acc">${L("Рекламний акаунт","Рекламный аккаунт")}</label><select id="mt-acc" data-ch="mtacc">${accs.map(a => `<option value="${esc(a.id)}"${a.id === m.acc ? " selected" : ""}>${esc(a.name || a.id)}${a.currency ? " · " + esc(a.currency) : ""}</option>`).join("")}</select>
       <label for="mt-pg">${L("Сторінка Facebook (з Instagram)","Страница Facebook (с Instagram)")}</label><select id="mt-pg" data-ch="mtpg"><option value="">${L("— без сторінки —","— без страницы —")}</option>${pages.map(g => `<option value="${esc(g.id)}"${g.id === m.pg ? " selected" : ""}>${esc(g.name || g.id)}</option>`).join("")}</select>
@@ -233,6 +252,7 @@ function keepForm(){ const f = S.form, g = id => $(id) && $(id).value; if ($("f-
 document.addEventListener("keydown", e => { const b = e.target.closest && e.target.closest("[role=button][data-act]"); if (b && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); const f = ACT[b.dataset.act]; if (f) f(b.dataset); } });
 document.addEventListener("click", e => { const b = e.target.closest("[data-act]"); if (!b) return; const f = ACT[b.dataset.act]; if (f) { e.preventDefault(); f(b.dataset); } });
 document.addEventListener("change", e => { const t = e.target; if (t.dataset.ch === "pid") { S.pid = t.value; ls("lite_pid", S.pid); S.data = null; loadStats(); }
+  if (t.dataset.ch === "mtdone") { const d = mtDone(); d[t.dataset.i] = t.checked; try { localStorage.setItem("beauty_mt_done", JSON.stringify(d)); } catch (e) {} render(); }
   if (t.dataset.ch === "mtacc") S.mt.acc = t.value; if (t.dataset.ch === "mtpg") S.mt.pg = t.value; });
 document.addEventListener("submit", async e => { const f = e.target; e.preventDefault();
   if (f.dataset.form === "login") { const mail = ($("mail").value || "").trim().toLowerCase(); if (!mail) return; S.mail = mail;
