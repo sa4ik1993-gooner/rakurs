@@ -28,19 +28,27 @@ const PLM = {};
 const plD = n => { const d = new Date(Date.now() + n * 864e5); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
 function plMoneyLoad(p){ if (PLM[p.id] || !CLOUD || !sb) return; PLM[p.id] = {load:true}; const a = {p:p.id, d1:plD(-3), d2:plD(-1)}, q = fn => Promise.resolve(sb.rpc(fn, a)).then(r => r.data || [], () => []);
   Promise.all([q("ad_summary"), q("ad_adsets"), q("ad_creatives"), q("ad_ads")]).then(([c, g, ad, ai]) => { const m = {camp:{}, set:{}, ad:{}, adn:{}, adid:{}}, v = o => ({s:+o.spend || 0, l:+o.leads || 0});
-    ai.forEach(o => { m.adid[o.ad_id] = Object.assign(v(o), {set:o.adset_id, cid:o.campaign_id}); });
-    c.forEach(o => { m.camp[o.campaign_id] = v(o); }); g.forEach(o => { if (o.adset_id) m.set[o.adset_id] = Object.assign(v(o), {cid:o.campaign_id}); });
+    ai.forEach(o => { m.adid[o.ad_id] = Object.assign(v(o), {set:o.adset_id, cid:o.campaign_id, n:o.ad_name || ""}); });
+    c.forEach(o => { m.camp[o.campaign_id] = Object.assign(v(o), {n:o.campaign_name || ""}); }); g.forEach(o => { if (o.adset_id) m.set[o.adset_id] = Object.assign(v(o), {cid:o.campaign_id, n:o.adset_name || ""}); });
     ad.forEach(o => { const k = o.campaign_id + "|" + o.ad_name, x = m.ad[k] = m.ad[k] || {s:0, l:0}; x.s += +o.spend || 0; x.l += +o.leads || 0; const y = m.adn[o.ad_name] = m.adn[o.ad_name] || {s:0, l:0}; y.s += +o.spend || 0; y.l += +o.leads || 0; });
     PLM[p.id] = m; render(); }); }
-const PLV = () => ({campaign:[L("Кампанія","Кампания"), "campaigns"], adset:[L("Група","Группа"), "audiences"], ad:[L("Оголошення","Объявление"), "creatives"]});
-function plObj(p, x){ const y = x.payload || {}, op = y.op === "watch" && y.from_op ? y.from_op : y.op, body = String(x.body || "");
+/* «Путь объекта» (DESIGN.md раздел 6): одна строка, знак площадки, уровни через «›»; иерархия всегда полная — кампания › группа › объявление до объекта действия.
+   Названия — из предложения, из текста сервера и из статистики HEYROW (ad_summary / ad_adsets / ad_ads). Неизвестный уровень не пропускаем — показываем «—». */
+const PLV = () => ({campaign:L("кампанія","кампания"), adset:L("група","группа"), ad:L("оголошення","объявление")});
+function plObj(p, x){ const y = x.payload || {}, op = y.op === "watch" && y.from_op ? y.from_op : y.op, body = String(x.body || ""), m = PLM[p.id] && !PLM[p.id].load ? PLM[p.id] : {camp:{}, set:{}, adid:{}};
   const bm = body.match(/^<b>([^<]*)<\/b>\s*\n<i>([^<]*)<\/i>/), lv = op === "pause_ad" || y.level === "ad" ? "ad" : y.level === "campaign" || op === "activate" ? "campaign" : y.level === "adset" || op ? "adset" : "";
-  let camp = y.cname || (bm ? bm[2] : ""), set = y.sname || "", ad = "";
-  if (lv === "campaign") camp = y.name || camp; else if (lv === "adset") set = y.name || (bm ? bm[1] : ""); else if (lv === "ad") { ad = y.name || ""; const g = String(x.title || "").match(/·\s*(?:група|группа)\s+(.+)$/i); if (g) set = set || g[1]; }
-  if (!camp && y.cid && typeof prOf === "function") { const c = (prOf(p).cur || []).find(o => String(o.id) === String(y.cid)); if (c) camp = c.name; }
-  return {lv, op, path:[["campaign", camp], ["adset", set], ["ad", ad]].filter(z => z[1])}; }
-/* чип объекта: первый — со знаком площадки (Meta), дальше путь вниз до объекта действия */
-const plPath = o => o.path.length ? `<div class="plpath">${o.path.map((z, i) => `${i ? `<span class="plpath__s" aria-hidden="true">›</span>` : ""}<span class="plo plo--${z[0]}${z[0] === o.lv ? " plo--me" : ""}">${!i && typeof chIcon === "function" ? chIcon("meta") : ""}<span class="plo__i">${ico(PLV()[z[0]][1])}</span><span class="plo__k">${PLV()[z[0]][0]}</span><b>${esc(z[1])}</b></span>`).join("")}</div>` : "";
+  const id = String(y.id || ""), ai = lv === "ad" ? m.adid[id] || {} : {}, setId = lv === "adset" ? id : ai.set || "", si = setId ? m.set[setId] || {} : {};
+  const cid = lv === "campaign" ? id || String(y.cid || "") : String(y.cid || ai.cid || si.cid || "");
+  let camp = lv === "campaign" ? y.name || "" : y.cname || (bm ? bm[2] : "") || (m.camp[cid] || {}).n || "";
+  if (!camp && cid && typeof prOf === "function") { const c = (prOf(p).cur || []).find(o => String(o.id) === cid); if (c) camp = c.name; }
+  let set = lv === "adset" ? y.name || (bm ? bm[1] : "") || si.n || "" : lv === "ad" ? y.sname || si.n || ((String(x.title || "").match(/·\s*(?:група|группа)\s+(.+)$/i) || [])[1] || "") : "";
+  const ad = lv === "ad" ? y.name || ai.n || "" : "";
+  const path = lv === "campaign" ? [["campaign", camp]] : lv === "adset" ? [["campaign", camp], ["adset", set]] : lv === "ad" ? [["campaign", camp], ["adset", set], ["ad", ad]] : [];
+  return {lv, op, path:path.map(z => [z[0], z[1] || "—"])}; }
+/* длинное название — многоточие посередине, полное — при наведении */
+const plMid = n => n.length > 44 ? n.slice(0, 26) + "…" + n.slice(-15) : n;
+const plPath = o => o.path.length ? `<div class="plpath">${typeof chIcon === "function" ? chIcon("meta") : ""}${o.path.map((z, i) => { const me = i === o.path.length - 1;
+    return `${i ? `<span class="plpath__s" aria-hidden="true">›</span>` : ""}<span class="plp${me ? " plp--me" : ""}"><span class="plp__k">${PLV()[z[0]]}</span> <span class="plp__n" title="${esc(z[1])}">${esc(plMid(z[1]))}</span></span>`; }).join("")}</div>` : "";
 const plAct = (x, op, y) => x.kind === "alert" ? ["warn", "warning"] : op === "pause" || op === "pause_ad" ? ["off", "pause"] : op === "relaunch" ? ["re", "launch"] : op === "activate" ? ["up", "launch"] : op === "budget" ? (y.down ? ["mute", "down"] : ["up", "up"]) : ["mute", "clock"];
 /* заголовок и кнопка — на языке интерфейса, по типу действия (тексты сервера бывают на украинском) */
 function plTitle(op, y, lv){ return op === "pause" || op === "pause_ad" ? (lv === "ad" ? L("Вимкнути оголошення","Выключить объявление") : lv === "campaign" ? L("Вимкнути кампанію","Выключить кампанию") : L("Вимкнути групу","Выключить группу"))
