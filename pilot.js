@@ -1,6 +1,6 @@
 /* Пилот «ведение аккаунта» в кабинете: настройки, подключение Telegram, журнал отчётов и предложений с «Да / Нет».
    Работу делает серверная функция pilot (каждый час по расписанию). Подключается после rek.js. */
-const PL = {st:{}, busy:{}, edit:{}, msg:{}};
+const PL = {st:{}, busy:{}, edit:{}, msg:{}, tab:{}};
 async function plCall(body){ if (!CLOUD || !sb) return {ok:false, error:"offline"};
   try { const r = await sb.functions.invoke("pilot", {body}); if (r.error || !r.data) return {ok:false, error:"net", detail:(r.error && r.error.message) || ""}; return r.data; } catch (e) { return {ok:false, error:"net", detail:e && e.message}; } }
 const plErr = r => ({net:L("Сервер не відповів — можливо, функцію pilot ще не викладено.","Сервер не ответил — возможно, функцию pilot ещё не выложили."), denied:L("Налаштовувати може власник або керівник.","Настраивать может собственник или руководитель."), no_bot:L("Немає ключа бота: додай TG_BOT_TOKEN у Secrets.","Нет ключа бота: добавь TG_BOT_TOKEN в Secrets."), no_chats:L("Спершу підключи Telegram.","Сначала подключи Telegram."), not_connected:L("Meta не підключено.","Meta не подключена.")})[r.error] || (r.error || "") + (r.detail ? ": " + r.detail : "");
@@ -44,11 +44,15 @@ function plPanel(p){ if (!CLOUD) return "";
   const e = PL.edit[p.id], s = r.settings, on = s && s.enabled, accs = prAccs(p, "meta"), dis = r.admin ? "" : " disabled";
   const dirty = s ? (!!e.enabled !== !!s.enabled) : !!e.enabled;
   const st = dirty ? `<span class="st st--pause">${L("Зміни не збережено","Изменения не сохранены")}</span>` : on ? `<span class="st st--on">${L("Працює, перевіряю щогодини","Работает, проверяю каждый час")}</span>` : `<span class="st st--pause">${L("На паузі","На паузе")}</span>`;
-  /* в ленте — то, что ждёт решения или в графике, и события за сутки; решённое раньше — в «Історія» */
-  const vis = (r.log || []).filter(x => x.status !== "dismissed"), day = Date.now() - 24 * 3600e3;
-  const act = vis.filter(x => x.status === "new" || x.status === "scheduled" || (x.kind !== "reco" && Date.parse(x.at) > day) || (x.decided_at && Date.parse(x.decided_at) > Date.now() - 3600e3)), old = vis.filter(x => !act.includes(x));
-  const rows = act.map(x => plRow(p, x, dis)).join(""), hist = old.length ? `<div class="plhist">${more("plh:" + p.id, L("Історія · ","История · ") + old.length, `<ul class="feed">${old.map(x => plRow(p, x, dis)).join("")}</ul>`)}</div>` : "";
-  const feed = rows || hist ? `${rows ? `<ul class="feed pllog scrl">${rows}</ul>` : `<p class="sub">${L("Нових пропозицій немає. Стежу далі.","Новых предложений нет. Слежу дальше.")}</p>`}${hist}` : `<div class="empty empty--sm">${hava("watch", 48)}<div><b>${L("Тут буде все, що я зробив з рекламою.","Здесь будет всё, что я сделал с рекламой.")}</b> <span class="sub">${on ? L("Перевіряю акаунт щогодини, перший звіт надішлю о ","Проверяю аккаунт каждый час, первый отчёт пришлю в ") + String(s.report_hour).padStart(2, "0") + ":00." : L("Увімкни автопілот у налаштуваннях нижче.","Включи автопилот в настройках ниже.")}</span></div></div>`;
+  /* лента по вкладкам (Дмитрий, 24.11.2026): предложения · в графике (принято, ждёт ночи) · сделано · отклонено · отчёты и сигналы */
+  const log = r.log || [], tabOf = x => x.kind === "report" || (x.kind === "alert" && x.status !== "new") ? "rep" : x.status === "new" ? "new" : x.status === "scheduled" || x.status === "yes" ? "plan" : x.status === "done" || x.status === "fail" ? "done" : "no";
+  const TABS = [["new", L("Пропозиції","Предложения")], ["plan", L("У графіку","В графике")], ["done", L("Зроблено","Сделано")], ["no", L("Відхилено","Отклонено")], ["rep", L("Звіти","Отчёты")]];
+  const cnt = {}; log.forEach(x => { const t = tabOf(x); cnt[t] = (cnt[t] || 0) + 1; });
+  let tab = PL.tab[p.id]; if (!tab) tab = TABS.map(t => t[0]).find(k => cnt[k] && k !== "rep" && k !== "no") || (cnt.rep ? "rep" : "new");
+  const list = log.filter(x => tabOf(x) === tab), rows = list.map(x => plRow(p, x, dis)).join("");
+  const tabs = log.length ? `<div class="seg pltabs" role="tablist">${TABS.map(t => `<button type="button" role="tab" data-act="plTab" data-p="${p.id}" data-v="${t[0]}" aria-pressed="${tab === t[0]}">${t[1]}${cnt[t[0]] ? ` <span class="mono">${cnt[t[0]]}</span>` : ""}</button>`).join("")}</div>` : "";
+  const none = {new:L("Нових пропозицій немає. Стежу далі.","Новых предложений нет. Слежу дальше."), plan:L("У графіку нічого немає.","В графике ничего нет."), done:L("Поки нічого не зроблено.","Пока ничего не сделано."), no:L("Відхилених немає.","Отклонённых нет."), rep:L("Звітів ще немає.","Отчётов ещё нет.")}[tab];
+  const feed = log.length ? `${tabs}${rows ? `<ul class="feed pllog">${rows}</ul>` : `<p class="sub">${none}</p>`}` : `<div class="empty empty--sm">${hava("watch", 48)}<div><b>${L("Тут буде все, що я зробив з рекламою.","Здесь будет всё, что я сделал с рекламой.")}</b> <span class="sub">${on ? L("Перевіряю акаунт щогодини, перший звіт надішлю о ","Проверяю аккаунт каждый час, первый отчёт пришлю в ") + String(s.report_hour).padStart(2, "0") + ":00." : L("Увімкни автопілот у налаштуваннях нижче.","Включи автопилот в настройках ниже.")}</span></div></div>`;
   const accOpts = accs.map(a => `<label class="ck"><input type="checkbox" data-placc="${esc(String(a.id))}"${e.account_ids.includes(String(a.id)) ? " checked" : ""}${dis}> ${esc(a.name || a.id)}</label>`).join("");
   const hours = [...Array(16)].map((_, i) => i + 7);
   const settings = `<div class="form plf">
@@ -98,6 +102,7 @@ Object.assign(ACT, {
     toast(r.ok ? (e.enabled ? L("Збережено: Хіро веде акаунт","Сохранено: Хиро ведёт аккаунт") : L("Збережено","Сохранено")) : plErr(r)); if (r.ok) { delete PL.st[d.p]; const p = W.projs.find(x => x.id === d.p); if (p) plLoad(p); } return false; },
   async plNow(d){ PL.msg[d.p] = L("Перевіряємо…","Проверяем…"); render(); const r = await plCall({action:"now", project_id:d.p, report:d.v === "1", send:d.v === "1"});
     PL.msg[d.p] = r.ok ? L("Груп у роботі: ","Групп в работе: ") + r.groups + L(" · пропозицій: "," · предложений: ") + r.recos + (r.errs && r.errs.length ? " · " + esc(r.errs.join(", ")) : "") : esc(plErr(r)); delete PL.st[d.p]; const p = W.projs.find(x => x.id === d.p); if (p) plLoad(p); return false; },
+  plTab(d){ PL.tab[d.p] = d.v; },
   async plOffNow(d){ if (!CLOUD || !sb) return false; PL.msg[d.p] = L("Вимикаю…","Выключаю…"); render();
     let r = {}; try { r = (await sb.functions.invoke("hiro-propose", {body:{action:"exec_now", project_id:d.p, id:+d.id}})).data || {}; } catch (e) { r = {}; }
     PL.msg[d.p] = ""; toast(r.text || (r.ok ? L("Вимкнено","Выключено") : plErr(r))); delete PL.st[d.p]; const p = W.projs.find(x => x.id === d.p); if (p) plLoad(p); return false; },

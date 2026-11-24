@@ -274,7 +274,7 @@ function tdLoad(){ try { return JSON.parse(localStorage.getItem(TD_KEY) || "{}")
 function tdSave(o){ try { const now = Date.now(); Object.keys(o).forEach(k => { if (o[k].until < now) delete o[k]; }); localStorage.setItem(TD_KEY, JSON.stringify(o)); } catch (e) {} }
 
 Object.assign(ACT, {
-  tdOpen(d){ requestAnimationFrame(() => { const li = document.querySelector('.pllog li[data-st="new"]') || document.querySelector('.prv li[data-cid]');
+  tdOpen(d){ if (typeof PL !== "undefined") { Object.keys(PL.st).forEach(k => { PL.tab[k] = "new"; }); render(); } requestAnimationFrame(() => { const li = document.querySelector('.pllog li[data-st="new"]') || document.querySelector('.prv li[data-cid]');
       if (li) { li.scrollIntoView({behavior:"smooth", block:"center"}); li.classList.add("is-hl"); setTimeout(() => li.classList.remove("is-hl"), 1600); } else if (d.k) { ACT.prGo({k:d.k}); render(); } }); return false; },
   tdMark(d){ const o = tdLoad(), t = new Date(); t.setHours(24, 0, 0, 0); o[d.k] = {v:d.v, until:d.v === "n" ? Date.now() + 7 * 864e5 : d.v === "l" ? t.getTime() : Date.now() + 20 * 3600e3}; tdSave(o); },
   tdReset(){ tdSave({}); try { localStorage.removeItem(TD_KEY); } catch (e) {} },
