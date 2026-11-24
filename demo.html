@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="uk" data-ui="app">
 <head>
-<script>/* вход в HEYROW Beauty: если ссылка из письма открыла этот адрес, а вход начинали в beauty.html — перейти туда с теми же данными входа */try{var t=+localStorage.getItem("beauty_back");if(t&&Date.now()-t<864e5&&/access_token|code=|error_description/.test(location.hash+location.search)){localStorage.removeItem("beauty_back");location.replace("beauty.html"+location.search+location.hash)}}catch(e){}</script>
+<script>/* вход в HEYROW Beauty: если ссылка из письма открыла этот адрес, а вход начинали в beauty.html — перейти туда с теми же данными входа */(function(){try{var bt=+localStorage.getItem("beauty_back");if(bt&&Date.now()-bt<864e5&&/access_token|code=|error_description/.test(location.hash+location.search)){localStorage.removeItem("beauty_back");location.replace("beauty.html"+location.search+location.hash)}}catch(e){}})()</script>
 <meta charset="utf-8">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
