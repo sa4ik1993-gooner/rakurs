@@ -134,7 +134,7 @@ function plRow(p, x, dis, top){ const pay = x.payload || {}, rep = x.kind === "r
     : x.status === "fail" ? `<span class="st st--err">${L("Не вийшло: ","Не получилось: ")}${esc(x.result || "")}</span>`
     : `<span class="st">${{yes:L("Ти погодив","Ты согласовал"), canceled:L("Прибрано з графіка","Убрано из графика"), no:L("Ти відхилив","Ты отклонил"), expired:L("Без відповіді, застаріло","Без ответа, устарело"), dismissed:L("Прибрано","Убрано"), outdated:L("Хіро зняв: пропозиція застаріла","Хиро снял: предложение устарело")}[x.status] || esc(x.status)}${x.decided_by && x.status !== "outdated" ? " · " + esc(x.decided_by) : ""}</span>${x.status === "outdated" && x.result && plIsUk(x.result) === (lang === "uk") ? `<p class="plc__t">${esc(x.result)}</p>` : ""}`;
   const lead = top ? hava("stop", 40) : `<span class="plc__a">${ico(act[1])}</span>`;
-  return `<li class="plc plc--${act[0]}${top ? " plc--top" : ""}"${isNew ? ' data-st="new"' : ""}>${lead}<div class="plc__m">${top ? `<span class="heytag">${L("Hey! Найважливіше","Hey! Самое важное")}</span>` : ""}
+  return `<li class="plc plc--${act[0]}${top ? " plc--top" : ""}"${isNew ? ' data-st="new"' : ""}${x.kind === "reco" ? ` data-open="plWhy" data-p="${p.id}" data-id="${x.id}"` : ""}>${lead}<div class="plc__m">${top ? `<span class="heytag">${L("Hey! Найважливіше","Hey! Самое важное")}</span>` : ""}
     <div class="plc__h"><b>${x.kind === "reco" ? `<button type="button" class="plc__ttl" data-act="plWhy" data-p="${p.id}" data-id="${x.id}">${esc(title)}</button>` : esc(title)}</b><time>${esc(plTime(x.at))}</time></div>${plPath(o)}${factsH}${gain}${(() => { const rk = x.kind === "reco" && isNew ? plRisk(o.op, pay) : null; return rk ? `<p class="plrisk plrisk--${rk[0]}"><b>${L("Ризик: ","Риск: ")}${rk[1].toLowerCase()}.</b> ${esc(rk[2])}</p>` : ""; })()}${note}${line ? `<p class="plc__t">${esc(line)}</p>` : ""}${more}${state}</div></li>`; }
 /* панель Хиро над списком: сколько предложений и сколько вместе сэкономят в день; «Принять все безопасные» — только выключения (останавливают расход, включить обратно можно в любой момент) */
 /* ---------- окно «Чому так»: какие данные видел Хиро, как проверял, почему эта дія и що буде після ---------- */
@@ -395,7 +395,7 @@ function plAcctOne(p, A){ plAcctPush(p, A); const F = plFix(p, A); plFixPush(p, 
   const chip = (v, t, n) => `<button type="button" class="btn btn--sm" data-act="plPop" data-v="${v}" data-p="${p.id}" data-f="${A.f.id}">${t}${n ? ` <span class="plcnt">${n}</span>` : ""}</button>`;
   const D = PLD[k], nAds = D && D.ads ? D.ads.filter(a => a.s > 0).length : 0;
   const hyps = C.H.map((h, i) => plHypCard(p, A, h, i)).join("");
-  return `<li class="plc plc--warn plc--acct"><span class="plc__a">${ico("warning")}</span><div class="plc__m">
+  return `<li class="plc plc--warn plc--acct" data-open="plPop" data-ov="concl" data-p="${p.id}" data-f="${A.f.id}"><span class="plc__a">${ico("warning")}</span><div class="plc__m">
     <div class="plc__h"><b>${L("Дорого у воронці «","Дорого в воронке «")}${esc(A.f.name)}»</b><button type="button" class="btn btn--sm" data-act="plRethink" data-p="${p.id}">${ico("refresh")} ${L("Подумати ще раз","Подумать еще раз")}</button></div>
     <p class="plc__t">${L("За 3 повні дні ","За 3 полных дня ")}${m(A.t3.s)}, ${A.t3.l} ${L("лідів за ","лидов по ")}${m(A.t3.s / A.t3.l)} ${L("при цілі ","при цели ")}${m(A.T)}. ${L("Шанс, що це випадковість, ","Шанс, что это случайность, ")}${Math.max(0.1, Math.round(A.J.q * 1000) / 10).toString().replace(".", ",")}%.</p>
     <div class="plf2 plf2--fun">${cell("CPM", f7.cpm, fb.cpm, m, true)}${cell("CTR", f7.ctr, fb.ctr, plPct, false)}${cell(L("Ціна кліку","Цена клика"), f7.cpc, fb.cpc, m, true)}${cell(L("З кліку в лід","Из клика в лид"), f7.cr, fb.cr, plPct, false)}${cell(L("Ціна ліда","Цена лида"), f7.cpl, fb.cpl, m, true)}</div>
@@ -410,7 +410,7 @@ function plHypCard(p, A, h, i){ if (PLHX[plHypKey(p, A, h)]) return ""; const m 
   const facts = [h.cpl ? [L("Очікуваний лід","Ожидаемый лид"), "≈" + m(h.cpl), false] : null, [L("Перевірка за 3 дні","Проверка за 3 дня"), h.chk, false]].filter(Boolean);
   const btns = (h.site ? `<button type="button" class="btn btn--sm btn--solid" data-act="plPop" data-v="site" data-p="${p.id}" data-f="${A.f.id}">${ico("search")} ${L("Перевірити сторінку · ","Проверить страницу · ")}${(SCK.st && SCK.st.price) || 10} ${typeof COIN !== "undefined" ? COIN : "HEY"}</button>` : "")
     + `<button type="button" class="btn btn--sm" data-act="plPop" data-v="hyp" data-i="${i}" data-p="${p.id}" data-f="${A.f.id}">${L("Детальніше","Подробнее")}</button><button type="button" class="btn btn--sm btn--text" data-act="plHypX" data-v="${esc(plHypKey(p, A, h))}">${L("Прибрати","Убрать")}</button>`;
-  return `<li class="plc plc--re plc--hyp"><span class="plc__a">${ico(ic)}</span><div class="plc__m">
+  return `<li class="plc plc--re plc--hyp" data-open="plPop" data-ov="hyp" data-i="${i}" data-p="${p.id}" data-f="${A.f.id}"><span class="plc__a">${ico(ic)}</span><div class="plc__m">
     <div class="plc__h"><b><button type="button" class="plc__ttl" data-act="plPop" data-v="hyp" data-i="${i}" data-p="${p.id}" data-f="${A.f.id}">${L("Гіпотеза: ","Гипотеза: ")}${esc(h.t.charAt(0).toLowerCase() + h.t.slice(1))}</button></b><span class="sub">${esc(A.f.name)}</span></div>
     <div class="plf2">${facts.map(f => `<div><span>${esc(f[0])}</span><b>${esc(f[1])}</b></div>`).join("")}</div>
     <p class="plc__t">${esc(h.why)}</p><div class="row plbtn">${btns}</div></div></li>`; }
@@ -531,3 +531,8 @@ Object.assign(ACT, {
     PL.msg[d.p] = L("Відкрий бота й натисни «Start» — чат підключиться. Потім онови сторінку.","Открой бота и нажми «Start» — чат подключится. Потом обнови страницу."); render(); return false; },
   async plTgTest(d){ const r = await plCall({action:"tg_test", project_id:d.p}); toast(r.ok ? L("Надіслано — перевір Telegram","Отправлено — проверь Telegram") : plErr(r)); return false; },
 });
+
+/* нажатие на рамку карточки открывает ее разбор (Дмитрий, 24.11.2026); кнопки, ссылки, поля и раскрывашки внутри работают как раньше, выделение текста не открывает окно */
+document.addEventListener("click", e => { if (e.target.closest("[data-act],a,button,input,select,textarea,summary,details,label")) return;
+  const li = e.target.closest(".plc[data-open]"); if (!li) return; try { if (String(window.getSelection())) return; } catch (er) {}
+  const d = li.dataset, f = ACT[d.open]; if (!f) return; f({v:d.ov, p:d.p, f:d.f, i:d.i, id:d.id}); render(); });
