@@ -12,7 +12,7 @@ function hiroEv(only){
   const s = {spend:0, leads:0}, v = {spend:0, leads:0}, bad = [];
   ps.forEach(p => { const x = prOf(p); if (!x.cur) return;
     x.cur.forEach(o => { s.spend += +o.spend || 0; s.leads += +o.leads || 0; }); x.prev.forEach(o => { v.spend += +o.spend || 0; v.leads += +o.leads || 0; });
-    p.funnels.forEach(f => (f.ch || []).forEach(c => { const prev = prRows(p, x.prev, f, c), cap = prCap(f, p);
+    p.funnels.forEach(f => (f.ch || []).forEach(c => { const prev = prRows(p, x.prev, f, c), cap = typeof prT === "function" ? prT(f, p) : prCap(f, p);
       prRows(p, x.cur, f, c, x).filter(o => o.spend > 0).forEach(o => { const j = prMain(prJudge(o, prev.find(q => q.id === o.id) || {}, cap, prCur(p)));
         if (j && j.lv === "crit") bad.push({p, f, c, o, j, cap, cpl:o.leads ? o.spend / o.leads : 0}); }); })); });
   bad.sort((a, b) => b.o.spend - a.o.spend);

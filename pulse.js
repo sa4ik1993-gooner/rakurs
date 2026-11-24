@@ -65,6 +65,8 @@ const prAId = k => k === "a_" ? "" : k.slice(1);
 /* строки кампаний воронки в канале, с бронями и оплатами по точному совпадению метки utm_campaign */
 const prRows = (p, list, f, c, x) => (list || []).filter(r => r.prov === c && fxFunnel(p, r) === f.id).map(r => Object.assign({}, r, (x && x.sb && x.sb[fxKey(r.name)]) || {}));
 const prRowsA = (p, list, f, c, x, acc) => prRows(p, list, f, c, x).filter(r => acc == null || prAccOf(prOf(p), r.id, c) === acc);
+/* цель для решений Хиро — та же, что у автопилота на сервере (pilot / review): «Ціль: ціна ліда до» из настроек автопилота; без них — потолок воронки */
+const prT = (f, p) => { const st = typeof PL !== "undefined" ? PL.st[p.id] : null, t = st && st.ok && st.settings ? Number(st.settings.target_cpl) : 0; return t > 0 ? t : prCap(f, p); };
 const prCap = (f, p) => { const c = fT(f, p).cap; return c > 0 && isFinite(c) ? c : 0; };
 
 /* Пороги выводов и число кампаний на доске — настройки компании (раздел «Настройки»); здесь значения по умолчанию. */
@@ -240,7 +242,7 @@ function prOverview(only){ const ps = (only ? [only] : W.projs).filter(prOn); if
   ps.forEach(p => { const x = prOf(p); if (!x.cur) return; const add = (a, b) => { ["spend", "imp", "clicks", "leads", "book", "pay", "rev"].forEach(k => { a[k] += b[k] || 0; }); };
     const all = x.cur.map(o => Object.assign({}, o, x.sb[fxKey(o.name)] || {})); all.forEach(o => add(s, o)); x.prev.forEach(o => add(v, o));
     const nl = all.filter(o => o.spend > 0 && !fxFunnel(p, o)); if (nl.length) lost.push({p, n:nl.length, spend:nl.reduce((a, o) => a + o.spend, 0)});
-    p.funnels.forEach(f => (f.ch || []).forEach(c => { const prev = prRows(p, x.prev, f, c), cap = prCap(f, p);
+    p.funnels.forEach(f => (f.ch || []).forEach(c => { const prev = prRows(p, x.prev, f, c), cap = prT(f, p);
       prRows(p, x.cur, f, c, x).filter(o => o.spend > 0).forEach(o => { const j = prMain(prJudge(o, prev.find(q => q.id === o.id) || {}, cap, prCur(p)));
         if (j && j.lv === "crit") att.push({p, f, c, o, j}); }); })); });
   att.sort((a, b) => PRANK[b.j.lv] - PRANK[a.j.lv] || b.o.spend - a.o.spend);
@@ -268,7 +270,7 @@ const TD_KEY = "heyrow_today";
 /* ---------- решение Хиро по проблемной кампании ----------
    Хиро сам выбирает одно действие: выключить кампанию без лидов, выключить худшее объявление или оставить до завтра.
    Действие уходит в ленту автопилота (функция pilot, action propose); в Meta — только после «Да», ночью. */
-function hiroPlan(a){ const x = prOf(a.p), cur = prCur(a.p), cap = prCap(a.f, a.p), o = a.o, m = n => prM(n, cur);
+function hiroPlan(a){ const x = prOf(a.p), cur = prCur(a.p), cap = prT(a.f, a.p), o = a.o, m = n => prM(n, cur);
   const ads = (x.ads || []).filter(d => d.cid === o.id && d.spend > 0), key = "td:" + o.id + ":" + prToday() + ":";
   const J = cap ? prJ(o, cap) : null, lw = J ? J.ld : null, cplO = o.leads ? o.spend / o.leads : 0;
   /* худшее объявление: само «плохо» по статистике, и без него кампания в норме */
