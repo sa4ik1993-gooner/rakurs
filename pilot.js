@@ -265,6 +265,7 @@ function plAcctPush(p, A){ if (!A || typeof tdPropose !== "function") return; co
    По каждому слабому звену — гипотеза: почему (цифры), что делаем, какой будет лид, если звено дотянуть до ориентира, и как проверить за 3 дня.
    Оценка — простая пропорция при прочих равных (остальные звенья не меняются); это ориентир для порядка работ, а не обещание. Сильные звенья тоже называем. */
 const PLC = {};
+const plFunOf = d => { const p = (W.projs || []).find(z => z.id === d.p); return p && (p.funnels || []).find(z => z.id === d.f); };
 /* страница, куда ведет реклама воронки: из ссылок объявлений в Meta (hiro-propose lands), иначе — первый лендинг из настроек воронки */
 const PLL = {};
 function plLandInfo(p, A){ const k = p.id + A.f.id; if (!PLL[k] && CLOUD && sb) { PLL[k] = {load:true, urls:[]};
@@ -456,7 +457,7 @@ function plAcctOne(p, A){ plAcctPush(p, A); const F = plFix(p, A); plFixPush(p, 
   const cell = (lab, v, b, fmt, worseUp) => { const ch = b ? v / b - 1 : 0, bad = worseUp ? ch > 0.15 : ch < -0.15; return `<div><span>${lab}</span><b${bad ? ' class="is-bad"' : ""}>${fmt(v)}</b><small>${b ? (ch > 0 ? "+" : "") + Math.round(ch * 100) + "% " + L("до 3 тижнів","к 3 неделям") : ""}</small></div>`; };
   const chip = (v, t, n) => `<button type="button" class="btn btn--sm" data-act="plPop" data-v="${v}" data-p="${p.id}" data-f="${A.f.id}">${t}${n ? ` <span class="plcnt">${n}</span>` : ""}</button>`;
   const D = PLD[k], nAds = D && D.ads ? D.ads.filter(a => a.s > 0).length : 0;
-  const hyps = C.H.map((h, i) => plHypCard(p, A, h, i)).join("");
+  const hyps = C.H.map((h, i) => plHState(A, h.c) ? "" : plHypCard(p, A, h, i)).join("");
   return `<li class="plc plc--warn plc--acct" data-open="plPop" data-ov="concl" data-p="${p.id}" data-f="${A.f.id}"><span class="plc__a">${ico("warning")}</span><div class="plc__m">
     <div class="plc__h"><b>${L("Дорого у воронці «","Дорого в воронке «")}${esc(A.f.name)}»</b><button type="button" class="btn btn--sm" data-act="plRethink" data-p="${p.id}">${ico("refresh")} ${L("Подумати ще раз","Подумать еще раз")}</button></div>
     <p class="plc__t">${L("За 3 повні дні ","За 3 полных дня ")}${m(A.t3.s)}, ${A.t3.l} ${L("лідів за ","лидов по ")}${m(A.t3.s / A.t3.l)} ${L("при цілі ","при цели ")}${m(A.T)}. ${L("Шанс, що це випадковість, ","Шанс, что это случайность, ")}${Math.max(0.1, Math.round(A.J.q * 1000) / 10).toString().replace(".", ",")}%.</p>
@@ -467,7 +468,17 @@ function plAcctOne(p, A){ plAcctPush(p, A); const F = plFix(p, A); plFixPush(p, 
 /* гипотеза — отдельная карточка: почему, ожидаемый лид, как проверить; кнопки «Детальніше» (окно), проверка страницы за монеты, «Прибрати» */
 const PLHX = (() => { try { return JSON.parse(localStorage.getItem("pl_hyp_x") || "{}"); } catch (e) { return {}; } })();
 const plHypKey = (p, A, h) => p.id + A.f.id + ":" + h.t;
-function plHypCard(p, A, h, i){ if (PLHX[plHypKey(p, A, h)]) return ""; const m = v => plMoney(v);
+/* «Пізніше» и «Зроблено» для гипотез (Дмитрий, 24.11.2026): отложить на 5 дней, оттуда запустить или отметить «сделано»; не копятся — через 5 дней уходят сами */
+const PL_LATER_DAYS = 5, PL_DONE_DAYS = 7;
+function plHState(A, c){ const f = A.f, today = plD(0); let ch = false;
+  if (f.later) for (const k of Object.keys(f.later)) if ((f.later[k].until || "") < today) { delete f.later[k]; ch = true; }
+  if (f.hdone) for (const k of Object.keys(f.hdone)) if (plDayDiff(f.hdone[k], today) > PL_DONE_DAYS) { delete f.hdone[k]; ch = true; }
+  if (ch && typeof save === "function") save();
+  return (f.hdone || {})[c] ? "done" : (f.later || {})[c] ? "later" : ""; }
+const plDayDiff = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 864e5);
+function plHypsBy(p, st){ return plAcctAll(p).map(A => { plConcl(p, A); const C = PLC[p.id + A.f.id] || {H:[]}; return C.H.map((h, i) => plHState(A, h.c) === st ? plHypCard(p, A, h, i, st) : "").join(""); }).join(""); }
+function plHypCount(p, st){ return plAcctAll(p).reduce((n, A) => (plConcl(p, A), n) + ((PLC[p.id + A.f.id] || {H:[]}).H.filter(h => plHState(A, h.c) === st).length), 0); }
+function plHypCard(p, A, h, i, mode){ if (PLHX[plHypKey(p, A, h)]) return ""; const m = v => plMoney(v);
   const ic = h.site ? "search" : h.opt ? "map" : /креатив|ролик/i.test(h.t) ? "edit" : "idea";
   const fx0 = (A.f.fix || {})[h.c]; let after = null;
   if (fx0) { plSinceLoad(p, A, fx0); const X = PLDF[p.id + A.f.id];
@@ -479,11 +490,16 @@ function plHypCard(p, A, h, i){ if (PLHX[plHypKey(p, A, h)]) return ""; const m 
   const btns = (h.c === "geo" ? `<button type="button" class="btn btn--sm btn--solid" data-act="plPop" data-v="geo" data-p="${p.id}" data-f="${A.f.id}">${ico("map")} ${L("Запустити тест гео","Запустить тест гео")}</button>` : "")
     + (h.site ? `<button type="button" class="btn btn--sm" data-act="plFixed" data-v="${h.c}" data-p="${p.id}" data-f="${A.f.id}">${ico("done")} ${L("Виправлено — перевір","Исправлено — проверь")}</button>` : "")
     + (h.site ? `<button type="button" class="btn btn--sm${fx ? "" : " btn--solid"}" data-act="plPop" data-v="site" data-p="${p.id}" data-f="${A.f.id}">${ico("search")} ${L("Перевірити сторінку · ","Проверить страницу · ")}${(SCK.st && SCK.st.price) || 10} ${typeof COIN !== "undefined" ? COIN : "HEY"}</button>` : "")
-    + `<button type="button" class="btn btn--sm" data-act="plPop" data-v="hyp" data-i="${i}" data-p="${p.id}" data-f="${A.f.id}">${L("Детальніше","Подробнее")}</button><button type="button" class="btn btn--sm" data-act="plPop" data-v="fb" data-i="${i}" data-p="${p.id}" data-f="${A.f.id}">${L("Не підходить","Не подходит")}</button><button type="button" class="btn btn--sm btn--text" data-act="plHypX" data-v="${esc(plHypKey(p, A, h))}">${L("Прибрати","Убрать")}</button>`;
+    + `<button type="button" class="btn btn--sm" data-act="plPop" data-v="hyp" data-i="${i}" data-p="${p.id}" data-f="${A.f.id}">${L("Детальніше","Подробнее")}</button>`
+    + (mode === "later" ? `<button type="button" class="btn btn--sm" data-act="plHDone" data-p="${p.id}" data-f="${A.f.id}" data-v="${h.c}">${ico("done")} ${L("Зроблено","Сделано")}</button><button type="button" class="btn btn--sm btn--text" data-act="plHBack" data-p="${p.id}" data-f="${A.f.id}" data-v="${h.c}">${L("Повернути в пропозиції","Вернуть в предложения")}</button>`
+      : mode === "done" ? `<button type="button" class="btn btn--sm btn--text" data-act="plHBack" data-p="${p.id}" data-f="${A.f.id}" data-v="${h.c}">${L("Повернути в пропозиції","Вернуть в предложения")}</button>`
+      : `<button type="button" class="btn btn--sm" data-act="plLater" data-p="${p.id}" data-f="${A.f.id}" data-v="${h.c}">${ico("clock")} ${L("Пізніше","Позже")}</button><button type="button" class="btn btn--sm" data-act="plHDone" data-p="${p.id}" data-f="${A.f.id}" data-v="${h.c}">${L("Зроблено","Сделано")}</button><button type="button" class="btn btn--sm btn--text" data-act="plPop" data-v="fb" data-i="${i}" data-p="${p.id}" data-f="${A.f.id}">${L("Не підходить","Не подходит")}</button>`);
+  const lt = (A.f.later || {})[h.c], hd = (A.f.hdone || {})[h.c];
+  const note = mode === "later" && lt ? `<p class="pltask__for">${L("Відкладено ","Отложено ")}${plDM(lt.at)}${L(" · зникне з «Пізніше» через "," · исчезнет из «Позже» через ")}${Math.max(0, plDayDiff(plD(0), lt.until))}${L(" дн."," дн.")}</p>` : mode === "done" && hd ? `<p class="pltask__for">${L("Позначено як зроблене ","Отмечено как сделанное ")}${plDM(hd)}${L(". Через 7 днів перевірю цифри: якщо проблема лишилась — запропоную знову.",". Через 7 дней проверю цифры: если проблема осталась — предложу снова.")}</p>` : "";
   return `<li class="plc plc--re plc--hyp" data-open="plPop" data-ov="hyp" data-i="${i}" data-p="${p.id}" data-f="${A.f.id}"><span class="plc__a">${ico(ic)}</span><div class="plc__m">
     <div class="plc__h"><b><button type="button" class="plc__ttl" data-act="plPop" data-v="hyp" data-i="${i}" data-p="${p.id}" data-f="${A.f.id}">${L("Гіпотеза: ","Гипотеза: ")}${esc(h.t.charAt(0).toLowerCase() + h.t.slice(1))}</button></b><span class="sub">${esc(A.f.name)}</span></div>
     <div class="plf2">${facts.map(f => `<div><span>${esc(f[0])}</span><b>${esc(f[1])}</b></div>`).join("")}</div>
-    <p class="plc__t">${esc(h.why)}</p><p class="pltask__for">${L("Кому: ","Кому: ")}${[...new Set(plHypTask(p, A, h).map(x => x[0]))].map(w => esc(PLWHO()[w])).join(" · ")}</p><div class="row plbtn">${btns}</div></div></li>`; }
+    <p class="plc__t">${esc(h.why)}</p>${note}<p class="pltask__for">${L("Кому: ","Кому: ")}${[...new Set(plHypTask(p, A, h).map(x => x[0]))].map(w => esc(PLWHO()[w])).join(" · ")}</p><div class="row plbtn">${btns}</div></div></li>`; }
 /* всплывающие окна разбора: вывод, почему дорого, креативы и аудитория, задачи, гипотеза, проверка страницы */
 function plPopHtml(){ const w = PL.pop; if (!w) return ""; const p = (W.projs || []).find(z => z.id === w.p); if (!p) return "";
   const A = plAcctAll(p).find(a => a.f.id === w.f); if (!A) return ""; const k = p.id + A.f.id, C = PLC[k] || {H:[]}, h = C.H[w.i || 0];
@@ -533,16 +549,17 @@ function plPanel(p){ if (!CLOUD) return "";
   const st = dirty ? `<span class="st st--pause">${L("Зміни не збережено","Изменения не сохранены")}</span>` : on ? `<span class="st st--on">${L("Працює, перевіряю щогодини","Работает, проверяю каждый час")}</span>` : `<span class="st st--pause">${L("На паузі","На паузе")}</span>`;
   /* лента по вкладкам (Дмитрий, 24.11.2026): предложения · в графике (принято, ждёт ночи) · сделано · отклонено · отчёты и сигналы */
   const log = r.log || [], tabOf = x => x.kind === "report" || x.kind === "alert" ? "rep" : x.status === "new" ? "new" : x.status === "scheduled" || x.status === "yes" ? "plan" : x.status === "done" || x.status === "fail" ? "done" : x.status === "outdated" || x.status === "expired" ? "old" : "no";
-  const TABS = [["new", L("Пропозиції","Предложения")], ["plan", L("У графіку","В графике")], ["done", L("Зроблено","Сделано")], ["no", L("Відхилено","Отклонено")], ["old", L("Застаріло","Устарело")], ["rep", L("Сигнали і звіти","Сигналы и отчеты")]];
+  const TABS = [["new", L("Пропозиції","Предложения")], ["later", L("Пізніше","Позже")], ["plan", L("У графіку","В графике")], ["done", L("Зроблено","Сделано")], ["no", L("Відхилено","Отклонено")], ["old", L("Застаріло","Устарело")], ["rep", L("Сигнали і звіти","Сигналы и отчеты")]];
   const cnt = {}; log.forEach(x => { const t = tabOf(x); cnt[t] = (cnt[t] || 0) + 1; });
+  const nLater = plHypCount(p, "later");
   let tab = PL.tab[p.id] || "new"; /* по умолчанию — «Пропозиції», даже если там пусто (Дмитрий, 24.11.2026) */
   plMoneyLoad(p); plObjsLoad(p, log); plAcctLoad(p);
   let list = log.filter(x => tabOf(x) === tab);
   if (tab === "new") list = list.slice().sort((a, b) => plSaveOf(p, b) - plSaveOf(p, a) || (b.at > a.at ? 1 : -1));
   const topId = tab === "new" && list[0] && plSaveOf(p, list[0]) ? list[0].id : null, rows = list.map(x => plRow(p, x, dis, x.id === topId)).join("");
-  const tabs = log.length ? `<div class="seg pltabs" role="tablist">${TABS.map(t => `<button type="button" role="tab" data-act="plTab" data-p="${p.id}" data-v="${t[0]}" aria-pressed="${tab === t[0]}">${t[1]}${t[0] === "new" && cnt.new ? ` <span class="plcnt">${cnt.new}</span>` : ""}</button>`).join("")}</div>` : "";
-  const none = {old:L("Застарілих пропозицій немає.","Устаревших предложений нет."), new:L("Нових пропозицій немає. Стежу далі.","Новых предложений нет. Слежу дальше."), plan:L("У графіку нічого немає.","В графике ничего нет."), done:L("Поки нічого не зроблено.","Пока ничего не сделано."), no:L("Відхилених немає.","Отклоненных нет."), rep:L("Звітів ще немає.","Отчетов еще нет.")}[tab];
-  const acct = tab === "new" ? plAcctCard(p) : "";
+  const tabs = log.length ? `<div class="seg pltabs" role="tablist">${TABS.map(t => `<button type="button" role="tab" data-act="plTab" data-p="${p.id}" data-v="${t[0]}" aria-pressed="${tab === t[0]}">${t[1]}${t[0] === "new" && cnt.new ? ` <span class="plcnt">${cnt.new}</span>` : ""}${t[0] === "later" && nLater ? ` <span class="plcnt">${nLater}</span>` : ""}</button>`).join("")}</div>` : "";
+  const none = {old:L("Застарілих пропозицій немає.","Устаревших предложений нет."), later:L("Відкладених ідей немає. Відкладене зберігається 5 днів.","Отложенных идей нет. Отложенное хранится 5 дней."), new:L("Нових пропозицій немає. Стежу далі.","Новых предложений нет. Слежу дальше."), plan:L("У графіку нічого немає.","В графике ничего нет."), done:L("Поки нічого не зроблено.","Пока ничего не сделано."), no:L("Відхилених немає.","Отклоненных нет."), rep:L("Звітів ще немає.","Отчетов еще нет.")}[tab];
+  const acct = tab === "new" ? plAcctCard(p) : tab === "later" ? plHypsBy(p, "later") : tab === "done" ? plHypsBy(p, "done") : "";
   const feed = log.length ? `${tabs}${tab === "new" && list.length ? plSum(p, list, dis) : ""}${acct ? `<ul class="pllog">${acct}</ul>` : ""}${rows ? `<ul class="pllog${list.length > 3 ? " pllog--scroll" : ""}">${rows}</ul>` : acct ? "" : `<p class="sub">${none}</p>`}` : `<div class="empty empty--sm">${hava("watch", 48)}<div><b>${L("Тут буде все, що я зробив з рекламою.","Здесь будет все, что я сделал с рекламой.")}</b> <span class="sub">${on ? L("Перевіряю акаунт щогодини, перший звіт надішлю о ","Проверяю аккаунт каждый час, первый отчет пришлю в ") + String(s.report_hour).padStart(2, "0") + ":00." : L("Увімкни автопілот у налаштуваннях нижче.","Включи автопилот в настройках ниже.")}</span></div></div>`;
   const accOpts = accs.map(a => `<label class="ck"><input type="checkbox" data-placc="${esc(String(a.id))}"${e.account_ids.includes(String(a.id)) ? " checked" : ""}${dis}> ${esc(a.name || a.id)}</label>`).join("");
   const hours = [...Array(16)].map((_, i) => i + 7);
@@ -618,6 +635,9 @@ Object.assign(ACT, {
     const x = await plCall({action:"decide", project_id:d.p, id, v:"y"}); PL.pop = null; delete PL.st[d.p]; if (p) plLoad(p);
     if (typeof toast === "function") toast(x && x.ok ? L("Тест гео в графіку на ніч","Тест гео в графике на ночь") : L("Пропозицію створив — прийми її в стрічці","Предложение создал — прими его в ленте")); render(); return false; },
   plCopyTask(d){ const t = d.v || ""; Promise.resolve(navigator.clipboard && navigator.clipboard.writeText(t)).then(() => { if (typeof toast === "function") toast(L("Завдання скопійовано — можна надіслати команді","Задача скопирована — можно отправить команде")); }, () => {}); return false; },
+  plLater(d){ const f = plFunOf(d); if (!f) return; f.later = Object.assign({}, f.later || {}, {[d.v]:{at:plD(0), until:plD(PL_LATER_DAYS)}}); if (typeof save === "function") save(); if (typeof toast === "function") toast(L("Відклав на 5 днів — дивись у «Пізніше»","Отложил на 5 дней — смотри в «Позже»")); },
+  plHDone(d){ const f = plFunOf(d); if (!f) return; const l = Object.assign({}, f.later || {}); delete l[d.v]; f.later = l; f.hdone = Object.assign({}, f.hdone || {}, {[d.v]:plD(0)}); if (typeof save === "function") save(); if (typeof toast === "function") toast(L("Позначив як зроблене","Отметил как сделанное")); },
+  plHBack(d){ const f = plFunOf(d); if (!f) return; const l = Object.assign({}, f.later || {}), h = Object.assign({}, f.hdone || {}); delete l[d.v]; delete h[d.v]; f.later = l; f.hdone = h; if (typeof save === "function") save(); },
   plHypX(d){ PLHX[d.v] = Date.now(); try { localStorage.setItem("pl_hyp_x", JSON.stringify(PLHX)); } catch (e) {} },
   async plSafeAll(d){ if (d.v !== "go") { PL.safe[d.p] = d.v === "ask"; return; } PL.safe[d.p] = false;
     const r0 = PL.st[d.p], pp = W.projs.find(z => z.id === d.p), ids = ((r0 && r0.log) || []).filter(x => x.kind === "reco" && x.status === "new" && plOff(x.payload) && !(pp && plGone(pp, x))).map(x => x.id); let ok = 0;
