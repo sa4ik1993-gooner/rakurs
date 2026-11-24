@@ -123,6 +123,7 @@ function metaCard(p){
   const r = MT.ins && MT.ins.p === p.id ? MT.ins : null, hi = mtHealthInfo(m.health); mtHealth(p);
   return `${m.health && m.health.state !== "ok" ? `<div class="mthealth">${pill(hi[1], hi[0])}<span class="sub">${hi[2]}</span></div>` : ""}<dl class="kv"><dt>${bdAccs(c).length > 1 ? L("Акаунти","Аккаунты") + " · " + bdAccs(c).length : L("Акаунт","Аккаунт")}</dt><dd>${bdAccs(c).map(a => `${esc(a.name || a.id)} <span class="sub mono">${esc(a.id)}</span>`).join("<br>")}</dd><dt>${bdPages(c).length > 1 ? L("Сторінки","Страницы") : L("Сторінка","Страница")}</dt><dd>${bdPages(c).length ? bdPages(c).map(a => esc(a.name)).join(", ") : "—"}</dd><dt>${L("Піксель","Пиксель")}</dt><dd>${c.pixel ? esc(c.pixel.name) : L("підтягується сам з останньої кампанії акаунта","подтягивается сам из последней кампании аккаунта")}</dd></dl>
     <div class="row"><button class="btn btn--sm btn--solid" data-act="mtIns" data-id="${p.id}"${MT.busy ? " disabled" : ""}>${L("Перевірити дані за 7 днів","Проверить данные за 7 дней")}</button><button class="btn btn--sm" data-act="mtHealthNow" data-id="${p.id}">${L("Перевірити підключення","Проверить подключение")}</button>${canAdmin() ? `<button class="btn btn--sm" data-act="mtOpen" data-id="${p.id}" data-v="5">${L("Замінити ключ","Заменить ключ")}</button><button class="btn btn--sm btn--danger" data-act="mtOff" data-id="${p.id}">${L("Відключити","Отключить")}</button>` : ""}</div>
+    ${mtAllBox(p)}
     ${mtHistBox(p, c)}
     ${r ? (r.err ? `<p class="mterr">${esc(r.err)}</p>` : r.rows.length ? `<div class="tw"><table><thead><tr><th>${L("Кампанія","Кампания")} · ${r.since} — ${r.until}</th><th class="n">${L("Витрати","Расход")}, ${esc(r.currency || "")}</th><th class="n">${L("Покази","Показы")}</th><th class="n">${L("Кліки","Клики")}</th><th class="n">${L("Ліди","Лиды")}</th></tr></thead><tbody>
         ${r.rows.slice(0, 12).map(x => `<tr><td class="nm">${esc(x.name)}</td><td class="n mono">${dec(x.spend)}</td><td class="n mono">${num(x.impressions)}</td><td class="n mono">${num(x.clicks)}</td><td class="n mono">${num(x.leads)}</td></tr>`).join("")}
@@ -196,3 +197,38 @@ Object.assign(ACT, {
   gdStep(d){ MT.gs = +d.v; },
   gdDone(d){ const p = MT.g && W.projs.find(x => x.id === MT.g.p); if (!p) return false; gdState(p, MT.g.prov).done[d.k] = true; if (!p.conn[MT.g.prov]) p.conn[MT.g.prov] = 3; MT.gs = Math.min((MT.gs || 0) + 1, GUIDES()[MT.g.prov].steps.length); save(); },
 });
+
+/* ---------- все рекламные аккаунты, которые видит ключ Хиро (24.11.2026) ----------
+   Список приходит с сервера (meta → accounts). Аккаунт не в проекте — «Додати»: сервер добавляет его к подключению (add_account),
+   статистика начинает читаться с него. Если воронок несколько — выбранной воронке ставится правило «весь аккаунт» (accRules, all:1). */
+const MA = {p:{}, busy:{}, f:{}};
+function mtAllLoad(p, force){ if (!CLOUD || !sb || (MA.p[p.id] && !force) || MA.busy[p.id]) return; MA.busy[p.id] = 1;
+  mtCall({action:"accounts", project_id:p.id}).then(d => { MA.busy[p.id] = 0; MA.p[p.id] = d.ok ? d : {err: d.error === "action" ? mtErr({error:"old_fn"}) : mtErr(d)}; render(); }); }
+function mtAllBox(p){ mtAllLoad(p); const d = MA.p[p.id], fs = p.funnels || [];
+  const head = `<div class="row sp"><span class="tag">${L("Акаунти, які бачить Хіро","Аккаунты, которые видит Хиро")}${d && d.accounts ? " · " + d.accounts.length : ""}</span><span class="row">${hint(L("Усі рекламні акаунти, до яких має доступ ключ проєкту. «Додати» — Хіро почне читати статистику акаунта, а його кампанії підуть у вибрану воронку. Правила за назвами кампаній — у налаштуваннях воронки.","Все рекламные аккаунты, к которым есть доступ у ключа проекта. «Добавить» — Хиро начнет читать статистику аккаунта, а его кампании пойдут в выбранную воронку. Правила по названиям кампаний — в настройках воронки."))}${icoBtn("refresh", L("Оновити список","Обновить список"), `data-act="maRe" data-id="${p.id}"`)}</span></div>`;
+  if (!d) return `<div class="mtall">${head}<p class="sub">${L("Завантажую список акаунтів…","Загружаю список аккаунтов…")}</p></div>`;
+  if (d.err) return `<div class="mtall">${head}<p class="mterr">${esc(d.err)}</p></div>`;
+  const inP = new Set((d.chosen || []).map(String)), prim = String(((mtMeta(p).conn || {}).account || {}).id || (d.chosen || [])[0] || "");
+  const rows = d.accounts.slice().sort((a, b) => Number(inP.has(b.id)) - Number(inP.has(a.id)) || Number(b.active) - Number(a.active) || String(a.name).localeCompare(String(b.name)));
+  const fsel = id => fs.length > 1 ? `<select class="mtall__f" data-maf="${esc(id)}" aria-label="${L("Воронка","Воронка")}">${fs.map(f => `<option value="${f.id}"${(MA.f[id] || fs[0].id) === f.id ? " selected" : ""}>${esc(f.name)}</option>`).join("")}</select>` : "";
+  const fnOf = id => { const rs = ((p.accRules || {})[fxRK("meta", id)] || []).filter(r => fs.some(f => f.id === r.f)); return rs.length ? [...new Set(rs.map(r => fs.find(f => f.id === r.f).name))].join(", ") : fs.length === 1 ? fs[0].name : ""; };
+  return `<div class="mtall">${head}<div class="tw"><table><tbody>${rows.map(a => { const on = inP.has(a.id), busy = MA.busy[p.id + a.id];
+    return `<tr><td class="nm"><b>${esc(a.name || a.id)}</b> <span class="sub mono">${esc(a.id)}${a.currency ? " · " + esc(a.currency) : ""}${a.business ? " · " + esc(a.business) : ""}</span></td>
+      <td>${on ? pill("good", a.id === prim ? L("основний","основной") : L("у проєкті","в проекте")) + (fnOf(a.id) ? ` <span class="sub">→ ${esc(fnOf(a.id))}</span>` : "") : a.active ? "" : pill("mute", L("неактивний","неактивен"))}</td>
+      <td class="n">${!canAdmin() ? "" : on ? (a.id === prim ? "" : icoBtn("close", L("Прибрати з проєкту","Убрать из проекта"), `data-act="maDrop" data-id="${p.id}" data-v="${esc(a.id)}"${busy ? " disabled" : ""}`))
+        : `<span class="row mtall__add">${fsel(a.id)}<button type="button" class="btn btn--sm btn--solid" data-act="maAdd" data-id="${p.id}" data-v="${esc(a.id)}"${busy ? " disabled" : ""}>${busy ? L("Додаю…","Добавляю…") : fs.length ? L("Додати у воронку","Добавить в воронку") : L("Додати","Добавить")}</button></span>`}</td></tr>`; }).join("")}</tbody></table></div></div>`; }
+async function maSet(p, id, act){ MA.busy[p.id + id] = 1; render(); const r = await mtCall({action:act, project_id:p.id, account_id:id}); MA.busy[p.id + id] = 0;
+  if (!r.ok) { toast(r.error === "action" ? mtErr({error:"old_fn"}) : r.error === "primary" ? L("Основний акаунт прибрати не можна.","Основной аккаунт убрать нельзя.") : mtErr(r)); render(); return null; }
+  const m = mtMeta(p); m.conn = Object.assign({}, m.conn, r.conn); const d = MA.p[p.id]; if (d && d.accounts) d.chosen = (r.conn.accounts || []).map(a => String(a.id)); return r; }
+Object.assign(ACT, {
+  maRe(d){ const p = W.projs.find(x => x.id === d.id); if (p) { MA.p[p.id] = null; mtAllLoad(p, true); } },
+  async maAdd(d){ const p = W.projs.find(x => x.id === d.id); if (!p) return false; const fs = p.funnels || [], fid = fs.length > 1 ? (MA.f[d.v] || fs[0].id) : "";
+    const r = await maSet(p, d.v, "add_account"); if (!r) return;
+    if (fid) { p.accRules = p.accRules || {}; const k = fxRK("meta", d.v), rs = p.accRules[k] = (p.accRules[k] || []).filter(x => !x.all); rs.push({inc:"", exc:"", f:fid, all:1}); }
+    save(); toast(L("Акаунт додано. Завантажую його статистику…","Аккаунт добавлен. Загружаю его статистику…")); render();
+    const s = await mtCall({action:"history", project_id:p.id, account_id:d.v, since:new Date(Date.now() - 13 * 864e5).toISOString().slice(0, 10), until:new Date().toISOString().slice(0, 10)});
+    if (s.ok) { toast(L("Статистику за 14 днів завантажено","Статистика за 14 дней загружена")); if (typeof fxOf === "function") { const x = fxOf(p); x.tried = false; } if (typeof prOf === "function") { const x = prOf(p); x.at = 0; x.am = null; } } render(); return false; },
+  async maDrop(d){ const p = W.projs.find(x => x.id === d.id); if (!p) return false; if (MA.drop !== p.id + d.v) { MA.drop = p.id + d.v; toast(L("Натисни ще раз, щоб прибрати акаунт із проєкту","Нажми еще раз, чтобы убрать аккаунт из проекта")); setTimeout(() => { MA.drop = null; }, 4000); return false; }
+    MA.drop = null; const r = await maSet(p, d.v, "drop_account"); if (r) { if (p.accRules) delete p.accRules[fxRK("meta", d.v)]; save(); toast(L("Акаунт прибрано з проєкту","Аккаунт убран из проекта")); } render(); return false; },
+});
+document.addEventListener("change", e => { const t = e.target; if (t.dataset && t.dataset.maf) MA.f[t.dataset.maf] = t.value; });

@@ -72,7 +72,7 @@ function fxMatchPanel(p, f){ if (typeof PR_CH === "undefined" || typeof prAccs !
 const AR = {f:{}, mode:{}};
 function arRule(p, k, fid, make){ p.accRules = p.accRules || {}; const rs = p.accRules[k] = p.accRules[k] || []; let r = rs.find(x => x.f === fid);
   if (!r && make) { r = {inc:"", exc:"", f:fid}; rs.push(r); } return r; }
-function arTidy(p, k){ const rs = (p.accRules || {})[k]; if (!rs) return; const keep = rs.filter(r => fxWords(r.inc).length || fxWords(r.exc).length); if (keep.length) p.accRules[k] = keep; else delete p.accRules[k]; }
+function arTidy(p, k){ const rs = (p.accRules || {})[k]; if (!rs) return; const keep = rs.filter(r => r.all || fxWords(r.inc).length || fxWords(r.exc).length); if (keep.length) p.accRules[k] = keep; else delete p.accRules[k]; }
 function fxAccRules(p, c, acc){ const k = fxRK(c, acc), rs = fxRules(p, c, acc), fs = p.funnels, rows = fxMatchRows(p).filter(r => r.name && (r.prov || "meta") === c && fxAccOf(p, r) === acc);
   if (!fs.length) return `<p class="sub">${L("Спершу додай воронку.","Сначала добавь воронку.")}</p>`;
   const fid = fs.some(f => f.id === AR.f[k]) ? AR.f[k] : ((rs.find(r => fs.some(f => f.id === r.f)) || {}).f || fs[0].id), mode = AR.mode[k] || "inc", ru = rs.find(r => r.f === fid) || {inc:"", exc:""};
