@@ -79,7 +79,7 @@ function plSiteOffer(p, A, why){ const k = p.id + A.f.id, s = SCI[k] = SCI[k] ||
   const wrap = b => `<div class="scoffer">${hava("idea", 40)}<div class="scoffer__m">${b}</div></div>`;
   if (res) return wrap(`<div class="row sp"><b>${L("Перевірив сторінку","Проверил страницу")} ${esc(res.url)}</b><span class="sub">${res.cost ? "−" + res.cost + " " + COIN + " · " : ""}${L("баланс ","баланс ")}${bal == null ? "…" : bal} ${COIN}</span></div>${scResult(res)}<div class="row"><button type="button" class="btn btn--sm btn--text" data-act="scInlNo" data-k="${k}">${L("Згорнути","Свернуть")}</button></div>`);
   if (s.no) return "";
-  if (s.busy) return wrap(`<b>${L("Перевіряю сторінку…","Проверяю страницу…")}</b><p class="sub">${L("Швидкість на телефоні, піксель, форма. До хвилини, результат з’явиться тут.","Скорость на телефоне, пиксель, форма. До минуты, результат появится здесь.")}</p>`);
+  if (s.busy) return wrap(`<b>${L("Перевіряю сторінку…","Проверяю страницу…")}</b><p class="sub">${L("Сторінка: ","Страница: ")}<b>${esc(s.url || land)}</b></p><p class="sub">${L("Швидкість на телефоні, піксель, форма. До хвилини, результат з’явиться тут.","Скорость на телефоне, пиксель, форма. До минуты, результат появится здесь.")}</p>`);
   const low = bal != null && bal < price;
   return wrap(`<span class="heytag">Hey!</span><b>${esc(why)} ${L("Перевірю її за ","Проверю ее за ")}${price} ${COIN}?</b>
     <p class="sub">${L("Подивлюся, як сторінку бачить людина з реклами на телефоні: швидкість, піксель Meta, форма, важкі блоки. Результат покажу тут, з тим, що виправити.","Посмотрю, как страницу видит человек из рекламы на телефоне: скорость, пиксель Meta, форма, тяжелые блоки. Результат покажу здесь, с тем, что исправить.")}</p>
