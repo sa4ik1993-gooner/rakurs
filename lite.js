@@ -102,7 +102,8 @@ function vList(c){ const d = S.data, sales = d.sales;
   return `<section class="panel"><div class="row sp"><span class="tag">${L("Клієнти","Клиенты")} · ${sales.length}</span></div><div class="lite-list">${sales.map(x => `<div class="lite-row">
     <div class="lite-row__m"><b>${esc(x.who || L("без імені","без имени"))}</b><small class="sub">${dd(x.d)}${x.ad_id ? " · " + esc(adName(x.ad_id) || L("реклама","реклама")) : ""}</small></div>
     <span class="seg seg--xs" role="group" aria-label="${L("Статус","Статус")}">${stB.map(s => `<button type="button" data-act="setSt" data-id="${x.id}" data-v="${s[0]}" aria-pressed="${x.status === s[0]}">${s[1]}</button>`).join("")}</span>
-    <span class="num lite-row__a">${x.status === "bought" ? money(x.amount, x.cur || c.cur) : ""}</span>
+    <span class="num lite-row__a">${S.amt === x.id ? `<span class="lite-amt"><input id="amt-${x.id}" inputmode="decimal" placeholder="${L("сума","сумма")}" aria-label="${L("Сума покупки","Сумма покупки")}"><span class="seg seg--xs" role="group">${["UAH", "USD"].map(k => `<button type="button" data-act="fCur" data-v="${k}" aria-pressed="${S.form.cur === k}">${SYM[k]}</button>`).join("")}</span><button type="button" class="btn btn--sm btn--solid" data-act="amtSave" data-id="${x.id}">OK</button></span>`
+      : x.status === "bought" ? money(x.amount, x.cur || c.cur) + (x.capi_at ? `<small class="lite-capi">${L("передано в Meta","передано в Meta")}</small>` : x.capi_err ? `<small class="lite-capi lite-capi--err" title="${esc(x.capi_err)}">${L("Meta не прийняла","Meta не приняла")}</small>` : "") : x.status === "new" ? `<span class="st st--fix">${L("Написала","Написала")}</span>` : ""}</span>
     ${S.ask === x.id ? `<span class="row"><button type="button" class="btn btn--sm btn--danger" data-act="del" data-id="${x.id}">${L("Так, прибрати","Да, убрать")}</button><button type="button" class="btn btn--sm btn--text" data-act="askNo">${L("Скасувати","Отмена")}</button></span>`
       : `<button type="button" class="btn btn--sm btn--text lite-x" data-act="ask" data-id="${x.id}">${L("Прибрати","Убрать")}</button>`}</div>`).join("")}</div></section>`; }
 
@@ -115,6 +116,19 @@ function vAds(c){ const ads = (S.data.ads || []).filter(a => a.spend > 0);
     ${anyB ? "" : `<p class="sub">${L("Щоб бачити покупців по оголошеннях, у клієнта вибирай «З якої реклами».","Чтобы видеть покупателей по объявлениям, у клиента выбирай «С какой рекламы».")}</p>`}
     <div class="tw"><table class="lite-t"><thead><tr><th>${L("Оголошення","Объявление")}</th><th>${L("Витрачено","Потрачено")}</th><th>${L("Переписок","Переписок")}</th><th>${L("Ціна переписки","Цена переписки")}</th><th>${L("Купили","Купили")}</th><th>${L("Ціна клієнта","Цена клиента")}</th></tr></thead>
     <tbody>${rows.map(r => `<tr><td><b>${esc(r.name)}</b><small class="sub">${esc(r.campaign || "")}</small></td><td class="num">${money(r.spend, c.cur)}</td><td class="num">${int(r.conv)}</td><td class="num${r.spend && !r.conv ? " bad" : ""}">${r.conv ? money(r.spend / r.conv, c.cur) : "—"}</td><td class="num">${r.b || "—"}</td><td class="num">${r.b ? money(r.spend / r.b, c.cur) : "—"}</td></tr>`).join("")}</tbody></table></div></section>`; }
+
+/* этап 2: переписки из Instagram и покупки в Meta. Включает собственник или руководитель проекта */
+function vIg(){ const d = S.data, g = d.ig || {}, dis = S.igBusy ? " disabled" : "";
+  if (!d.meta) return "";
+  const head = `<div class="row sp"><span class="tag">${L("Переписки з Instagram","Переписки из Instagram")}</span>${g.ig_id ? `<span class="st ${g.err ? "st--err" : "st--on"}">${g.err ? L("помилка","ошибка") : "@" + esc(g.ig_name || "")}</span>` : ""}</div>`;
+  if (!g.ready) return `<section class="panel">${head}<p class="sub">${L("Скоро кожен, хто напише в Direct, сам з’являтиметься в журналі разом з оголошенням, з якого прийшов. Зараз HEYROW налаштовує це на своєму боці.","Скоро каждый, кто напишет в Direct, сам появится в журнале вместе с объявлением, с которого пришёл. Сейчас HEYROW настраивает это на своей стороне.")}</p></section>`;
+  if (!g.ig_id) return `<section class="panel">${head}<p class="sub">${L("Кожен, хто напише в Direct, сам з’явиться в журналі з оголошенням, з якого прийшов. Тобі лишиться натиснути «Купила» або «Ні». Тексти повідомлень я не читаю й не зберігаю.","Каждый, кто напишет в Direct, сам появится в журнале с объявлением, с которого пришёл. Тебе останется нажать «Купила» или «Нет». Тексты сообщений я не читаю и не храню.")}</p>
+    ${d.admin ? `<div class="row"><button type="button" class="btn btn--main" data-act="igConnect"${dis}>${L("Підключити переписки","Подключить переписки")}</button></div>` : `<p class="sub">${L("Підключає власник проєкту.","Подключает владелец проекта.")}</p>`}</section>`;
+  const last = g.last_event_at ? new Date(g.last_event_at).toLocaleString(lang === "ru" ? "ru-RU" : "uk-UA", {day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit"}).replace(",", "") : "";
+  return `<section class="panel">${head}
+    <p class="sub">${g.err ? L("Meta не підписала сторінку на переписки: ","Meta не подписала страницу на переписки: ") + esc(g.err) : last ? L("Остання переписка надійшла ","Последняя переписка пришла ") + last : L("Підключено. Чекаю першу переписку.","Подключено. Жду первую переписку.")}</p>
+    ${d.admin ? `<label class="ck"><input type="checkbox" data-act="igCapi" data-v="${g.capi ? "0" : "1"}"${g.capi ? " checked" : ""}${dis}> <span>${L("Передавати покупки в Meta","Передавать покупки в Meta")} <small class="sub">${L("Покупка з сумою з’явиться в Ads Manager біля оголошення. Навчати рекламу на покупках з Instagram Meta поки не вміє.","Покупка с суммой появится в Ads Manager рядом с объявлением. Учить рекламу на покупках из Instagram Meta пока не умеет.")}</small></span></label>
+      <div class="row">${S.igAsk === "off" ? `<button type="button" class="btn btn--sm btn--danger" data-act="igOff">${L("Так, відключити","Да, отключить")}</button><button type="button" class="btn btn--sm btn--text" data-act="igNo">${L("Скасувати","Отмена")}</button>` : `<button type="button" class="btn btn--sm btn--text" data-act="igOff">${L("Відключити переписки","Отключить переписки")}</button>`}</div>` : ""}</section>`; }
 
 function vBar(){ const p = S.projects.find(x => x.id === S.pid);
   return `<header class="lite-bar"><img src="ui/logo/logo-on-light.svg" alt="HEYROW" height="24">
@@ -133,7 +147,7 @@ function render(){ const v = $("view"); let h = vBar();
   else if (S.step === "noproj") h += vState("empty", L("Тут поки немає проєкту","Здесь пока нет проекта"), L("Попроси таргетолога додати твою пошту до проєкту в HEYROW, тоді тут з’являться реклама й клієнти.","Попроси таргетолога добавить твою почту в проект HEYROW, тогда здесь появятся реклама и клиенты."));
   else if (!S.data) h += S.busy ? vSkel() : vState("oops", L("Не вдалося взяти статистику","Не получилось взять статистику"), esc(S.err), `<button type="button" class="btn btn--main" data-act="reload">${L("Спробувати ще раз","Попробовать ещё раз")}</button>`);
   else { const c = calc();
-    h += vHero(c) + vPath(c) + `<div class="lite-cols">${vAdd(c)}${vList(c)}</div>` + vAds(c);
+    h += vHero(c) + vPath(c) + `<div class="lite-cols">${vAdd(c)}${vList(c)}</div>` + vAds(c) + vIg();
     if (S.busy) h += `<p class="sub lite-busy">${L("Оновлюю…","Обновляю…")}</p>`; }
   v.innerHTML = h; }
 
@@ -149,9 +163,22 @@ const ACT = {
   fCur(d){ keepForm(); S.form.cur = d.v; ls("lite_cur", d.v); render(); },
   ask(d){ S.ask = +d.id; render(); },
   askNo(){ S.ask = null; render(); },
-  async setSt(d){ const x = S.data.sales.find(s => s.id === +d.id); if (!x || x.status === d.v) return; const prev = x.status; x.status = d.v; render();
-    if (d.v === "bought" && !+x.amount) toast(L("Познач суму: прибери запис і додай з сумою, або залиш без суми.","Отметь сумму: убери запись и добавь с суммой, или оставь без суммы."));
+  async setSt(d){ const x = S.data.sales.find(s => s.id === +d.id); if (!x || x.status === d.v) return;
+    if (d.v === "bought" && !+x.amount) { S.amt = x.id; render(); const el = $("amt-" + x.id); if (el) el.focus(); return; }
+    const prev = x.status; x.status = d.v; render();
     const r = await call({action:"upd", project_id:S.pid, id:x.id, row:{status:d.v}}); if (!r.ok) { x.status = prev; render(); toast(errText(r)); } },
+  async amtSave(d){ const x = S.data.sales.find(s => s.id === +d.id), el = $("amt-" + d.id); if (!x || !el) return; const v = +String(el.value).replace(/\s/g, "").replace(",", ".");
+    if (!(v > 0)) { toast(L("Впиши суму покупки.","Впиши сумму покупки.")); el.focus(); return; }
+    const r = await call({action:"upd", project_id:S.pid, id:x.id, row:{status:"bought", amount:v, cur:S.form.cur}}); if (!r.ok) return toast(errText(r));
+    Object.assign(x, {status:"bought", amount:v, cur:S.form.cur, capi_at:r.capi_at, capi_err:r.capi_err}); S.amt = null; render();
+    toast(r.capi_at ? L("Збережено й передано в Meta","Сохранено и передано в Meta") : L("Збережено","Сохранено")); },
+  async igConnect(){ S.igBusy = true; render(); const r = await call({action:"ig_connect", project_id:S.pid}); S.igBusy = false;
+    if (!r.ok) { render(); return toast(r.error === "no_ig" ? L("До сторінки Facebook цього проєкту не прив’язаний Instagram-акаунт.","К странице Facebook этого проекта не привязан Instagram-аккаунт.") : errText(r)); }
+    toast(L("Переписки @","Переписки @") + (r.ig_name || "") + L(" підключено"," подключены")); loadStats(); },
+  async igCapi(d){ S.igBusy = true; render(); const r = await call({action:"ig_capi", project_id:S.pid, on:d.v === "1"}); S.igBusy = false;
+    if (!r.ok) { render(); return toast(errText(r)); } loadStats(); },
+  async igOff(){ if (S.igAsk !== "off") { S.igAsk = "off"; return render(); } S.igAsk = null; const r = await call({action:"ig_off", project_id:S.pid}); if (!r.ok) return toast(errText(r)); loadStats(); },
+  igNo(){ S.igAsk = null; render(); },
   async del(d){ const r = await call({action:"del", project_id:S.pid, id:+d.id}); S.ask = null; if (!r.ok) return toast(errText(r)); S.data.sales = S.data.sales.filter(s => s.id !== +d.id); render(); toast(L("Запис прибрано","Запись убрана")); },
 };
 function keepForm(){ const f = S.form, g = id => $(id) && $(id).value; if ($("f-who")) { f.who = g("f-who"); f.amount = g("f-amount") || ""; f.d = g("f-d") || today(); f.ad = g("f-ad") || ""; } }
