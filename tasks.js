@@ -200,7 +200,7 @@ function tsDupSt(p, x){ if (!x.sched) return null; const st = typeof PL !== "und
   if (!row) return {k:"mute", t:L("Передано Хіро","Передано Хиро")};
   const y = row.payload || {}, dd = row.exec_on ? tsDM(row.exec_on) : "", hm = typeof plPrepHm === "function" ? plPrepHm(y) : "01:00";
   if (row.status === "fail") return {k:"crit", t:L("Не вийшло: ","Не получилось: ") + (row.result || ""), fail:1};
-  if (row.status === "done") return {k:"good", t:L("Запущено","Запущено") + (y.geo === "world" ? L(" · увесь світ, крім України"," · весь мир, кроме Украины") : "")};
+  if (row.status === "done") return {k:"good", t:L("Запущено","Запущено") + (y.geo === "world" ? L(" · країни з оплатами"," · страны с оплатами") : "")};
   if (row.status === "canceled" || row.status === "dismissed" || row.status === "no") return {k:"mute", t:L("Прибрано з графіка","Убрано из графика"), fail:1};
   if (row.status === "scheduled" && y.prep && y.prep.nid) return {k:"good", t:L("Створено, стартує сама · ","Создано, стартует сама · ") + dd + L(" о "," в ") + hm + "", url:typeof plPrepUrl === "function" ? plPrepUrl(y) : ""};
   if (row.status === "scheduled") return {k:"warn", t:L("У графіку: створю вночі ","В графике: создам ночью ") + dd};
@@ -208,6 +208,8 @@ function tsDupSt(p, x){ if (!x.sched) return null; const st = typeof PL !== "und
 /* старые планы: шаг «Перевірка: 3 дні дубля» показываем как ежечасное наблюдение (Дмитрий, 24.11.2026) */
 const tsStepText = (t, x) => x.check && /3 дні дубля|3 дня дубля/.test(x.t || "") ? L("Щогодини стежу за дублем. Ціна ліда вилетить за норму — одразу напишу в Telegram з кнопкою «Вимкнути»: вимикаю відразу після «Так».","Каждый час слежу за дублем. Цена лида вылетит за норму — сразу напишу в Telegram с кнопкой «Выключить»: выключаю сразу после «Да».") : x.t;
 /* шаг-дубль карточкой: группа, креативы, бюджет, гео (выбор), старт, статус */
+const TS_GEO_DEF = ["PL","US","DE","CA","CZ","GB","IT","ES","FR","RO","NL","SK","SE","IE","AT","IL","DK","CH","BG","NO","BE","AE","LT","GE","MD","HU","PT","LV","TR","HR","FI","JP","GR","CY"];
+const tsGeo = p => (Array.isArray(p.dupGeo) && p.dupGeo.length ? p.dupGeo : TS_GEO_DEF);
 function tsDupHtml(p, t, x, i){ const s = tsDupSt(p, x), a = `data-p="${p.id}" data-id="${t.id}" data-i="${i}"`;
   const crs = x.crs || ((x.t || "").match(/креативи: ([^;]+);|креативы: ([^;]+);/) || []).slice(1).filter(Boolean).join("").split(", ").filter(Boolean);
   const cpl = x.cpl || (((x.t || "").match(/ліди за ([\d,.]+) \$|лиды по ([\d,.]+) \$/) || []).slice(1).find(Boolean) || "").replace(",", ".");
@@ -215,9 +217,9 @@ function tsDupHtml(p, t, x, i){ const s = tsDupSt(p, x), a = `data-p="${p.id}" d
   const kv = [[L("Група","Группа"), esc(x.sn || "") + (cpl ? ` <span class="sub">· ${L("ліди за ","лиды по ")}${tsM(+cpl)} ${L("за 7 днів","за 7 дней")}</span>` : "")],
     [L("Креативи","Креативы"), crs.length ? `<span class="tsdup__crs">${crs.map(c => `<span class="chip">${esc(c)}</span>`).join("")}</span>` : L("до 3 оголошень з лідами за 14 днів","до 3 объявлений с лидами за 14 дней")],
     [L("Бюджет","Бюджет"), sched ? `<b class="mono">${tsM(x.bud)}</b> ${L("на день","в день")}` : `<span class="tsdup__bud"><input class="tin" inputmode="decimal" data-tsdupbud="${p.id}|${t.id}|${i}" value="${Math.round(x.bud)}" aria-label="${L("Бюджет дубля на день, $","Бюджет дубля в день, $")}"> $ ${L("на день","в день")}</span> ${hint(L("Від 10 до 500 $. Хіро запропонував суму, якої не вистачає до цілі задачі.","От 10 до 500 $. Хиро предложил сумму, которой не хватает до цели задачи."))}`],
-    [L("Гео","Гео"), sched ? (geo ? L("увесь світ, крім України","весь мир, кроме Украины") : L("як у групі","как в группе")) : `<span class="seg seg--xs" role="group" aria-label="${L("Гео дубля","Гео дубля")}"><button type="button" data-act="tsDupGeo" ${a} data-g="" aria-pressed="${!geo}">${L("Як у групі","Как в группе")}</button><button type="button" data-act="tsDupGeo" ${a} data-g="world" aria-pressed="${!!geo}">${L("Увесь світ, крім України","Весь мир, кроме Украины")}</button></span> ${hint(L("«Як у групі» — ті самі країни, що зараз. «Увесь світ, крім України» — ширше охоплення для україномовних за кордоном; мова, вік і решта налаштувань як у групі.","«Как в группе» — те же страны, что сейчас. «Весь мир, кроме Украины» — шире охват для украиноязычных за рубежом; язык, возраст и остальные настройки как в группе."))}`],
+    [L("Гео","Гео"), sched ? (geo ? L("країни з оплатами: ","страны с оплатами: ") + tsGeo(p).join(", ") : L("як у групі","как в группе")) : TS.dupBusy ? (geo ? L("країни з оплатами: ","страны с оплатами: ") + tsGeo(p).join(", ") : L("як у групі","как в группе")) : `<span class="seg seg--xs" role="group" aria-label="${L("Гео дубля","Гео дубля")}"><button type="button" data-act="tsDupGeo" ${a} data-g="" aria-pressed="${!geo}">${L("Як у групі","Как в группе")}</button><button type="button" data-act="tsDupGeo" ${a} data-g="world" aria-pressed="${!!geo}">${L("Країни з оплатами","Страны с оплатами")}</button></span> ${hint(L("«Як у групі» — ті самі країни, що зараз. «Країни з оплатами» — список країн, звідки приходили передоплати; його можна поправити (коди країн через кому). Мова, вік і решта налаштувань як у групі.","«Как в группе» — те же страны, что сейчас. «Страны с оплатами» — список стран, откуда приходили предоплаты; его можно поправить (коды стран через запятую). Язык, возраст и остальное как в группе."))}${geo ? `<input class="tin tin--w tsdup__geo" data-tsdupgeo="${p.id}" value="${esc(tsGeo(p).join(", "))}" aria-label="${L("Країни для дубля, коди через кому","Страны для дубля, коды через запятую")}">` : ""}}`],
     [L("Старт","Старт"), L("наступної ночі о 01:00 — у Meta копія буде «Заплановано», вмикати нічого не треба","следующей ночью в 01:00 — в Meta копия будет «Запланировано», включать ничего не нужно")]];
-  const foot = !s ? `<button type="button" class="btn btn--main" data-act="tsDupGo" ${a} data-g="${geo}">${ico("clock")} ${L("Запланувати на ніч","Запланировать на ночь")}</button>`
+  const foot = TS.dupBusy === t.id + ":" + i ? `<span class="pill pill--warn">${L("Хіро створює копію в Meta — до 2 хвилин, не закривай сторінку","Хиро создает копию в Meta — до 2 минут, не закрывай страницу")}</span>` : !s ? `<button type="button" class="btn btn--main" data-act="tsDupGo" ${a} data-g="${geo}">${ico("clock")} ${L("Запланувати на ніч","Запланировать на ночь")}</button>`
     : `<span class="pill pill--${s.k}">${esc(s.t)}</span>${s.url ? ` <a class="btn btn--sm" href="${esc(s.url)}" target="_blank" rel="noopener">${L("Відкрити в Ads Manager","Открыть в Ads Manager")}</a>` : ""}${s.fail ? ` <button type="button" class="btn btn--sm" data-act="tsDupRe" ${a}>${L("Спробувати ще раз","Попробовать еще раз")}</button>` : ""}`;
   return `<div class="tsdup"><b class="tsdup__h">${ico("duplicate")} ${L("Дубль найкращої зв’язки","Дубль лучшей связки")}</b><dl class="kv">${kv.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl><div class="row tsdup__f">${foot}</div></div>`; }
 function tsGate(t){ const i = t.steps.findIndex(x => !x.done); if (i < 0 || t.status !== "run") return null; const x = t.steps[i], prev = i ? t.steps[i - 1] : null, g = TS.prog[t.id], today = prToday();
@@ -364,14 +366,21 @@ Object.assign(ACT, {
     r.onresult = e => { const t = [...e.results].map(x => x[0].transcript).join(" ").trim(); if (t) TS.txt[d.k] = ((TS.txt[d.k] || "") + " " + t).trim(); };
     r.onerror = e => { if (e.error === "not-allowed" || e.error === "service-not-allowed") toast(L("Браузер не дав доступ до мікрофона","Браузер не дал доступ к микрофону")); };
     r.onend = () => { TS.mic = null; render(); }; TS.mic = r; TS.micK = d.k; try { r.start(); } catch (e) { TS.mic = null; } },
-  async tsDupGo(d){ const [p, t] = tsT(d); if (!t) return false; const x = t.steps[+d.i]; if (!x || x.sched) return false;
+  async tsDupGo(d){ const [p, t] = tsT(d); if (!t) return false; const x = t.steps[+d.i]; if (!x || x.sched || TS.dupBusy) return false;
+    /* одно нажатие — одна копия: пока Хиро создаёт (до 2 мин), кнопки скрыты (Дмитрий, 24.11.2026: «создалось несколько групп») */
+    TS.dupBusy = t.id + ":" + d.i; render();
+    try {
     const geo = d.g === "world" ? "world" : "";
+    /* список стран должен быть в облаке до того, как сервер создаст копию */
+    if (geo && !(Array.isArray(p.dupGeo) && p.dupGeo.length)) p.dupGeo = TS_GEO_DEF.slice();
+    if (geo && typeof cloudSync === "function") { save(); clearTimeout(CL.timer); try { await cloudSync(); } catch (e) {} }
     const r = await tdPropose({project_id:p.id, items:[{key:"task:dup:" + x.sid + ":" + prToday() + ":" + Date.now(), title:L("Дубль зв’язки","Дубль связки"), body:x.sn + "\n" + x.t, payload:{op:"dup", cid:x.cid, id:x.sid, budget:x.bud, geo, facts:[[L("Бюджет на день","Бюджет в день"), x.bud + " $", false]], gain:L("Більше лідів без збиття навчання поточних груп","Больше лидов без сбоя обучения текущих групп")}}]});
     const id = r && r.ids && r.ids[0]; if (!id) { toast(r && r.frozen ? r.frozen : L("Не вийшло: бюджет на рівні кампанії, немає підключення або такий дубль сьогодні вже є.","Не получилось: бюджет на уровне кампании, нет подключения или такой дубль сегодня уже есть.")); return false; }
     const z = typeof plCall === "function" ? await plCall({action:"decide", project_id:p.id, id, v:"y"}) : null; x.sched = id;
     if (t.status === "plan") { t.status = "run"; t.started = prToday(); } if (TS.fresh === t.id) TS.fresh = ""; save();
     if (typeof PL !== "undefined") { delete PL.st[p.id]; if (typeof plLoad === "function") plLoad(p); }
-    toast(z && z.text ? z.text : L("Пропозицію створив — прийми її в стрічці Хіро","Предложение создал — прими его в ленте Хиро")); },
+    toast(z && z.text ? z.text : L("Пропозицію створив — прийми її в стрічці Хіро","Предложение создал — прими его в ленте Хиро"));
+    } finally { TS.dupBusy = ""; render(); } },
   tsDupGeo(d){ const [p, t] = tsT(d); if (!t) return false; const x = t.steps[+d.i]; if (!x || x.sched) return false; x.geo = d.g === "world" ? "world" : ""; save(); },
   tsDupRe(d){ const [p, t] = tsT(d); if (!t) return false; const x = t.steps[+d.i]; if (!x) return false; delete x.sched; save(); },
   tsRun(d){ const [p, t] = tsT(d); if (!t) return false; if (TS.fresh === t.id) TS.fresh = ""; t.status = "run"; t.started = prToday(); const sh = Math.round((Date.parse(prToday()) - Date.parse(t.start)) / 864e5); if (sh > 0) t.steps.forEach(x => { x.d = tsDay(x.d, sh); }); save(); },
@@ -411,3 +420,9 @@ document.addEventListener("change", e => { const el = e.target; if (!el.dataset 
   const x = t.steps[+i]; if (!x || x.sched) return; const v = Math.round(Number(String(el.value).replace(",", ".")));
   if (!(v >= 10 && v <= 500)) { toast(L("Бюджет дубля — від 10 до 500 $ на день","Бюджет дубля — от 10 до 500 $ в день")); el.value = Math.round(x.bud); return; }
   x.bud = v; x.t = x.t.replace(/бюджет \d+ \$/, "бюджет " + v + " $"); save(); });
+
+/* список стран для дубля — в проекте, правится в карточке */
+document.addEventListener("change", e => { const el = e.target; if (!el.dataset || !el.dataset.tsdupgeo) return; const p = W.projs.find(x => x.id === el.dataset.tsdupgeo); if (!p) return;
+  const cc = [...new Set(String(el.value).toUpperCase().split(/[^A-Z]+/).filter(c => /^[A-Z]{2}$/.test(c) && c !== "UA" && c !== "RU"))];
+  if (!cc.length) { toast(L("Вкажи хоча б одну країну кодом: PL, US, DE…","Укажи хотя бы одну страну кодом: PL, US, DE…")); el.value = tsGeo(p).join(", "); return; }
+  p.dupGeo = cc; save(); el.value = cc.join(", "); });
