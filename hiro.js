@@ -81,6 +81,7 @@ function hiroSection(scr){ const p = P(), f = F(), m = n => prM(n, "USD"), out =
   return null; }
 
 /* что сказать на этом экране: поза, заголовок, фраза, две кнопки, до трёх цифр */
+const HIRO_W = {t0:0, tm:0};
 function hiroSay(scr){
   const sec = scr.indexOf(":") > 0 ? hiroSection(scr) : null; if (sec) return sec;
   const p = P(), e = hiroEv(p || null), out = {pose:"watch", keys:[]};
@@ -95,6 +96,11 @@ function hiroSay(scr){
     out.text = L("Тоді я щогодини дивитимусь витрати й ціну ліда і скажу, що виправити.","Тогда я каждый час буду смотреть расход и цену лида и скажу, что исправить.");
     out.main = hiroBtn("btn--main", L("Підключити кабінет","Подключить кабинет"), `data-act="mapConn" data-id="${q.id}"`, "connections"); return out; }
   if (e.load) { out.pose = "work"; out.title = L("Збираю цифри з Meta…","Собираю цифры из Meta…"); out.text = L("Це займе кілька секунд.","Это займет несколько секунд."); out.load = true; return out; }
+  /* баннер не перескакивает по ходу загрузки (Дмитрий, 24.11.2026): ждем настройки автопилота и разбор воронок — до 8 секунд, потом один итог */
+  if (typeof PL !== "undefined" && typeof plLoad === "function" && CLOUD) { const wait = e.ps.filter(p => { const st = PL.st[p.id]; if (!st) { plLoad(p); return true; }
+      const T = st.settings ? Number(st.settings.target_cpl) || 0 : 0; if (!T || typeof plAcctLoad !== "function" || typeof PLA === "undefined" || !sb) return false; if (!PLA[p.id]) plAcctLoad(p); return !PLA[p.id] || PLA[p.id].load; });
+    if (wait.length) { HIRO_W.t0 = HIRO_W.t0 || Date.now(); if (Date.now() - HIRO_W.t0 < 8000) { if (!HIRO_W.tm) HIRO_W.tm = setTimeout(() => { HIRO_W.tm = 0; render(); }, 8100);
+      out.pose = "work"; out.title = L("Збираю цифри з Meta…","Собираю цифры из Meta…"); out.text = L("Це займе кілька секунд.","Это займет несколько секунд."); out.load = true; return out; } } }
   const m = n => prM(n, e.cur), per = prLabel(prRange());
   out.keys = [[L("Витрати · ","Расход · ") + per, m(e.s.spend)], [L("Ліди","Лиды"), num(e.s.leads)], [L("Ціна ліда","Цена лида"), e.cpl ? m(e.cpl) : "—", e.cap && e.cpl > e.cap]];
   const paused = hiroPausedOf(e.ps);
