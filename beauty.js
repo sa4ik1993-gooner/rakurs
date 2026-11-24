@@ -1,4 +1,4 @@
-/* HEYROW Lite — кабинет для мастеров услуг (косметологи и т.п.), у которых реклама ведёт в Instagram Direct.
+/* HEYROW Beauty — отдельный сервис для мастеров услуг (косметологи и т.п.), у которых реклама ведёт в Instagram Direct.
    Три блока: сводка (Хиро), журнал клиентов «Записалась / Купила / Ні», реклама по покупателям.
    Данные: функция lite (статистика Meta только читается, журнал — таблица lite_sales). В Meta ничего не уходит.
    Вход — ссылкой из письма, та же учётная запись, что в основном кабинете. Проект и подключение Meta создаёт таргетолог. */
@@ -36,7 +36,7 @@ async function boot(){
   const s = (await sb.auth.getSession()).data.session; S.user = s && s.user;
   sb.auth.onAuthStateChange((_e, ss) => { const had = !!S.user; S.user = ss && ss.user; if (!had && S.user) loadProjects(); });
   if (!S.user) { S.step = "login"; return render(); }
-  try { localStorage.removeItem("lite_back"); } catch (e) {}
+  try { localStorage.removeItem("beauty_back"); } catch (e) {}
   loadProjects(); loadRate();
 }
 async function loadProjects(){ S.step = "load"; render(); const r = await call({action:"projects"});
@@ -131,7 +131,7 @@ function vIg(){ const d = S.data, g = d.ig || {}, dis = S.igBusy ? " disabled" :
       <div class="row">${S.igAsk === "off" ? `<button type="button" class="btn btn--sm btn--danger" data-act="igOff">${L("Так, відключити","Да, отключить")}</button><button type="button" class="btn btn--sm btn--text" data-act="igNo">${L("Скасувати","Отмена")}</button>` : `<button type="button" class="btn btn--sm btn--text" data-act="igOff">${L("Відключити переписки","Отключить переписки")}</button>`}</div>` : ""}</section>`; }
 
 function vBar(){ const p = S.projects.find(x => x.id === S.pid);
-  return `<header class="lite-bar"><img src="ui/logo/logo-on-light.svg" alt="HEYROW" height="24">
+  return `<header class="lite-bar"><span class="lite-brand"><img src="ui/logo/logo-on-light.svg" alt="HEYROW" height="24"><b>Beauty</b></span>
     ${S.projects.length > 1 ? `<select class="pfsel" data-ch="pid" aria-label="${L("Проєкт","Проект")}">${S.projects.map(x => `<option value="${x.id}"${x.id === S.pid ? " selected" : ""}>${esc(x.name)}</option>`).join("")}</select>` : p ? `<b class="lite-name">${esc(p.name)}</b>` : ""}
     <span class="lite-bar__r">${S.step === "app" ? `<span class="seg seg--xs" role="group" aria-label="${L("Період","Период")}">${[[7, L("7 днів","7 дней")], [30, L("30 днів","30 дней")]].map(x => `<button type="button" data-act="days" data-v="${x[0]}" aria-pressed="${S.days === x[0]}">${x[1]}</button>`).join("")}</span>` : ""}
     <span class="seg seg--xs" role="group" aria-label="Мова"><button type="button" data-act="lang" data-v="uk" aria-pressed="${lang === "uk"}">UA</button><button type="button" data-act="lang" data-v="ru" aria-pressed="${lang === "ru"}">RU</button></span>
@@ -186,7 +186,7 @@ document.addEventListener("click", e => { const b = e.target.closest("[data-act]
 document.addEventListener("change", e => { const t = e.target; if (t.dataset.ch === "pid") { S.pid = t.value; ls("lite_pid", S.pid); S.data = null; loadStats(); } });
 document.addEventListener("submit", async e => { const f = e.target; e.preventDefault();
   if (f.dataset.form === "login") { const mail = ($("mail").value || "").trim().toLowerCase(); if (!mail) return; S.mail = mail;
-    ls("lite_back", String(Date.now()));
+    ls("beauty_back", String(Date.now()));
     const r = await sb.auth.signInWithOtp({email:mail, options:{shouldCreateUser:false, emailRedirectTo:location.origin + location.pathname}});
     if (r.error) return toast(/signups not allowed|not found|not allowed for otp/i.test(r.error.message) ? L("Цієї пошти немає в HEYROW. Попроси таргетолога додати її.","Этой почты нет в HEYROW. Попроси таргетолога добавить её.") : /rate|seconds|limit/i.test(r.error.message) ? L("Забагато листів. Спробуй за годину.","Слишком много писем. Попробуй через час.") : L("Не вдалося надіслати лист: ","Не получилось отправить письмо: ") + r.error.message);
     S.step = "sent"; return render(); }
