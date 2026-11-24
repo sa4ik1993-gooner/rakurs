@@ -69,3 +69,34 @@ Object.assign(ACT, {
   /* из разбора Хиро: перейти в проверку сайта с адресом лендинга воронки */
   siteGo(d){ W.cur = null; W.fun = null; W.ctab = "site"; if (d.v) SCK.url = d.v; SCK.err = ""; save(); }
 });
+
+/* ---------- предложение Хиро прямо в разборе «дорого» (Дмитрий, 24.11.2026) ----------
+   «Перевірю сторінку за 10 HEY?» → «Так» → монеты списываются, проверка идет, результат — в той же карточке. «Ні» — убрать предложение. */
+const SCI = {}, scNorm = u => String(u || "").replace(/^https?:\/\//i, "").replace(/\/+$/, "").toLowerCase();
+function plSiteOffer(p, A, why){ const k = p.id + A.f.id, s = SCI[k] = SCI[k] || {}, st = SCK.st; scLoad();
+  const land = s.url || ((A.f.lands || [])[0] || {}).url || "", price = st && st.price || 10, bal = st && st.balance != null ? st.balance : null, hist = st && st.hist || [];
+  const res = s.id ? hist.find(h => h.id === s.id) : null, last = !res && land ? hist.find(h => h.status === "ok" && scNorm(h.url) === scNorm(land) && Date.now() - Date.parse(h.at) < 7 * 864e5) : null;
+  const wrap = b => `<div class="scoffer">${hava("idea", 40)}<div class="scoffer__m">${b}</div></div>`;
+  if (res) return wrap(`<div class="row sp"><b>${L("Перевірив сторінку","Проверил страницу")} ${esc(res.url)}</b><span class="sub">${res.cost ? "−" + res.cost + " " + COIN + " · " : ""}${L("баланс ","баланс ")}${bal == null ? "…" : bal} ${COIN}</span></div>${scResult(res)}<div class="row"><button type="button" class="btn btn--sm btn--text" data-act="scInlNo" data-k="${k}">${L("Згорнути","Свернуть")}</button></div>`);
+  if (s.no) return "";
+  if (s.busy) return wrap(`<b>${L("Перевіряю сторінку…","Проверяю страницу…")}</b><p class="sub">${L("Швидкість на телефоні, піксель, форма. До хвилини, результат з’явиться тут.","Скорость на телефоне, пиксель, форма. До минуты, результат появится здесь.")}</p>`);
+  const low = bal != null && bal < price;
+  return wrap(`<span class="heytag">Hey!</span><b>${esc(why)} ${L("Перевірю її за ","Проверю ее за ")}${price} ${COIN}?</b>
+    <p class="sub">${L("Подивлюся, як сторінку бачить людина з реклами на телефоні: швидкість, піксель Meta, форма, важкі блоки. Результат покажу тут, з тим, що виправити.","Посмотрю, как страницу видит человек из рекламы на телефоне: скорость, пиксель Meta, форма, тяжелые блоки. Результат покажу здесь, с тем, что исправить.")}</p>
+    ${land ? `<p class="sub">${L("Сторінка: ","Страница: ")}<b>${esc(land)}</b></p>` : `<input id="sci-${k}" class="tin" type="url" inputmode="url" placeholder="${L("Адреса сторінки, https://…","Адрес страницы, https://…")}">`}
+    ${s.err ? `<p class="mterr">${esc(s.err)}</p>` : ""}
+    <div class="row"><button type="button" class="btn btn--main btn--sm" data-act="scInlGo" data-k="${k}" data-p="${p.id}"${low ? " disabled" : ""}>${L("Так, перевір · ","Да, проверь · ")}${price} ${COIN}</button><button type="button" class="btn btn--sm" data-act="scInlNo" data-k="${k}">${L("Ні","Нет")}</button>
+    ${last ? `<button type="button" class="btn btn--sm btn--text" data-act="scInlShow" data-k="${k}" data-v="${last.id}">${L("Показати перевірку від ","Показать проверку от ")}${new Date(last.at).toLocaleDateString(lang === "uk" ? "uk-UA" : "ru-RU", {day:"2-digit", month:"2-digit"})}</button>` : ""}</div>
+    <p class="sub">${low ? L("Не вистачає ","Не хватает ") + COIN + L(": на балансі ",": на балансе ") + bal + "." : L("На балансі ","На балансе ") + (bal == null ? "…" : bal) + " " + COIN + L(". Якщо сторінка не відкриється — монети поверну.",". Если страница не откроется — монеты верну.")}</p>`); }
+Object.assign(ACT, {
+  async scInlGo(d){ const s = SCI[d.k] = SCI[d.k] || {}, el = document.getElementById("sci-" + d.k), p = (W.projs || []).find(x => x.id === d.p);
+    const f = p && (p.funnels || []).find(x => d.k === p.id + x.id), url = s.url || (el && el.value.trim()) || (f && ((f.lands || [])[0] || {}).url) || "";
+    if (!url) { s.err = L("Впиши адресу сторінки.","Впиши адрес страницы."); render(); return false; }
+    s.url = url; s.busy = true; s.err = ""; render();
+    const r = await scCall({action:"check", url, project_id:d.p}); s.busy = false;
+    if (SCK.st && r.balance != null) SCK.st.balance = r.balance;
+    if (r.ok && r.check) { if (SCK.st) SCK.st.hist = [r.check].concat(SCK.st.hist || []); s.id = r.check.id; } else s.err = scErr(r.error);
+    render(); return false; },
+  scInlNo(d){ const s = SCI[d.k] = SCI[d.k] || {}; s.no = 1; s.id = null; },
+  scInlShow(d){ const s = SCI[d.k] = SCI[d.k] || {}; s.id = Number(d.v); }
+});
