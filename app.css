@@ -1490,3 +1490,10 @@ td:first-child{font:600 var(--t-body)/1.3 var(--font-ui)}
 .placc{margin:0;padding-left:var(--s-5);display:flex;flex-direction:column;gap:var(--s-2);max-width:760px}
 .placc li{display:flex;flex-direction:column;gap:2px;line-height:1.45}.placc li b{font-weight:600}.placc li span{color:var(--muted);font-size:var(--t-data)}
 .plc--acct .plc__t{display:block;-webkit-line-clamp:unset;overflow:visible}
+/* глубокий разбор */
+.pldeep{border-top:1px solid var(--line);padding-top:var(--s-3);display:flex;flex-direction:column;gap:var(--s-3)}
+.pldeep h4{margin:0;font:700 var(--t-label)/1.2 var(--font-display);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.pldt{width:100%;border-collapse:collapse;min-width:620px;font-size:var(--t-data)}
+.pldt th{font:600 11px/1.2 var(--font-ui);color:var(--muted);text-align:right;padding:var(--s-2)}.pldt th:first-child,.pldt td:first-child{text-align:left}
+.pldt td{padding:var(--s-2);border-top:1px solid var(--line)}.pldt td small{display:block;color:var(--muted);font-size:11px}
+.pldt .n{text-align:right;white-space:nowrap}.pldt .is-bad{color:var(--minus);font-weight:700}
