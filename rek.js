@@ -3,7 +3,7 @@
    Плюс общие вещи для всех экранов: переключатель проекта (W.pf), шапка с периодом, цвет цены лида и легенда порогов.
    Подключается после tasks.js. */
 const RK2 = {sort:"spend", dir:-1, open:{}, q:"", qc:"", plat:"", acc:"", fun:"", spendOnly:true, rep:"cpl"};
-const RK_TABS = () => [["camp", L("Кампанії","Кампании")], ["cr", L("Креативи","Креативы")], ["web", L("Вебінари","Вебинары")], ["tr", L("Трекер","Трекер")], ["rep", L("Звіти","Отчёты")]];
+const RK_TABS = () => [["camp", L("Кампанії","Кампании")], ["cr", L("Креативи","Креативы")], ["web", L("Вебінари","Вебинары")], ["tr", L("Трекер","Трекер")], ["rep", L("Звіти","Отчеты")]];
 
 /* ---------- переключатель проекта: все экраны показывают выбранный проект или все сразу ---------- */
 const pfProjs = () => { const p = W.pf && W.projs.find(x => x.id === W.pf); return p ? [p] : W.projs; };
@@ -22,7 +22,7 @@ document.addEventListener("change", e => { const t = e.target; if (t.dataset && 
 /* ---------- цена лида цветом и легенда порогов (потолок воронки) ---------- */
 const cplLv = (cpl, cap) => !cap || !cpl ? "" : cpl <= cap * 0.9 ? "good" : cpl <= cap ? "warn" : "crit";
 const cplCell = (cpl, cap, cur) => cpl ? `<span class="cpl cpl--${cplLv(cpl, cap) || "n"}">${prM(cpl, cur)}</span>` : "—";
-const cplLegend = (cap, cur) => cap ? `<div class="cplg"><span class="cpl cpl--good">≤ ${prM(cap * 0.9, cur)}</span><span class="cpl cpl--warn">${L("до ","до ")}${prM(cap, cur)}</span><span class="cpl cpl--crit">&gt; ${prM(cap, cur)}</span><small class="sub">${L("стеля ціни ліда воронки","потолок цены лида воронки")}</small></div>` : "";
+const cplLegend = (cap, cur) => cap ? `<div class="cplg"><span class="cpl cpl--good">≤ ${prM(cap * 0.9, cur)}</span><span class="cpl cpl--warn">${L("до ","до ")}${prM(cap, cur)}</span><span class="cpl cpl--crit">&gt; ${prM(cap, cur)}</span><small class="sub">${L("гранична ціна ліда воронки","потолок цены лида воронки")}</small></div>` : "";
 
 /* ---------- выгрузка в Excel: CSV с «;» и BOM, Excel открывает сам ---------- */
 function csvSave(name, rows){ const s = "﻿" + rows.map(r => r.map(v => { const t = v == null ? "" : String(v); return /[;"\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; }).join(";")).join("\n");
@@ -36,14 +36,14 @@ function rkRows(){ const out = []; let loading = false;
       out.push(Object.assign({p, x, f, fid, acc, accName:acc ? prAccName(p, acc, r.prov) : "", cap:f ? prCap(f, p) : 0, cur:prCur(p), book:sb2.book || 0, pay:sb2.pay || 0, rev:sb2.rev || 0}, r)); }); });
   return {rows:out, loading}; }
 const rkSum = a => a.reduce((s, r) => { ["spend", "imp", "clicks", "leads", "book", "pay", "rev"].forEach(k => { s[k] += r[k] || 0; }); return s; }, {spend:0, imp:0, clicks:0, leads:0, book:0, pay:0, rev:0});
-const RK_COLS = () => [["spend", L("Витрати","Расход")], ["imp", L("Покази","Показы")], ["clicks", L("Кліки","Клики")], ["ctr", "CTR"], ["leads", L("Ліди","Лиды")], ["cpl", L("Ціна ліда","Цена лида")], ["book", L("Броні","Брони")], ["pay", L("Оплати","Оплаты")], ["rev", L("Виручка","Выручка")], ["roas", "ROAS"]];
+const RK_COLS = () => [["spend", L("Витрати","Расход")], ["imp", L("Покази","Показы")], ["clicks", L("Кліки","Клики")], ["ctr", "CTR"], ["leads", L("Ліди","Лиды")], ["cpl", L("Ціна ліда","Цена лида")], ["book", L("Бронювання","Брони")], ["pay", L("Оплати","Оплаты")], ["rev", L("Виручка","Выручка")], ["roas", "ROAS"]];
 const rkVal = (r, k) => k === "ctr" ? (r.imp ? r.clicks / r.imp : 0) : k === "cpl" ? (r.leads ? r.spend / r.leads : 0) : k === "roas" ? (r.spend && r.rev ? r.rev / r.spend : 0) : r[k] || 0;
 const rkCells = (r, cap, cur) => RK_COLS().map(([k]) => { const v = rkVal(r, k);
   return `<td class="n mono">${k === "cpl" ? cplCell(v, cap, cur) : k === "ctr" ? (v ? prPct(v) : "—") : k === "roas" ? (v ? dec(v, 2) : "—") : k === "spend" || k === "rev" ? (v ? prM(v, cur) : "—") : num(v)}</td>`; }).join("");
 
 function rkFilters(rows){ const accs = [...new Map(rows.filter(r => r.acc).map(r => [r.acc, r.accName])).entries()], funs = [...new Map(rows.filter(r => r.f).map(r => [r.fid, r.f.name])).entries()], plats = [...new Set(rows.map(r => r.prov))];
   const sel = (k, all, opts) => `<select data-rkf="${k}">${`<option value="">${all}</option>`}${opts.map(o => `<option value="${esc(o[0])}"${RK2[k] === o[0] ? " selected" : ""}>${esc(o[1])}</option>`).join("")}</select>`;
-  return `<div class="rkf">${sel("plat", L("Усі майданчики","Все площадки"), plats.map(c => [c, chOf(c)[1]]))}${sel("acc", L("Усі акаунти","Все аккаунты"), accs)}${sel("fun", L("Усі воронки","Все воронки"), funs.concat([["-", L("Без воронки","Без воронки")]]))}
+  return `<div class="rkf">${sel("plat", L("Усі рекламні платформи","Все площадки"), plats.map(c => [c, chOf(c)[1]]))}${sel("acc", L("Усі акаунти","Все аккаунты"), accs)}${sel("fun", L("Усі воронки","Все воронки"), funs.concat([["-", L("Без воронки","Без воронки")]]))}
     <input data-rkq="q" value="${esc(RK2.q)}" placeholder="${L("назва кампанії містить…","название кампании содержит…")}"><input data-rkq="qc" value="${esc(RK2.qc)}" placeholder="${L("креатив містить…","креатив содержит…")}">
     <label class="row"><input type="checkbox" data-rkf="spendOnly"${RK2.spendOnly ? " checked" : ""}> ${L("лише з витратами","только с расходом")}</label></div>`; }
 function rkFilter(rows){ const q = fxKey(RK2.q), qc = fxKey(RK2.qc);
@@ -78,30 +78,30 @@ function rkCr(){ const {list, loading} = rkCrRows(), {rows} = rkRows(); if (load
 /* ---------- вебинары и трекер: те же блоки, что в воронках, собраны в одном месте ---------- */
 function rkWeb(){ const ps = pfProjs(); let out = "";
   ps.forEach(p => { if (typeof fxStart === "function") fxStart(p); const x = fxOf(p), h = typeof fxCohorts === "function" ? fxCohorts(p, x) : ""; if (h) out += `<div class="panel"><span class="tag">${esc(p.name)}</span>${h}</div>`; });
-  return out || empty(L("Даних про вебінари немає","Данных о вебинарах нет"), L("Вони з’являться після завантаження продажів (Підключення → Джерела даних): брони й оплати за датою вебінару.","Они появятся после загрузки продаж (Подключения → Источники данных): брони и оплаты по дате вебинара.")); }
+  return out || empty(L("Даних про вебінари немає","Данных о вебинарах нет"), L("Вони з’являться після завантаження продажів (Підключення → Джерела даних): бронювання й оплати за датою вебінару.","Они появятся после загрузки продаж (Подключения → Источники данных): брони и оплаты по дате вебинара.")); }
 function rkTr(){ let out = ""; pfProjs().forEach(p => p.funnels.forEach(f => { const h = typeof trReport === "function" ? trReport(p, f) : ""; if (h) out += `<div class="rktr"><span class="tag">${esc((pfProjs().length > 1 ? p.name + " · " : "") + f.name)}</span>${h}</div>`; }));
-  return out || empty(L("Трекер ще не стоїть на сайті","Трекер ещё не стоит на сайте"), L("Код трекера — у проєкті: Підключення → Трекер HEYROW.","Код трекера — в проекте: Подключения → Трекер HEYROW.")); }
+  return out || empty(L("Трекер ще не стоїть на сайті","Трекер еще не стоит на сайте"), L("Код трекера — у проєкті: Підключення → Трекер HEYROW.","Код трекера — в проекте: Подключения → Трекер HEYROW.")); }
 
 /* ---------- отчёты: готовый текст за период — скопировать или переслать в Telegram (отправляет сам человек) ---------- */
-const RK_REPS = () => [["cpl", L("Ціна ліда по кампаніях","Цена лида по кампаниям")], ["cr", L("Ефективність креативів","Эффективность креативов")], ["cpo", L("Ціна оплати по кампаніях","Цена оплаты по кампаниям")]];
+const RK_REPS = () => [["cpl", L("Ціна ліда за кампаніями","Цена лида по кампаниям")], ["cr", L("Ефективність креативів","Эффективность креативов")], ["cpo", L("Ціна оплати за кампаніями","Цена оплаты по кампаниям")]];
 function rkRepText(){ const r = prRange(), {rows} = rkRows(), list = rkFilter(rows).filter(x => x.spend > 0), lines = [], t = RK_REPS().find(x => x[0] === RK2.rep)[1];
   lines.push(t + " · " + prLabel(r) + (pfOne() ? " · " + pfOne().name : ""));
   const tot = rkSum(list), cur = list.length ? list[0].cur : "";
-  lines.push(L("Разом: ","Итого: ") + prM(tot.spend, cur) + ", " + num(tot.leads) + L(" лідів"," лидов") + (tot.leads ? L(" по "," по ") + prM(tot.spend / tot.leads, cur) : "") + (tot.pay ? ", " + num(tot.pay) + L(" оплат"," оплат") : ""));
+  lines.push(L("Разом: ","Итого: ") + prM(tot.spend, cur) + ", " + num(tot.leads) + L(" лідів"," лидов") + (tot.leads ? L(" за "," по ") + prM(tot.spend / tot.leads, cur) : "") + (tot.pay ? ", " + num(tot.pay) + L(" оплат"," оплат") : ""));
   const mark = (v, cap) => ({good:L("[у плані]","[в плане]"), warn:L("[трохи вище]","[чуть выше]"), crit:L("[дорого]","[дорого]")})[cplLv(v, cap)] || "[—]";
-  if (RK2.rep === "cpl") list.sort((a, b) => b.spend - a.spend).slice(0, 25).forEach(x => { const c = rkVal(x, "cpl"); lines.push(mark(c, x.cap) + " " + x.name + " — " + prM(x.spend, x.cur) + ", " + num(x.leads) + L(" лідів"," лидов") + (c ? L(" по "," по ") + prM(c, x.cur) : "")); });
+  if (RK2.rep === "cpl") list.sort((a, b) => b.spend - a.spend).slice(0, 25).forEach(x => { const c = rkVal(x, "cpl"); lines.push(mark(c, x.cap) + " " + x.name + " — " + prM(x.spend, x.cur) + ", " + num(x.leads) + L(" лідів"," лидов") + (c ? L(" за "," по ") + prM(c, x.cur) : "")); });
   if (RK2.rep === "cpo") list.filter(x => x.pay).sort((a, b) => a.spend / a.pay - b.spend / b.pay).slice(0, 25).forEach(x => lines.push(x.name + " — " + num(x.pay) + L(" оплат, ціна оплати "," оплат, цена оплаты ") + prM(x.spend / x.pay, x.cur) + (x.rev ? ", ROAS " + dec(x.rev / x.spend, 2) : "")));
   if (RK2.rep === "cpo" && !list.some(x => x.pay)) lines.push(L("Оплат за період немає — завантаж продажі.","Оплат за период нет — загрузи продажи."));
-  if (RK2.rep === "cr") rkCrRows().list.filter(c => c.spend > 0).sort((a, b) => (a.leads ? a.spend / a.leads : 1e9) - (b.leads ? b.spend / b.leads : 1e9)).slice(0, 25).forEach(c => { const v = rkVal(c, "cpl"); lines.push(mark(v, c.cap) + " " + c.name + " — " + prM(c.spend, c.cur) + ", " + num(c.leads) + L(" лідів"," лидов") + (v ? L(" по "," по ") + prM(v, c.cur) : "")); });
+  if (RK2.rep === "cr") rkCrRows().list.filter(c => c.spend > 0).sort((a, b) => (a.leads ? a.spend / a.leads : 1e9) - (b.leads ? b.spend / b.leads : 1e9)).slice(0, 25).forEach(c => { const v = rkVal(c, "cpl"); lines.push(mark(v, c.cap) + " " + c.name + " — " + prM(c.spend, c.cur) + ", " + num(c.leads) + L(" лідів"," лидов") + (v ? L(" за "," по ") + prM(v, c.cur) : "")); });
   return lines.join("\n"); }
 function rkRep(){ const txt = rkRepText();
-  return `<div class="panel rk"><div class="row rkr"><select data-rkr="1" aria-label="${L("Звіт","Отчёт")}">${RK_REPS().map(x => `<option value="${x[0]}"${RK2.rep === x[0] ? " selected" : ""}>${x[1]}</option>`).join("")}</select>
+  return `<div class="panel rk"><div class="row rkr"><select data-rkr="1" aria-label="${L("Звіт","Отчет")}">${RK_REPS().map(x => `<option value="${x[0]}"${RK2.rep === x[0] ? " selected" : ""}>${x[1]}</option>`).join("")}</select>
       <button type="button" class="btn btn--sm" data-act="rkRepCopy">${L("Скопіювати","Скопировать")}</button><a class="btn btn--sm btn--solid" href="https://t.me/share/url?url=${encodeURIComponent(" ")}&text=${encodeURIComponent(txt)}" target="_blank" rel="noopener">${L("Надіслати в Telegram","Отправить в Telegram")}</a></div>
-    <p class="sub">${L("Звіт за період і фільтри з вкладки «Кампанії». Telegram відкриється з готовим текстом — обери, кому надіслати.","Отчёт за период и фильтры со вкладки «Кампании». Telegram откроется с готовым текстом — выбери, кому отправить.")}</p>
+    <p class="sub">${L("Звіт за період і фільтри з вкладки «Кампанії». Telegram відкриється з готовим текстом — обери, кому надіслати.","Отчет за период и фильтры со вкладки «Кампании». Telegram откроется с готовым текстом — выбери, кому отправить.")}</p>
     <pre class="rkpre" id="rk-rep">${esc(txt)}</pre></div>`; }
 
 function vAds(){ const t = RK_TABS().some(x => x[0] === W.atab) ? W.atab : "camp";
-  if (!W.projs.some(prOn)) return empty(L("Рекламний кабінет не підключено","Рекламный кабинет не подключён"), L("Підключи Meta Ads у проєкті — тут з’являться кампанії, креативи й звіти.","Подключи Meta Ads в проекте — здесь появятся кампании, креативы и отчёты.")) + (W.projs[0] ? `<div class="row"><button class="btn btn--solid" data-act="mapConn" data-id="${W.projs[0].id}">${L("Підключити","Подключить")}</button></div>` : "");
+  if (!W.projs.some(prOn)) return empty(L("Рекламний кабінет не підключено","Рекламный кабинет не подключен"), L("Підключи Meta Ads у проєкті — тут з’являться кампанії, креативи й звіти.","Подключи Meta Ads в проекте — здесь появятся кампании, креативы и отчеты.")) + (W.projs[0] ? `<div class="row"><button class="btn btn--solid" data-act="mapConn" data-id="${W.projs[0].id}">${L("Підключити","Подключить")}</button></div>` : "");
   return `<div class="seg seg--f" role="group" aria-label="${L("Розділи реклами","Разделы рекламы")}">${RK_TABS().map(x => `<button type="button" data-act="rkTab" data-v="${x[0]}" aria-pressed="${t === x[0]}">${x[1]}</button>`).join("")}</div>
     ${({camp:rkCamp, cr:rkCr, web:rkWeb, tr:rkTr, rep:rkRep})[t]()}`; }
 
@@ -118,6 +118,6 @@ Object.assign(ACT, {
   rkCsv(d){ const r = prRange(), nm = "heyrow_" + (d.v === "cr" ? "creatives" : "campaigns") + "_" + r.d1 + "_" + r.d2;
     if (d.v === "cr") { const {list} = rkCrRows(); csvSave(nm, [[L("Креатив","Креатив"), L("Кампаній","Кампаний"), L("Витрати","Расход"), L("Покази","Показы"), "CTR", L("Ліди","Лиды"), L("Ціна ліда","Цена лида")]].concat(list.map(c => [c.name, c.camps.size, csvN(c.spend), c.imp, csvN(rkVal(c, "ctr") * 100), c.leads, csvN(rkVal(c, "cpl"))]))); return false; }
     const {rows} = rkRows(), list = rkFilter(rows);
-    csvSave(nm, [[L("Проєкт","Проект"), L("Кампанія","Кампания"), L("Майданчик","Площадка"), L("Акаунт","Аккаунт"), L("Воронка","Воронка")].concat(RK_COLS().map(c => c[1]))].concat(list.map(x => [x.p.name, x.name, chOf(x.prov)[1], x.accName, x.f ? x.f.name : ""].concat(RK_COLS().map(([k]) => csvN(k === "ctr" ? rkVal(x, k) * 100 : rkVal(x, k))))))); return false; },
-  rkRepCopy(){ const t = rkRepText(); (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast(L("Звіт скопійовано","Отчёт скопирован")), () => toast(L("Виділи текст і скопіюй вручну","Выдели текст и скопируй вручную"))); return false; },
+    csvSave(nm, [[L("Проєкт","Проект"), L("Кампанія","Кампания"), L("Платформа","Площадка"), L("Акаунт","Аккаунт"), L("Воронка","Воронка")].concat(RK_COLS().map(c => c[1]))].concat(list.map(x => [x.p.name, x.name, chOf(x.prov)[1], x.accName, x.f ? x.f.name : ""].concat(RK_COLS().map(([k]) => csvN(k === "ctr" ? rkVal(x, k) * 100 : rkVal(x, k))))))); return false; },
+  rkRepCopy(){ const t = rkRepText(); (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast(L("Звіт скопійовано","Отчет скопирован")), () => toast(L("Виділи текст і скопіюй вручну","Выдели текст и скопируй вручную"))); return false; },
 });

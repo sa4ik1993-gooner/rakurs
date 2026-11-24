@@ -8,9 +8,9 @@ async function adCall(prov, body){
   try { const f = await sb.functions.invoke(AD_FN[prov], {body}); if (f.error || !f.data) return {ok:false, error:"net", detail:(f.error && f.error.message) || "empty"}; return f.data; }
   catch (e) { return {ok:false, error:"net", detail:e && e.message}; } }
 const adK = (p, prov) => p.id + "|" + prov;
-const adErr = (prov, d) => ({not_signed_in:L("Спершу увійди у кабінет","Сначала войди в кабинет"), denied:L("Підключати кабінети може власник або керівник","Подключать кабинеты может собственник или руководитель"),
-  no_keys:L("Сервер ще не налаштовано: власник має додати ключі застосунку в Supabase.","Сервер ещё не настроен: владелец должен добавить ключи приложения в Supabase."), revoked:L("Доступ відкликано — підключи заново.","Доступ отозван — подключи заново."),
-  not_connected:L("Кабінет не підключено","Кабинет не подключён"), no_account:L("Обери хоча б один акаунт","Выбери хотя бы один аккаунт"), net:L("Сервер не відповів. Можливо, функцію ще не викладено.","Сервер не ответил. Возможно, функцию ещё не выложили.")}[d.error] || (d.detail || d.error));
+const adErr = (prov, d) => ({not_signed_in:L("Спершу увійди в кабінет","Сначала войди в кабинет"), denied:L("Підключати кабінети може власник або керівник","Подключать кабинеты может собственник или руководитель"),
+  no_keys:L("Сервер ще не налаштовано: власник має додати ключі застосунку в Supabase.","Сервер еще не настроен: владелец должен добавить ключи приложения в Supabase."), revoked:L("Доступ відкликано — підключи заново.","Доступ отозван — подключи заново."),
+  not_connected:L("Кабінет не підключено","Кабинет не подключен"), no_account:L("Обери хоча б один акаунт","Выбери хотя бы один аккаунт"), net:L("Сервер не відповів. Можливо, функцію ще не викладено.","Сервер не ответил. Возможно, функцию еще не выложили.")}[d.error] || (d.detail || d.error));
 /* что подключено — с сервера, один раз за сеанс на проект */
 async function adStatus(p, prov, force){ const k = adK(p, prov); if (AD.st[k] && !force) return; AD.st[k] = {load:1}; render();
   const d = await adCall(prov, {action:"status", project_id:p.id}); AD.st[k] = d.ok ? d : {err:adErr(prov, d)};
@@ -40,13 +40,13 @@ function adCard(p, prov, hintText){ const k = adK(p, prov), st = AD.st[k], a = (
   if (seen) return `<div class="ckl">${seen.length ? seen.map(x => `<label class="ck"><input type="checkbox" data-adc="${k}" value="${esc(x.id)}"${(AD.pick[k] || []).includes(x.id) ? " checked" : ""}><span><b>${esc(x.name)}</b><small class="sub mono">${esc(x.id)}${x.currency ? " · " + esc(x.currency) : ""}</small></span></label>`).join("") : `<p class="sub">${L("Доступ не бачить жодного рекламного акаунта.","Доступ не видит ни одного рекламного аккаунта.")}</p>`}</div>
     <div class="row"><button class="btn btn--sm btn--solid" data-act="adSave" data-id="${p.id}" data-v="${prov}"${busy || !(AD.pick[k] || []).length ? " disabled" : ""}>${L("Зберегти й завантажити 30 днів","Сохранить и загрузить 30 дней")}</button><button class="btn btn--sm" data-act="adPickClose" data-id="${p.id}" data-v="${prov}">${L("Скасувати","Отмена")}</button></div>`;
   if (st.connected) { const accs = (a && a.accounts) || [];
-    return `${accs.length ? `<ul class="adl">${accs.map(x => `<li><b>${esc(x.name)}</b> <small class="sub mono">${esc(x.id)}${x.currency ? " · " + esc(x.currency) : ""}</small></li>`).join("")}</ul>` : `<p class="sub">${L("Кабінет підключено. Обери акаунти проєкту.","Кабинет подключён. Выбери аккаунты проекта.")}</p>`}
+    return `${accs.length ? `<ul class="adl">${accs.map(x => `<li><b>${esc(x.name)}</b> <small class="sub mono">${esc(x.id)}${x.currency ? " · " + esc(x.currency) : ""}</small></li>`).join("")}</ul>` : `<p class="sub">${L("Кабінет підключено. Обери акаунти проєкту.","Кабинет подключен. Выбери аккаунты проекта.")}</p>`}
       ${a && a.synced ? `<small class="sub">${L("оновлено: ","обновлено: ")}${esc(fxWhen(a.synced))}</small>` : ""}
       <div class="row">${accs.length ? `<button class="btn btn--sm btn--solid" data-act="adSync" data-id="${p.id}" data-v="${prov}"${busy}>${AD.busy[k] ? L("Завантажуємо…","Загружаем…") : L("Оновити дані","Обновить данные")}</button>` : ""}
         <button class="btn btn--sm${accs.length ? "" : " btn--solid"}" data-act="adPick" data-id="${p.id}" data-v="${prov}"${busy}>${L("Акаунти","Аккаунты")}</button>
         <button class="btn btn--sm" data-act="adOff" data-id="${p.id}" data-v="${prov}"${busy}>${AD.sure[k] ? L("Точно відключити?","Точно отключить?") : L("Відключити","Отключить")}</button></div>`; }
-  if (!st.keys) return `<p class="sub">${L("Підключення через вікно ","Подключение через окно ")}${name}${L(" готове на платформі, але сервер ще не налаштовано: потрібні ключі застосунку."," готово на платформе, но сервер ещё не настроен: нужны ключи приложения.")}</p>${guideCard(p, prov, "")}`;
-  return `<p class="sub">${L("Вхід у вікні ","Вход в окне ")}${name}${L(", доступ лише на читання звітів. Пароль платформа не бачить.",", доступ только на чтение отчётов. Пароль платформа не видит.")}</p><div class="row"><button class="btn btn--sm btn--solid" data-act="adConnect" data-id="${p.id}" data-v="${prov}">${L("Підключити ","Подключить ")}${name}</button><button class="btn btn--sm" data-act="gdOpen" data-id="${p.id}" data-v="${prov}">${L("Підготовка кабінету","Подготовка кабинета")}</button></div>`; }
+  if (!st.keys) return `<p class="sub">${L("Підключення через вікно ","Подключение через окно ")}${name}${L(" готове на платформі, але сервер ще не налаштовано: потрібні ключі застосунку."," готово на платформе, но сервер еще не настроен: нужны ключи приложения.")}</p>${guideCard(p, prov, "")}`;
+  return `<p class="sub">${L("Вхід у вікні ","Вход в окне ")}${name}${L(", доступ лише на читання звітів. Пароль платформа не бачить.",", доступ только на чтение отчетов. Пароль платформа не видит.")}</p><div class="row"><button class="btn btn--sm btn--solid" data-act="adConnect" data-id="${p.id}" data-v="${prov}">${L("Підключити ","Подключить ")}${name}</button><button class="btn btn--sm" data-act="gdOpen" data-id="${p.id}" data-v="${prov}">${L("Підготовка кабінету","Подготовка кабинета")}</button></div>`; }
 
 Object.assign(ACT, {
   adConnect(d){ const p = W.projs.find(x => x.id === d.id); if (p) adConnect(p, d.v); return false; },
@@ -65,8 +65,8 @@ document.addEventListener("change", e => { const t = e.target; if (!t.dataset ||
   for (const k of Object.keys(AD_RET)) if (q.get(AD_RET[k])) { prov = k; v = q.get(AD_RET[k]); }
   if (!prov) return; const pid = q.get("p"), n = +q.get("n") || 0;
   ["gads", "tt", "p", "n"].forEach(x => q.delete(x)); history.replaceState(null, "", location.pathname + (q.toString() ? "?" + q : "") + location.hash);
-  const msg = {ok:L("Кабінет підключено","Кабинет подключён"), cancel:L("Підключення скасовано","Подключение отменено"), state:L("Посилання застаріло — натисни «Підключити» ще раз","Ссылка устарела — нажми «Подключить» ещё раз"),
-    norefresh:L("Площадка не видала постійний доступ — спробуй ще раз","Площадка не выдала постоянный доступ — попробуй ещё раз"), nokeys:L("Сервер ще не налаштовано","Сервер ещё не настроен")}[v] || L("Не вдалося підключити: ","Не удалось подключить: ") + v;
+  const msg = {ok:L("Кабінет підключено","Кабинет подключен"), cancel:L("Підключення скасовано","Подключение отменено"), state:L("Посилання застаріло — натисни «Підключити» ще раз","Ссылка устарела — нажми «Подключить» еще раз"),
+    norefresh:L("Рекламна платформа не видала постійний доступ — спробуй ще раз","Площадка не выдала постоянный доступ — попробуй еще раз"), nokeys:L("Сервер ще не налаштовано","Сервер еще не настроен")}[v] || L("Не вдалося підключити: ","Не удалось подключить: ") + v;
   let tries = 0; setTimeout(() => toast(msg), 300);
   const go = () => { const p = pid && W.projs && W.projs.find(x => x.id === pid); if (!p && tries++ < 75) return setTimeout(go, 400);
     if (p && v === "ok") { W.cur = p.id; W.fun = null; W.tab = "conn"; save(); adStatus(p, prov, true).then(() => { if (n !== 1) adAccounts(p, prov); else adSync(p, prov, 30, true); }); } };

@@ -146,7 +146,7 @@ const segGroup = niche => { const n = String(niche || ""); return Object.keys(SE
 function segTpl(pre, niche){ const g = segGroup(niche), t = SEGT[g];
   return `<div class="segtpl"><span class="tag">${L("Шаблони сегментів","Шаблоны сегментов")} · ${L(t[0][0], t[0][1])}</span>
     <div class="sgc">${t[2].map((x, i) => `<button type="button" class="sgb" data-act="segTpl" data-pre="${pre}" data-g="${g}" data-i="${i}">${esc(x[lang === "ru" ? 1 : 0][0])}</button>`).join("")}</div>
-    <p class="sub">${g === "any" ? L("Ніша не розпізнана, тому шаблони загальні. Вкажи нішу в описі проєкту — підберемо точніші.","Ниша не распознана, поэтому шаблоны общие. Укажи нишу в описании проекта — подберём точнее.") : L("Натисни на шаблон — поля заповняться. Поправ під себе й додай.","Нажми на шаблон — поля заполнятся. Поправь под себя и добавь.")}</p></div>`; }
+    <p class="sub">${g === "any" ? L("Ніша не розпізнана, тому шаблони загальні. Вкажи нішу в описі проєкту — підберемо точніші.","Ниша не распознана, поэтому шаблоны общие. Укажи нишу в описании проекта — подберем точнее.") : L("Натисни на шаблон — поля заповняться. Поправ під себе й додай.","Нажми на шаблон — поля заполнятся. Поправь под себя и добавь.")}</p></div>`; }
 Object.assign(ACT, {
   segTpl(d){ const x = SEGT[d.g][2][+d.i][lang === "ru" ? 1 : 0]; ["n","p","s"].forEach((k, i) => { const e = document.getElementById(d.pre + "-" + k); if (e) e.value = x[i]; });
     const e = document.getElementById(d.pre + "-n"); if (e) { e.focus(); e.scrollIntoView({block:"nearest"}); } return false; },

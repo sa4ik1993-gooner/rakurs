@@ -18,11 +18,11 @@ const cloudUnsaved = () => CLOUD && !!W.co && !!W.co.id && (CL.state === "dirty"
 const hhmm = t => { const d = new Date(t); return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); };
 /* статус в шапке: короткая подпись, уточнение, пояснение при наведении */
 function cloudStatus(){
-  return ({idle:[L("сервер підключено","сервер подключён"), "", ""],
+  return ({idle:[L("сервер підключено","сервер подключен"), "", ""],
     load:[L("завантаження…","загрузка…"), "", ""],
-    dirty: cloudOff() ? [L("немає мережі","нет сети"), L("збережемо, щойно з’явиться","сохраним, как появится"), L("Зміни лежать у цій вкладці. Не закривай її, доки мережа не повернеться.","Изменения лежат в этой вкладке. Не закрывай её, пока сеть не вернётся.")] : [L("зберігаємо…","сохраняем…"), "", ""],
+    dirty: cloudOff() ? [L("немає мережі","нет сети"), L("збережемо, щойно з’явиться","сохраним, как появится"), L("Зміни лежать у цій вкладці. Не закривай її, доки мережа не повернеться.","Изменения лежат в этой вкладке. Не закрывай ее, пока сеть не вернется.")] : [L("зберігаємо…","сохраняем…"), "", ""],
     saved:[L("збережено","сохранено"), CL.savedAt ? hhmm(CL.savedAt) : "", L("Усі зміни на сервері, їх бачить команда.","Все изменения на сервере, их видит команда.")],
-    err: CL.fail === "save" ? [L("не збережено","не сохранено"), CL.tries <= 3 ? L("пробуємо ще раз","пробуем ещё раз") : "", L("Останні зміни ще не на сервері. Не закривай вкладку.","Последние изменения ещё не на сервере. Не закрывай вкладку.")]
+    err: CL.fail === "save" ? [L("не збережено","не сохранено"), CL.tries <= 3 ? L("пробуємо ще раз","пробуем еще раз") : "", L("Останні зміни ще не на сервері. Не закривай вкладку.","Последние изменения еще не на сервере. Не закрывай вкладку.")]
       : [L("помилка завантаження","ошибка загрузки"), "", L("Онови сторінку.","Обнови страницу.")]})[CL.state] || ["", "", ""]; }
 const cloudLabel = () => cloudStatus()[0];
 function cloudBadgeHTML(){ const s = cloudStatus(), st = CL.state === "dirty" && cloudOff() ? "off" : CL.state;
@@ -115,12 +115,12 @@ async function cloudSync(){
 }
 /* вход через Telegram: окно Telegram отдаёт подписанный токен, серверная функция проверяет его и выдаёт пропуск */
 function tgLib(){ if (!TG() || document.getElementById("tg-lib")) return; const s = document.createElement("script"); s.id = "tg-lib"; s.async = true; s.src = "https://oauth.telegram.org/js/telegram-login.js?6"; document.head.appendChild(s); }
-const tgErr = (d) => ({bad_token:L("Telegram не підтвердив вхід. Спробуй ще раз","Telegram не подтвердил вход. Попробуй ещё раз"), expired:L("Підтвердження застаріло. Спробуй ще раз","Подтверждение устарело. Попробуй ещё раз"),
+const tgErr = (d) => ({bad_token:L("Telegram не підтвердив вхід. Спробуй ще раз","Telegram не подтвердил вход. Попробуй еще раз"), expired:L("Підтвердження застаріло. Спробуй ще раз","Подтверждение устарело. Попробуй еще раз"),
   taken:L("Цей Telegram уже використовується як окремий акаунт","Этот Telegram уже используется как отдельный аккаунт"), has_other:L("До цього акаунта вже прив’язано інший Telegram","К этому аккаунту уже привязан другой Telegram"),
-  not_signed_in:L("Спершу увійди у кабінет","Сначала войди в кабинет")}[d.error] || L("Не вдалося увійти через Telegram","Не удалось войти через Telegram") + ": " + (d.detail || d.error));
+  not_signed_in:L("Спершу увійди в кабінет","Сначала войди в кабинет")}[d.error] || L("Не вдалося увійти через Telegram","Не удалось войти через Telegram") + ": " + (d.detail || d.error));
 function cloudTg(link){
   if (!TG()) return;
-  if (!window.Telegram || !Telegram.Login) { tgLib(); toast(L("Telegram ще завантажується. Спробуй за кілька секунд","Telegram ещё загружается. Попробуй через пару секунд")); return; }
+  if (!window.Telegram || !Telegram.Login) { tgLib(); toast(L("Telegram ще завантажується. Спробуй за кілька секунд","Telegram еще загружается. Попробуй через пару секунд")); return; }
   if (CL.tgBusy) return;
   try { Telegram.Login.auth({client_id:String(RK.tg), scope:["profile","write"], lang:lang}, r => cloudTgDone(r, link)); }
   catch (e) { console.error(e); toast(L("Не вдалося відкрити вікно Telegram","Не удалось открыть окно Telegram")); }
@@ -144,12 +144,12 @@ async function cloudTgDone(r, link){
 /* вход */
 async function cloudSendCode(mail){
   const r = await sb.auth.signInWithOtp({email:mail, options:{shouldCreateUser:!AU.login, emailRedirectTo:location.origin + location.pathname}});
-  if (r.error) { toast(/signups not allowed|not found|not allowed for otp/i.test(r.error.message) ? L("Акаунта з такою поштою немає — зареєструйтесь","Аккаунта с такой почтой нет — зарегистрируйтесь") : /rate|seconds|limit/i.test(r.error.message) ? L("Забагато листів. Спробуй пізніше: вбудована пошта надсилає лише кілька листів на годину","Слишком много писем. Попробуй позже: встроенная почта отправляет всего несколько писем в час") : L("Не вдалося надіслати лист: ","Не удалось отправить письмо: ") + r.error.message); return; }
-  const again = AU.step === 1; AU.id = mail; AU.step = 1; render(); if (again) toast(L("Лист надіслано ще раз","Письмо отправлено ещё раз"));
+  if (r.error) { toast(/signups not allowed|not found|not allowed for otp/i.test(r.error.message) ? L("Акаунта з такою поштою немає — зареєструйся","Аккаунта с такой почтой нет — зарегистрируйся") : /rate|seconds|limit/i.test(r.error.message) ? L("Забагато листів. Спробуй пізніше: вбудована пошта надсилає лише кілька листів на годину","Слишком много писем. Попробуй позже: встроенная почта отправляет всего несколько писем в час") : L("Не вдалося надіслати лист: ","Не удалось отправить письмо: ") + r.error.message); return; }
+  const again = AU.step === 1; AU.id = mail; AU.step = 1; render(); if (again) toast(L("Лист надіслано ще раз","Письмо отправлено еще раз"));
 }
 async function cloudVerify(code){
   const r = await sb.auth.verifyOtp({email:AU.id, token:code, type:"email"});
-  if (r.error || !r.data || !r.data.user) { toast(L("Код не підійшов або застарів","Код не подошёл или устарел")); return; }
+  if (r.error || !r.data || !r.data.user) { toast(L("Код не підійшов або застарів","Код не подошел или устарел")); return; }
   await cloudSigned(r.data.user, true);
 }
 async function cloudLogout(){ try { await sb.auth.signOut(); } catch (e) {} W = blankW(); AU = auFresh(); AU.login = true; CL.cos = []; CL.members = []; CL.role = null; CL.tg = null; cloudSnap(); render(); toast(L("Ти вийшов","Ты вышел")); }

@@ -7,7 +7,7 @@
    Личные данные: файл не покидает компьютер, на сервер уходят только дата, сумма и метки.
    Подключается перед ws.js. */
 const DSRC = {open:null, rows:{}, raw:{}, file:{}, busy:false, done:"", ctrl:""};
-const SL_KINDS = () => [["booking", L("Бронь","Бронь")], ["payment", L("Оплата","Оплата")], ["lead", L("Лід","Лид")]];
+const SL_KINDS = () => [["booking", L("Бронювання","Бронь")], ["payment", L("Оплата","Оплата")], ["lead", L("Лід","Лид")]];
 const SL_FIELDS = () => [["d", L("Дата події","Дата события"), 1, /^дата$|date|дата брон|дата оплат|^дата |created/i], ["w", L("Дата вебінару","Дата вебинара"), 0, /вебінар|вебинар|webinar/i], ["a", L("Сума","Сумма"), 0, /сум|amount|оплат|price|варт/i],
   ["s", L("Джерело (utm_source)","Источник (utm_source)"), 0, /source|джерел|источник/i], ["k", L("Кампанія (utm_campaign)","Кампания (utm_campaign)"), 0, /campaign|кампан/i], ["n", L("Креатив (utm_content)","Креатив (utm_content)"), 0, /content|креатив/i], ["t", "utm_term", 0, /term|adset|група|группа/i]];
 const SRC_OPS = () => [["any", L("кожен рядок","каждая строка")], ["filled", L("колонка заповнена","колонка заполнена")], ["empty", L("колонка порожня","колонка пустая")], ["pos", L("число більше нуля","число больше нуля")], ["has", L("містить одне з","содержит одно из")], ["not", L("не містить жодного з","не содержит ни одного из")]];
@@ -74,15 +74,15 @@ const srcSum = s => SL_KINDS().map(k => { const n = (s.rules || []).filter(r => 
 /* что уже есть у проекта по каждому виду события */
 function srcCover(p){ const has = k => srcList(p).filter(s => (s.rules || []).some(r => r.kind === k && r.f && r.f.d)).map(s => s.name || L("без назви","без названия"));
   const meta = CLOUD && p.meta && p.meta.conn ? ["Meta Ads"] : [];
-  return [[L("Ліди","Лиды"), meta.concat(has("lead"))], [L("Броні","Брони"), has("booking")], [L("Оплати","Оплаты"), has("payment")]]; }
+  return [[L("Ліди","Лиды"), meta.concat(has("lead"))], [L("Бронювання","Брони"), has("booking")], [L("Оплати","Оплаты"), has("payment")]]; }
 function sourcesPanel(p){
-  const list = srcList(p), s = srcGet(p), head = `<span class="tag">${L("Джерела даних: ліди, броні, оплати","Источники данных: лиды, брони, оплаты")}</span>`;
+  const list = srcList(p), s = srcGet(p), head = `<span class="tag">${L("Джерела даних: ліди, бронювання, оплати","Источники данных: лиды, брони, оплаты")}</span>`;
   const cover = `<dl class="kv">${srcCover(p).map(c => `<dt>${c[0]}</dt><dd>${c[1].length ? pill("good", esc(c[1].join(", "))) : pill("warn", L("джерела немає","источника нет"))}</dd>`).join("")}</dl>`;
   if (!s) return `<div class="panel" id="sources">${head}
     
     ${cover}
     ${list.length ? `<div class="tw tw--in"><table class="tnar"><thead><tr><th>${L("Джерело","Источник")}</th><th>${L("Події","События")}</th><th>${L("Останнє завантаження","Последняя загрузка")}</th><th></th></tr></thead><tbody>${list.map(x => `<tr><td><b>${esc(x.name || L("Без назви","Без названия"))}</b></td><td>${srcSum(x) || "—"}</td><td class="mono">${x.last ? esc(x.last.at) + " · " + num(x.last.n) : "—"}</td><td class="n"><button class="btn btn--sm" data-act="srcOpen" data-id="${x.id}">${L("Відкрити","Открыть")}</button></td></tr>`).join("")}</tbody></table></div>`
-      : empty(L("Джерел іще немає","Источников пока нет"), L("Без них платформа бачить рекламу лише до ліда. Додай вивантаження з бронями чи оплатами — з’являться виручка й окупність за кампаніями та креативами.","Без них платформа видит рекламу только до лида. Добавь выгрузку с бронями или оплатами — появятся выручка и окупаемость по кампаниям и креативам."))}
+      : empty(L("Джерел іще немає","Источников пока нет"), L("Без них платформа бачить рекламу лише до ліда. Додай вивантаження з бронюваннями чи оплатами — з’являться виручка й окупність за кампаніями та креативами.","Без них платформа видит рекламу только до лида. Добавь выгрузку с бронями или оплатами — появятся выручка и окупаемость по кампаниям и креативам."))}
     <div class="row"><button class="btn btn--solid" data-act="srcAdd">${L("Додати джерело","Добавить источник")}</button></div>
     ${DSRC.done ? `<p class="sub">${esc(DSRC.done)}</p>` : ""}
     </div>`;
@@ -107,7 +107,7 @@ function sourcesPanel(p){
         ${r.st.miss ? `<dt>${L("Не підійшли під жодне правило","Не подошли ни под одно правило")}</dt><dd class="mono">${num(r.st.miss)}</dd>` : ""}
         ${r.st.noDate ? `<dt>${L("Пропущено: дата не читається","Пропущено: дата не читается")}</dt><dd>${pill("warn", num(r.st.noDate))}</dd>` : ""}
         ${top ? `<dt>${L("Джерела після словника","Источники после словаря")}</dt><dd class="mono">${top}</dd>` : ""}</dl>
-      ${by.payment ? `<div class="form"><div class="field"><label for="sr-ctrl">${L("Звірка: скільки оплат за цей період має бути (з обліку)","Сверка: сколько оплат за этот период должно быть (из учёта)")}</label><input id="sr-ctrl" class="tin" data-srctrl="1" inputmode="decimal" value="${esc(DSRC.ctrl)}" placeholder="${fxM(pay)}"></div>
+      ${by.payment ? `<div class="form"><div class="field"><label for="sr-ctrl">${L("Звірка: скільки оплат за цей період має бути (з обліку)","Сверка: сколько оплат за этот период должно быть (из учета)")}</label><input id="sr-ctrl" class="tin" data-srctrl="1" inputmode="decimal" value="${esc(DSRC.ctrl)}" placeholder="${fxM(pay)}"></div>
         <div class="field"><label>${L("Розбіжність","Расхождение")}</label><div>${ctrl > 0 ? pill(Math.abs(pay - ctrl) / ctrl < 0.01 ? "good" : "warn", (pay - ctrl >= 0 ? "+" : "−") + fxM(Math.abs(pay - ctrl)) + " " + esc(s.cur || "UAH") + " · " + dec(Math.abs(pay - ctrl) / ctrl * 100) + "%") : `<span class="sub">${L("введи контрольну суму","введи контрольную сумму")}</span>`}</div></div></div>` : ""}`;
     send = `<p class="sub">${L("Попередні події цього джерела за той самий період буде замінено — повторне завантаження не дублює.","Прежние события этого источника за тот же период будут заменены — повторная загрузка не задваивает.")}</p>
       <div class="row">${CLOUD ? `<button class="btn btn--solid" data-act="srcSend"${DSRC.busy || !ev.length ? " disabled" : ""}>${DSRC.busy ? L("Завантажуємо…","Загружаем…") : L("Завантажити події: ","Загрузить события: ") + num(ev.length)}</button>` : `<span class="sub proto">${L("Прототип: правила й попередній перегляд працюють, завантаження на сервер — після входу.","Прототип: правила и предпросмотр работают, загрузка на сервер — после входа.")}</span>`}</div>`; }
@@ -120,10 +120,10 @@ function sourcesPanel(p){
     ${cols.length ? `<div class="hrow">${hint(L("Правила перевіряються на кожному рядку окремо. Якщо в одному рядку кілька подій (перша оплата й доплати) — зроби по правилу на кожну.","Правила проверяются на каждой строке отдельно. Если в одной строке несколько событий (первая оплата и доплаты) — сделай по правилу на каждое."), "wide")}</div>${rules}
       <div class="row"><button class="btn btn--sm" data-act="srcRuleAdd">${L("Додати правило","Добавить правило")}</button></div>
       <div class="form"><div class="field" style="grid-column:1/-1"><label for="sr-dict">${L("Словник джерел: варіанти через кому = як рахувати","Словарь источников: варианты через запятую = как считать")}</label><textarea id="sr-dict" data-sr="dict" rows="2" placeholder="fb, fb_gum, fb ig = facebook">${esc(s.dict || "")}</textarea></div></div>
-      ${prev}${send}` : `<p class="sub">${L("Почни із файла: за його заголовками платформа сама запропонує перше правило.","Начни с файла: по его заголовкам платформа сама предложит первое правило.")}</p>`}</div>`;
+      ${prev}${send}` : `<p class="sub">${L("Почни з файлу: за його заголовками платформа сама запропонує перше правило.","Начни с файла: по его заголовкам платформа сама предложит первое правило.")}</p>`}</div>`;
 }
 /* в целях проекта остаётся короткая отсылка сюда */
-const salesPanel = p => `<div class="panel" id="sales"><span class="tag">${L("Продажі: броні й оплати","Продажи: брони и оплаты")}</span><p class="sub">${L("Броні й оплати приходять із джерел даних проєкту: ","Брони и оплаты приходят из источников данных проекта: ")}${srcCover(p).slice(1).map(c => c[0].toLowerCase() + " — " + (c[1].length ? esc(c[1].join(", ")) : L("джерела немає","источника нет"))).join("; ")}.</p><div class="row"><button class="btn btn--sm" data-act="mapConn" data-id="${p.id}">${L("Джерела даних","Источники данных")}</button></div></div>`;
+const salesPanel = p => `<div class="panel" id="sales"><span class="tag">${L("Продажі: бронювання й оплати","Продажи: брони и оплаты")}</span><p class="sub">${L("Бронювання й оплати приходять із джерел даних проєкту: ","Брони и оплаты приходят из источников данных проекта: ")}${srcCover(p).slice(1).map(c => c[0].toLowerCase() + " — " + (c[1].length ? esc(c[1].join(", ")) : L("джерела немає","источника нет"))).join("; ")}.</p><div class="row"><button class="btn btn--sm" data-act="mapConn" data-id="${p.id}">${L("Джерела даних","Источники данных")}</button></div></div>`;
 async function slCall(body){ if (!CLOUD || !sb) return {ok:false, error:"offline"}; try { const f = await sb.functions.invoke("sales", {body}); if (f.error || !f.data) return {ok:false, error:"net", detail:(f.error && f.error.message) || "empty"}; return f.data; } catch (e) { return {ok:false, error:"net", detail:e && e.message}; } }
 function srcLoad(s, name, text){ let t = null;
   if (/^\s*[\[{]/.test(text)) { try { t = srcFromJson(JSON.parse(text)); } catch (e) { t = null; } if (!t) { toast(L("У файлі JSON не знайдено списку записів","В файле JSON не найден список записей")); return false; } delete DSRC.raw[s.id]; }
@@ -144,7 +144,7 @@ Object.assign(ACT, {
     (async () => { let added = 0, err = ""; const all = ev.map(e => e.d).sort();
       for (const k of SL_KINDS().map(x => x[0])) { const part = ev.filter(e => e.kind === k); if (!part.length || err) continue; const days = part.map(e => e.d).sort();
         for (let i = 0; i < part.length && !err; i += 1000) { const r = await slCall({action:"import", project_id:p.id, kind:k, source_id:s.id, first:i === 0, from:days[0], to:days[days.length - 1], events:part.slice(i, i + 1000).map(e => ({d:e.d, w:e.w, a:e.a, c:e.c, s:e.s, k:e.k, n:e.n, t:e.t}))});
-          if (!r.ok) err = /sales_events|does not exist|schema cache/i.test(String(r.detail)) ? L("Таблиці продажів на сервері ще немає: потрібно запустити schema_metrics.sql.","Таблицы продаж на сервере ещё нет: нужно запустить schema_metrics.sql.") : /not found|404|Failed to send/i.test(String(r.detail)) ? L("Функцію sales на сервері ще не створено.","Функция sales на сервере ещё не создана.") : L("Не вдалося завантажити: ","Не удалось загрузить: ") + (r.detail || r.error);
+          if (!r.ok) err = /sales_events|does not exist|schema cache/i.test(String(r.detail)) ? L("Таблиці продажів на сервері ще немає: потрібно запустити schema_metrics.sql.","Таблицы продаж на сервере еще нет: нужно запустить schema_metrics.sql.") : /not found|404|Failed to send/i.test(String(r.detail)) ? L("Функцію sales на сервері ще не створено.","Функция sales на сервере еще не создана.") : L("Не вдалося завантажити: ","Не удалось загрузить: ") + (r.detail || r.error);
           else added += r.added; } }
       DSRC.busy = false;
       if (err) toast(err); else { s.last = {at:new Date().toISOString().slice(0, 10), n:added, from:all[0], to:all[all.length - 1]}; DSRC.done = L("Завантажено подій: ","Загружено событий: ") + num(added) + ", " + all[0] + " — " + all[all.length - 1]; delete DSRC.rows[s.id]; delete DSRC.raw[s.id]; delete DSRC.file[s.id]; DSRC.open = null; save(); toast(DSRC.done); const fx = fxOf(p); fx.rows = null; fxLoad(p); }
