@@ -146,10 +146,11 @@ function vToday(){ const on = W.projs.some(p => typeof prOn === "function" && pr
   return `<div class="map today">${on ? prOverview(pfOne()) : `<div class="panel">${empty(L("Тут будуть рішення на сьогодні.","Здесь будут решения на сегодня."), L("Підключи рекламний кабінет, і я почну.","Подключи рекламный кабинет, и я начну."), `<button class="btn btn--main" data-act="mapConn" data-id="${W.projs[0].id}">${L("Підключити кабінет","Подключить кабинет")}</button>`)}</div>`}${typeof plPanel === "function" ? pfProjs().filter(p => p.meta && p.meta.conn).map(plPanel).join("") : ""}${typeof tsToday === "function" ? tsToday() : ""}${typeof goalsBoard === "function" ? goalsBoard(pfOne()) : ""}</div>`; }
 let todayBoot = false;
 function vCompany(){ if (!todayBoot && W.co) { todayBoot = true; if (W.ctab === "map") W.ctab = "today"; }
-  const t = W.ctab, tabs = [["today",L("Сьогодні","Сегодня")],["map",L("Карта","Карта")],["ads",L("Реклама","Реклама")],["projects",L("Проєкти","Проекты")],["kb",L("База знань компанії","База знаний компании")],["team",L("Команда","Команда")],["set",L("Налаштування","Настройки")],["me",L("Профіль","Профиль")]];
+  const t = W.ctab, tabs = [["today",L("Сьогодні","Сегодня")],["map",L("Карта","Карта")],["ads",L("Реклама","Реклама")],["site",L("Перевірка сайту","Проверка сайта")],["projects",L("Проєкти","Проекты")],["kb",L("База знань компанії","База знаний компании")],["team",L("Команда","Команда")],["set",L("Налаштування","Настройки")],["me",L("Профіль","Профиль")]];
   const body = {
     today: () => vToday(),
     ads: () => vAds(),
+    site: () => typeof vSite === "function" ? vSite() : "",
     map: () => vMap(),
     projects: () => `${W.projs.length ? `<div class="cols">${W.projs.map(p=>{ const ch = pChain(p), done = ch.filter(c=>c[2]).length; return `<div class="panel">
       <div class="row sp"><h2>${esc(p.name)}</h2>${canAdmin()?del2("wsDelP", p.id, "p:" + p.id):""}</div><p class="sub">${esc([p.niche,p.geo].filter(Boolean).join(" · "))}</p>
@@ -450,13 +451,13 @@ function ownAudStep(o){ return `<p class="sub">${L("Хто купує. Можн�
 
 /* ---------- оболочка ---------- */
 /* нижняя навигация на телефоне: разделы компании под большим пальцем; разделы проекта остаются полосой сверху */
-const TBI = {ads:"campaigns", today:"today", map:"map", projects:"projects", kb:"book", team:"audiences", set:"settings", me:"user", about:"edit", aud:"audiences", goals:"budget", funnels:"funnel", conn:"connections", go:"reports", launch:"launch"};
+const TBI = {site:"search", ads:"campaigns", today:"today", map:"map", projects:"projects", kb:"book", team:"audiences", set:"settings", me:"user", about:"edit", aud:"audiences", goals:"budget", funnels:"funnel", conn:"connections", go:"reports", launch:"launch"};
 function tabBar(){
   let tb = $("tabbar"); if (!tb) { tb = document.createElement("nav"); tb.id = "tabbar"; tb.className = "tabbar"; document.body.appendChild(tb); }
   const on = own() && !!W.user && !!W.co && !(CLOUD && (!CL.ready || CL.entering)); tb.hidden = !on; document.body.classList.toggle("has-tabbar", on); if (!on) { tb.innerHTML = ""; return; }
   tb.setAttribute("aria-label", L("Розділи компанії","Разделы компании"));
   const cur = P() ? "projects" : W.ctab;
-  tb.innerHTML = [["today",L("Сьогодні","Сегодня")],["map",L("Карта","Карта")],["ads",L("Реклама","Реклама")],["projects",L("Проєкти","Проекты")],["set",L("Ще","Еще")]].map(x =>
+  tb.innerHTML = [["today",L("Сьогодні","Сегодня")],["map",L("Карта","Карта")],["ads",L("Реклама","Реклама")],["site",L("Перевірка сайту","Проверка сайта")],["projects",L("Проєкти","Проекты")],["set",L("Ще","Еще")]].map(x =>
     `<button type="button" data-act="wsCtab" data-v="${x[0]}"${cur === x[0] ? ' aria-current="page"' : ""}>${ico(TBI[x[0]])}<span>${x[1]}</span></button>`).join("");
 }
 /* путь вверху: компания › раздел или проект › воронка › вкладка; каждый шаг кликабелен */
@@ -473,7 +474,7 @@ function ownShell(){
   const p = P(), f = F(), nb = (act, v, t, on) => `<a role="button" tabindex="0" data-act="${act}" data-v="${v}" ${on?'aria-current="page"':""} title="${String(t).replace(/<[^>]+>.*$/, "").trim()}"><i class="nbi">${TBI[v] ? ico(TBI[v]) : ""}</i><span>${t}</span></a>`;
   $("rail").innerHTML = `<a class="logo" href="index.html">${brandLogo("rail")}</a>
     ${W.user&&W.co?`<button type="button" class="ws" data-act="wsBackP"><small>${L("Компанія","Компания")}</small><b>${esc(W.co.name)}</b></button>
-    <nav class="navg navg--co"><span>${L("Компанія","Компания")}</span>${nb("wsCtab","today",L("Сьогодні","Сегодня"),!p&&W.ctab==="today")}${nb("wsCtab","map",L("Карта","Карта"),!p&&W.ctab==="map")}${nb("wsCtab","ads",L("Реклама","Реклама"),!p&&W.ctab==="ads")}${nb("wsCtab","projects",L("Проєкти","Проекты")+(W.projs.length?` <b class="cnt">${W.projs.length}</b>`:""),!p&&W.ctab==="projects")}${(() => { const inMore = !p && ["kb","team","set"].includes(W.ctab), open = inMore || railMore(); return `<button type="button" class="navmore" data-act="railMore" aria-expanded="${open}">${open ? L("Менше","Меньше") : L("Ще: база знань, команда, налаштування","Еще: база знаний, команда, настройки")} <span class="chev${open ? " chev--up" : ""}">${ico("chevron")}</span></button>${open ? nb("wsCtab","kb",L("База знань","База знаний")+(W.co.kb.length?` <b class="cnt">${W.co.kb.length}</b>`:""),!p&&W.ctab==="kb")+nb("wsCtab","team",L("Команда","Команда"),!p&&W.ctab==="team")+nb("wsCtab","set",L("Налаштування компанії","Настройки компании"),!p&&W.ctab==="set") : ""}`; })()}</nav>`:""}
+    <nav class="navg navg--co"><span>${L("Компанія","Компания")}</span>${nb("wsCtab","today",L("Сьогодні","Сегодня"),!p&&W.ctab==="today")}${nb("wsCtab","map",L("Карта","Карта"),!p&&W.ctab==="map")}${nb("wsCtab","ads",L("Реклама","Реклама"),!p&&W.ctab==="ads")}${nb("wsCtab","site",L("Перевірка сайту","Проверка сайта"),!p&&W.ctab==="site")}${nb("wsCtab","projects",L("Проєкти","Проекты")+(W.projs.length?` <b class="cnt">${W.projs.length}</b>`:""),!p&&W.ctab==="projects")}${(() => { const inMore = !p && ["kb","team","set"].includes(W.ctab), open = inMore || railMore(); return `<button type="button" class="navmore" data-act="railMore" aria-expanded="${open}">${open ? L("Менше","Меньше") : L("Ще: база знань, команда, налаштування","Еще: база знаний, команда, настройки")} <span class="chev${open ? " chev--up" : ""}">${ico("chevron")}</span></button>${open ? nb("wsCtab","kb",L("База знань","База знаний")+(W.co.kb.length?` <b class="cnt">${W.co.kb.length}</b>`:""),!p&&W.ctab==="kb")+nb("wsCtab","team",L("Команда","Команда"),!p&&W.ctab==="team")+nb("wsCtab","set",L("Налаштування компанії","Настройки компании"),!p&&W.ctab==="set") : ""}`; })()}</nav>`:""}
     ${W.user&&p?`<nav class="navg"><span>${esc(p.name)}</span>${pChain(p).map(c=>nb("wsTab",c[0],c[1]+(c[2]?"":" <em>·</em>"),!f&&W.tab===c[0])).join("")}</nav>`:""}
     ${W.user&&f?`<nav class="navg"><span>${esc(f.name)}</span>${FTABS().map(c=>nb("wsFtab",c[0],c[1],ftNorm(W.ftab)===c[0])).join("")}</nav>`:""}
     <div class="rail__foot">${W.user&&W.co?`<button type="button" class="me me--btn" data-act="wsCtab" data-v="me"${!p&&W.ctab==="me"?' aria-current="page"':""} title="${L("Профіль","Профиль")}"><b>${esc(ME.name || W.user.name || W.user.id)}</b><small>${esc(ME.title || (ME.name ? W.user.name || W.user.id : L("профіль","профиль")))}</small></button>`:""}
