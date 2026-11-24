@@ -1,6 +1,6 @@
 /* Пилот «ведение аккаунта» в кабинете: настройки, подключение Telegram, журнал отчётов и предложений с «Да / Нет».
    Работу делает серверная функция pilot (каждый час по расписанию). Подключается после rek.js. */
-const PL = {st:{}, busy:{}, edit:{}, msg:{}, tab:{}, safe:{}, why:null};
+const PL = {st:{}, busy:{}, edit:{}, msg:{}, tab:{}, safe:{}, why:null, pop:null};
 async function plCall(body){ if (!CLOUD || !sb) return {ok:false, error:"offline"};
   try { const r = await sb.functions.invoke("pilot", {body}); if (r.error || !r.data) return {ok:false, error:"net", detail:(r.error && r.error.message) || ""}; return r.data; } catch (e) { return {ok:false, error:"net", detail:e && e.message}; } }
 const plErr = r => ({net:L("Сервер не відповів — можливо, функцію pilot ще не викладено.","Сервер не ответил — возможно, функцию pilot еще не выложили."), denied:L("Налаштовувати може власник або керівник.","Настраивать может собственник или руководитель."), no_bot:L("Немає ключа бота: додай TG_BOT_TOKEN у Secrets.","Нет ключа бота: добавь TG_BOT_TOKEN в Secrets."), no_chats:L("Спершу підключи Telegram.","Сначала подключи Telegram."), not_connected:L("Meta не підключено.","Meta не подключена.")})[r.error] || (r.error || "") + (r.detail ? ": " + r.detail : "");
@@ -180,7 +180,7 @@ function plWhyHtml(){ const w = PL.why; if (!w) return ""; const p = W.projs.fin
     <p class="sub">${L("Пропозиція від ","Предложение от ")}${esc(plTime(x.at))}. ${L("Цифри «Що бачу» — з HEYROW за 3 повних дні; рішення Хіро ухвалював за 3 дні разом із сьогодні.","Цифры «Что вижу» — из HEYROW за 3 полных дня; решение Хиро принимал за 3 дня вместе с сегодняшним.")}</p>
     <div class="row"><button class="btn btn--solid" data-act="plWhy" data-v="close">${L("Зрозуміло","Понятно")}</button></div></div>`; }
 if (typeof ACT !== "undefined") { const _co = ACT.closeOverlay; ACT.closeOverlay = function(d){ PL.why = null; return _co ? _co.call(this, d) : undefined; }; }
-if (typeof overlay === "function") { const _plOv = overlay; overlay = function(){ const r = _plOv(); return r || (PL.why ? ["modal", plWhyHtml()] : null); }; }
+if (typeof overlay === "function") { const _plOv = overlay; overlay = function(){ const r = _plOv(); return r || (PL.why ? ["modal", plWhyHtml()] : PL.pop ? ["modal", plPopHtml()] : null); }; }
 /* ---------- «Дорого по всьому акаунту» (Дмитрий, 24.11.2026) ----------
    Когда ни одна группа по отдельности не «точно плохая», а весь аккаунт за 3 полных дня дороже цели с уверенностью 95%:
    1) раскладываем цену лида: показ (CPM) → клик (CTR, CPC) → лид (конверсия кликов) — 7 дней против 3 недель до этого и против цели;
@@ -255,6 +255,7 @@ function plAcctPush(p, A){ if (!A || typeof tdPropose !== "function") return; co
 /* ---------- «Висновок і гіпотези» (Дмитрий, 24.11.2026: «сделай выводы и предложи гипотезы, что делаем, чтобы исправить») ----------
    По каждому слабому звену — гипотеза: почему (цифры), что делаем, какой будет лид, если звено дотянуть до ориентира, и как проверить за 3 дня.
    Оценка — простая пропорция при прочих равных (остальные звенья не меняются); это ориентир для порядка работ, а не обещание. Сильные звенья тоже называем. */
+const PLC = {};
 function plConcl(p, A){ const k = p.id + A.f.id, D = PLD[k], T = A.T, m = v => plMoney(v), f7 = A.f7, fo = A.fo || {};
   if (!D && CLOUD && sb) plDeepLoad(p, A); /* только чтение из Meta — грузим сами, без кнопки */
   const ads = D && D.ads ? D.ads.filter(a => a.s > 0) : [], t = ads.reduce((o, a) => { ["s", "i", "lc", "v3", "tp", "lpv", "l"].forEach(f => { o[f] += a[f] || 0; }); return o; }, {s:0, i:0, lc:0, v3:0, tp:0, lpv:0, l:0});
@@ -288,9 +289,10 @@ function plConcl(p, A){ const k = p.id + A.f.id, D = PLD[k], T = A.T, m = v => p
       act:L("Окремий ролик, де герой і приклади — для цієї аудиторії. Таргетинг не звужуємо: Meta сама понесе ролик тим, кому він заходить.","Отдельный ролик, где герой и примеры — для этой аудитории. Таргетинг не сужаем: Meta сама понесет ролик тем, кому он заходит."), chk:L("лід цього ролика нижчий за ","лид этого ролика ниже ") + m(T)}); }
   H.forEach(h => { h.cpl = h.f != null ? est(h.f) : null; });
   H.sort((x, y) => (x.cpl == null) - (y.cpl == null) || (x.opt ? 1 : 0) - (y.opt ? 1 : 0) || (x.cpl || 0) - (y.cpl || 0)); /* проверенные пропорции — раньше оптимистичной оценки гео */
-  if (!H.length && !good.length) return D && D.load ? `<p class="sub">${L("Збираю дані для висновку…","Собираю данные для вывода…")}</p>` : "";
+  if (!H.length && !good.length) { PLC[k] = {H:[], head:"", good:[]}; } if (!H.length && !good.length) return D && D.load ? `<p class="sub">${L("Збираю дані для висновку…","Собираю данные для вывода…")}</p>` : "";
   const top = H.filter(h => h.cpl != null && !h.opt), both = top.length >= 2 && cpl ? cpl * top[0].f * top[1].f : null;
   const head = H[0] ? L("Головне вузьке місце — ","Главное узкое место — ") + H[0].t.toLowerCase() + "." + (H[0].cpl ? " " + L("Якщо дотягнути його ","Если дотянуть его ") + (H[0].opt ? "" : (H[0].to || "")) + L(", лід буде ≈",", лид будет ≈") + m(H[0].cpl) + L(" (ціль "," (цель ") + m(T) + ")." : "") + (both ? " " + L("Разом із «","Вместе с «") + top[1].t.toLowerCase() + L("» — ≈","» — ≈") + m(both) + "." : "") : L("Слабкого звена за 7 днів не видно.","Слабого звена за 7 дней не видно.");
+  PLC[k] = {H, head, good};
   const li = h => `<li><b>${esc(h.t)}</b><span>${esc(h.why)}</span><span><b>${L("Що робимо: ","Что делаем: ")}</b>${esc(h.act)}</span><small class="plplan__tag">${h.cpl ? L("Очікуваний лід ≈","Ожидаемый лид ≈") + esc(m(h.cpl)) + (h.opt ? " · " + esc(h.to) : "") + " · " : ""}${L("Перевірка за 3 дні: ","Проверка за 3 дня: ")}${esc(h.chk)}</small></li>`;
   return `<div class="pldeep plplan plconcl"><h4>${L("Висновок","Вывод")}</h4><p class="plconcl__t">${esc(head)}</p>
     ${typeof plSiteOffer === "function" && (H.some(h => h.site) || !H.length || f7.cr && f7.cr < 0.1) ? plSiteOffer(p, A, H.some(h => h.site) ? L("Схоже, частина проблеми в сторінці.","Похоже, часть проблемы в странице.") : !H.length ? L("У рекламі явного слабкого місця не бачу — варто перевірити саму сторінку.","В рекламе явного слабого места не вижу — стоит проверить саму страницу.") : L("З кліку в лід менше 10% — варто перевірити сторінку.","Из клика в лид меньше 10% — стоит проверить страницу.")) : ""}
@@ -349,6 +351,7 @@ const PLD = {}, DTH = {hook:0.20, hold:0.25, ctr:0.008, lpv:0.7, cr:0.10, minSeg
 async function plDeepLoad(p, A){ const k = p.id + A.f.id; if (PLD[k] && PLD[k].load) return; PLD[k] = {load:true}; render();
   const cids = [...new Set((PLA[p.id].w7 || []).filter(r => plFid(p, r) === A.f.id && +r.spend > 0).map(r => r.campaign_id))];
   let r = {}; try { r = (await sb.functions.invoke("hiro-propose", {body:{action:"deep", project_id:p.id, cids}})).data || {}; } catch (e) { r = {}; }
+  if (r.ok) { const g = {}; (r.demo || []).forEach(d => { const o = g[d.gender + "|" + d.age] = g[d.gender + "|" + d.age] || {age:d.age, gender:d.gender, s:0, i:0, lc:0, lpv:0, l:0}; ["s", "i", "lc", "lpv", "l"].forEach(f => { o[f] += +d[f] || 0; }); }); r.demo = Object.values(g); }
   PLD[k] = r.ok ? {ads:r.ads || [], demo:r.demo || [], errs:r.errs || []} : {err:plErr(r)}; render(); }
 const plR = (a, b) => b ? a / b : 0;
 function plDeep(p, A){ const k = p.id + A.f.id, D = PLD[k], T = A.T;
@@ -387,17 +390,46 @@ function plDeep(p, A){ const k = p.id + A.f.id, D = PLD[k], T = A.T;
     ${segs.length ? `<details class="more"><summary>${L("Вік і стать","Возраст и пол")} · ${segs.length}${ico("chevron")}</summary><div class="tw"><table class="pldt"><thead><tr><th>${L("Сегмент","Сегмент")}</th><th>${L("Витрат","Расхода")}</th><th>CTR</th><th>${L("Реєстрація","Регистрация")}</th><th>${L("Лідів","Лидов")}</th><th>${L("Ціна ліда","Цена лида")}</th></tr></thead><tbody>${segs.slice(0, 14).map(seg).join("")}</tbody></table></div><p class="sub">${L("Мало даних у сегменті — висновків не роблю. Розбивку використовуй як підказку, а не щоб вимикати сегменти.","Мало данных в сегменте — выводов не делаю. Разбивку используй как подсказку, а не чтобы отключать сегменты.")}</p></details>` : ""}
     ${D.errs && D.errs.length ? `<p class="sub">${L("Частину даних Meta не віддала.","Часть данных Meta не отдала.")}</p>` : ""}</div>`; }
 function plAcctCard(p){ return plAcctAll(p).map(A => plAcctOne(p, A)).join(""); }
-function plAcctOne(p, A){ plAcctPush(p, A); const F = plFix(p, A); plFixPush(p, A, F); const m = v => plMoney(v), f7 = A.f7, fb = A.fb;
+function plAcctOne(p, A){ plAcctPush(p, A); const F = plFix(p, A); plFixPush(p, A, F); plConcl(p, A); const m = v => plMoney(v), f7 = A.f7, fb = A.fb, k = p.id + A.f.id, C = PLC[k] || {H:[], head:"", good:[]};
   const cell = (lab, v, b, fmt, worseUp) => { const ch = b ? v / b - 1 : 0, bad = worseUp ? ch > 0.15 : ch < -0.15; return `<div><span>${lab}</span><b${bad ? ' class="is-bad"' : ""}>${fmt(v)}</b><small>${b ? (ch > 0 ? "+" : "") + Math.round(ch * 100) + "% " + L("до 3 тижнів","к 3 неделям") : ""}</small></div>`; };
+  const chip = (v, t, n) => `<button type="button" class="btn btn--sm" data-act="plPop" data-v="${v}" data-p="${p.id}" data-f="${A.f.id}">${t}${n ? ` <span class="plcnt">${n}</span>` : ""}</button>`;
+  const D = PLD[k], nAds = D && D.ads ? D.ads.filter(a => a.s > 0).length : 0;
+  const hyps = C.H.map((h, i) => plHypCard(p, A, h, i)).join("");
   return `<li class="plc plc--warn plc--acct"><span class="plc__a">${ico("warning")}</span><div class="plc__m">
     <div class="plc__h"><b>${L("Дорого у воронці «","Дорого в воронке «")}${esc(A.f.name)}»</b><button type="button" class="btn btn--sm" data-act="plRethink" data-p="${p.id}">${ico("refresh")} ${L("Подумати ще раз","Подумать еще раз")}</button></div>
-    <p class="plc__t">${L("За 3 повні дні ","За 3 полных дня ")}${m(A.t3.s)}, ${A.t3.l} ${L("лідів за ","лидов по ")}${m(A.t3.s / A.t3.l)} ${L("при цілі ","при цели ")}${m(A.T)}. ${L("Шанс, що це випадковість, ","Шанс, что это случайность, ")}${Math.max(0.1, Math.round(A.J.q * 1000) / 10).toString().replace(".", ",")}%. ${L("Окремо жодна група ще не «точно погана» — тому розбираю всю воронку. Кампанії інших воронок і без воронки не враховую.","По отдельности ни одна группа еще не «точно плохая» — поэтому разбираю всю воронку. Кампании других воронок и без воронки не учитываю.")}</p>
+    <p class="plc__t">${L("За 3 повні дні ","За 3 полных дня ")}${m(A.t3.s)}, ${A.t3.l} ${L("лідів за ","лидов по ")}${m(A.t3.s / A.t3.l)} ${L("при цілі ","при цели ")}${m(A.T)}. ${L("Шанс, що це випадковість, ","Шанс, что это случайность, ")}${Math.max(0.1, Math.round(A.J.q * 1000) / 10).toString().replace(".", ",")}%.</p>
     <div class="plf2 plf2--fun">${cell("CPM", f7.cpm, fb.cpm, m, true)}${cell("CTR", f7.ctr, fb.ctr, plPct, false)}${cell(L("Ціна кліку","Цена клика"), f7.cpc, fb.cpc, m, true)}${cell(L("З кліку в лід","Из клика в лид"), f7.cr, fb.cr, plPct, false)}${cell(L("Ціна ліда","Цена лида"), f7.cpl, fb.cpl, m, true)}</div>
-    ${plConcl(p, A)}
-    ${plPlanHtml(F)}
-    <details class="more"><summary>${L("Чому дорого","Почему дорого")} · ${A.recs.length}${ico("chevron")}</summary><ol class="placc">${A.recs.map(r => `<li><b>${r.t}</b><span>${esc(r.w)}</span></li>`).join("")}</ol></details>
-    ${plDeep(p, A)}
-    <p class="sub">${L("Цифри — за 7 днів проти 3 тижнів до того.","Цифры — за 7 дней против 3 недель до этого.")}</p></div></li>`; }
+    ${C.head ? `<p class="plconcl__t">${esc(C.head)}</p>` : D && D.load ? `<p class="sub">${L("Збираю дані з Meta для висновку…","Собираю данные из Meta для вывода…")}</p>` : ""}
+    <div class="row plchips">${chip("concl", L("Висновок","Вывод"))}${chip("recs", L("Чому дорого","Почему дорого"), A.recs.length)}${chip("deep", L("Креативи й аудиторія","Креативы и аудитория"), nAds)}${chip("tasks", L("Завдання тобі","Задачи тебе"), F.tasks.length)}</div>
+    <p class="sub">${L("Гіпотези — окремими картками нижче, дії з «Так» — у стрічці.","Гипотезы — отдельными карточками ниже, действия с «Да» — в ленте.")} ${L("Цифри — за 7 днів проти 3 тижнів до того.","Цифры — за 7 дней против 3 недель до этого.")}</p></div></li>${hyps}`; }
+/* гипотеза — отдельная карточка: почему, ожидаемый лид, как проверить; кнопки «Детальніше» (окно), проверка страницы за монеты, «Прибрати» */
+const PLHX = (() => { try { return JSON.parse(localStorage.getItem("pl_hyp_x") || "{}"); } catch (e) { return {}; } })();
+const plHypKey = (p, A, h) => p.id + A.f.id + ":" + h.t;
+function plHypCard(p, A, h, i){ if (PLHX[plHypKey(p, A, h)]) return ""; const m = v => plMoney(v);
+  const ic = h.site ? "search" : h.opt ? "map" : /креатив|ролик/i.test(h.t) ? "edit" : "idea";
+  const facts = [h.cpl ? [L("Очікуваний лід","Ожидаемый лид"), "≈" + m(h.cpl), false] : null, [L("Перевірка за 3 дні","Проверка за 3 дня"), h.chk, false]].filter(Boolean);
+  const btns = (h.site ? `<button type="button" class="btn btn--sm btn--solid" data-act="plPop" data-v="site" data-p="${p.id}" data-f="${A.f.id}">${ico("search")} ${L("Перевірити сторінку · ","Проверить страницу · ")}${(SCK.st && SCK.st.price) || 10} ${typeof COIN !== "undefined" ? COIN : "HEY"}</button>` : "")
+    + `<button type="button" class="btn btn--sm" data-act="plPop" data-v="hyp" data-i="${i}" data-p="${p.id}" data-f="${A.f.id}">${L("Детальніше","Подробнее")}</button><button type="button" class="btn btn--sm btn--text" data-act="plHypX" data-v="${esc(plHypKey(p, A, h))}">${L("Прибрати","Убрать")}</button>`;
+  return `<li class="plc plc--re plc--hyp"><span class="plc__a">${ico(ic)}</span><div class="plc__m">
+    <div class="plc__h"><b><button type="button" class="plc__ttl" data-act="plPop" data-v="hyp" data-i="${i}" data-p="${p.id}" data-f="${A.f.id}">${L("Гіпотеза: ","Гипотеза: ")}${esc(h.t.charAt(0).toLowerCase() + h.t.slice(1))}</button></b><span class="sub">${esc(A.f.name)}</span></div>
+    <div class="plf2">${facts.map(f => `<div><span>${esc(f[0])}</span><b>${esc(f[1])}</b></div>`).join("")}</div>
+    <p class="plc__t">${esc(h.why)}</p><div class="row plbtn">${btns}</div></div></li>`; }
+/* всплывающие окна разбора: вывод, почему дорого, креативы и аудитория, задачи, гипотеза, проверка страницы */
+function plPopHtml(){ const w = PL.pop; if (!w) return ""; const p = (W.projs || []).find(z => z.id === w.p); if (!p) return "";
+  const A = plAcctAll(p).find(a => a.f.id === w.f); if (!A) return ""; const k = p.id + A.f.id, C = PLC[k] || {H:[]}, h = C.H[w.i || 0];
+  let tag = A.f.name, t = "", b = "";
+  if (w.k === "concl") { t = L("Висновок і гіпотези","Вывод и гипотезы"); b = plConcl(p, A); }
+  else if (w.k === "recs") { t = L("Чому дорого","Почему дорого"); b = `<ol class="placc">${A.recs.map(r => `<li><b>${r.t}</b><span>${esc(r.w)}</span></li>`).join("")}</ol>`; }
+  else if (w.k === "deep") { t = L("Креативи й аудиторія · 7 днів","Креативы и аудитория · 7 дней"); b = plDeep(p, A).replace(/<details class="more">/g, '<details class="more" open>'); }
+  else if (w.k === "tasks") { t = L("Завдання тобі","Задачи тебе"); b = `<ol class="placc">${plFix(p, A).tasks.map(a => `<li><b>${esc(a.t)}</b><span>${esc(a.w)}</span></li>`).join("")}</ol>`; }
+  else if (w.k === "hyp" && h) { tag = L("Гіпотеза · ","Гипотеза · ") + A.f.name; t = h.t; b = `<dl class="plw__kv">${[[L("Чому так думаю","Почему так думаю"), h.why], [L("Що робимо","Что делаем"), h.act], h.cpl ? [L("Очікуваний лід","Ожидаемый лид"), "≈" + plMoney(h.cpl) + (h.opt ? " · " + h.to : "")] : null, [L("Перевірка за 3 дні","Проверка за 3 дня"), h.chk]].filter(Boolean).map(x => `<div><dt>${x[0]}</dt><dd>${esc(x[1])}</dd></div>`).join("")}</dl>`
+      + (h.site && typeof plSiteOffer === "function" ? plSiteOffer(p, A, L("Можу одразу перевірити сторінку.","Могу сразу проверить страницу.")) : "")
+      + (/креатив|ролик/i.test(h.t) ? `<p class="sub">${esc((plFix(p, A).tasks[0] || {}).w || "")}</p>` : "")
+      + `<p class="sub">${L("Очікуваний лід — проста пропорція: решта воронки без змін. Це порядок робіт, а не обіцянка.","Ожидаемый лид — простая пропорция: остальная воронка без изменений. Это порядок работ, а не обещание.")}</p>`; }
+  else if (w.k === "site") { t = L("Перевірка сторінки","Проверка страницы"); b = typeof plSiteOffer === "function" ? plSiteOffer(p, A, L("Схоже, частина проблеми в сторінці.","Похоже, часть проблемы в странице.")) : ""; }
+  if (!t) return "";
+  return `<div class="plw"><div class="row sp"><div><span class="tag">${esc(tag)}</span><h2>${esc(t)}</h2></div><button class="x" data-act="plPop" data-v="close" aria-label="${L("Закрити","Закрыть")}">${ico("close")}</button></div>
+    <div class="plw__b">${b}</div><div class="row"><button class="btn btn--solid" data-act="plPop" data-v="close">${L("Закрити","Закрыть")}</button></div></div>`; }
 function plSum(p, list, dis){ const m = PLM[p.id] || {}, seen = {}, camps = {}; let sv = 0;
   list.forEach(x => { if (plSaveOf(p, x) && plObj(p, x).lv === "campaign") camps[String((x.payload || {}).id || "")] = 1; });
   list.forEach(x => { const v = plSaveOf(p, x), y = x.payload || {}, id = String(y.id || ""); if (!v || seen[id]) return; seen[id] = 1;
@@ -483,6 +515,8 @@ Object.assign(ACT, {
     try { if (typeof mtCall === "function") await mtCall({action:"sync", project_id:p.id, days:3}); } catch (e) {}
     delete PLA[p.id]; delete PLM[p.id]; Object.keys(PLD).forEach(k => { if (k.indexOf(p.id) === 0) delete PLD[k]; }); delete PLR[p.id]; Object.keys(PLAP).forEach(k => { if (k.indexOf(p.id) === 0) delete PLAP[k]; }); delete PL.st[p.id]; plLoad(p); return false; },
   plWhy(d){ PL.why = d.v === "close" ? null : {p:d.p, id:+d.id}; },
+  plPop(d){ PL.pop = d.v === "close" ? null : {k:d.v, p:d.p, f:d.f, i:+d.i || 0}; },
+  plHypX(d){ PLHX[d.v] = Date.now(); try { localStorage.setItem("pl_hyp_x", JSON.stringify(PLHX)); } catch (e) {} },
   async plSafeAll(d){ if (d.v !== "go") { PL.safe[d.p] = d.v === "ask"; return; } PL.safe[d.p] = false;
     const r0 = PL.st[d.p], pp = W.projs.find(z => z.id === d.p), ids = ((r0 && r0.log) || []).filter(x => x.kind === "reco" && x.status === "new" && plOff(x.payload) && !(pp && plGone(pp, x))).map(x => x.id); let ok = 0;
     PL.msg[d.p] = L("Вимикаю…","Выключаю…"); render();
