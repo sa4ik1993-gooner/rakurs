@@ -175,7 +175,13 @@ const plSumR = rows => rows.reduce((a, r) => ({s:a.s + (+r.spend || 0), i:a.i + 
 const plFun = x => ({cpm:x.i ? x.s / x.i * 1000 : 0, ctr:x.i ? x.c / x.i : 0, cpc:x.c ? x.s / x.c : 0, cr:x.c ? x.l / x.c : 0, cpl:x.l ? x.s / x.l : 0});
 /* нижняя граница числа лидов (90%): осторожная цена связки — не выдаём случайную удачу за лучшую */
 function plPoisLow(k, p){ if (k <= 0) return 0; let lo = 0, hi = k + 10; for (let i = 0; i < 60; i++){ const m = (lo + hi) / 2; if (1 - poissonCdf(k - 1, m) < p) lo = m; else hi = m; } return (lo + hi) / 2; }
-function plAcct(p){ const a = PLA[p.id], st = PL.st[p.id], T = st && st.settings ? Number(st.settings.target_cpl) || 0 : 0; if (!a || a.load || !T || typeof judgeCpl !== "function") return null;
+/* воронка кампании: ручная привязка (campMap) → правило аккаунта по словам в названии; кампании без воронки (другой продукт/курс) в разбор не входят */
+function plFid(p, r){ const m = (p.campMap || {})[r.campaign_id]; if (m) return m === "-" ? "" : m;
+  const hasRules = Object.values(p.accRules || {}).flat().some(ru => ru.f); if (hasRules) return typeof fxByName === "function" ? fxByName(p, r.campaign_name) : "";
+  return p.funnels.length === 1 ? p.funnels[0].id : ""; }
+function plAcctAll(p){ const a = PLA[p.id]; if (!a || a.load) return []; return (p.funnels || []).map(f => { const k = r => plFid(p, r) === f.id;
+  const x = plAcct(p, {d3:a.d3.filter(k), w7:a.w7.filter(k), base:a.base.filter(k), all:a.all.filter(k)}); return x ? Object.assign(x, {f}) : null; }).filter(Boolean); }
+function plAcct(p, a){ const st = PL.st[p.id], T = st && st.settings ? Number(st.settings.target_cpl) || 0 : 0; if (!a || !T || typeof judgeCpl !== "function") return null;
   const t3 = plSumR(a.d3), J = judgeCpl({spend:t3.s, leads:t3.l, target:T}); if (J.verdict !== "bad") return null;
   const f7 = plFun(plSumR(a.w7)), fb = plFun(plSumR(a.base)), d = (x, y) => y ? x / y - 1 : 0;
   /* лучшая связка за 4 недели: от 8 лидов, по осторожной цене */
@@ -210,11 +216,12 @@ function plAcctPush(p, A){ if (!A || !A.best || PLAP[p.id + A.best.sid] || typeo
   const item = b.live ? {key:"acct:b:" + b.sid + ":" + day, title:L("Підняти бюджет найкращій зв’язці","Поднять бюджет лучшей связке"), body:b.set + "\n" + b.ad + ": " + b.l + L(" лідів за "," лидов по ") + plMoney(b.cpl), payload:{op:"budget", cid:b.cid, id:b.sid, facts:[[L("Лідів за 4 тижні","Лидов за 4 недели"), String(b.l), false], [L("Ціна ліда","Цена лида"), plMoney(b.cpl), false], [L("Ціль","Цель"), plMoney(A.T), false]], gain:L("Більше лідів за ціною нижче цілі","Больше лидов по цене ниже цели")}}
     : {key:"acct:a:" + b.cid + ":" + day, title:L("Повернути найкращу зв’язку","Вернуть лучшую связку"), body:b.camp + "\n" + b.ad + ": " + b.l + L(" лідів за "," лидов по ") + plMoney(b.cpl), payload:{op:"activate", cid:b.cid, facts:[[L("Лідів за 4 тижні","Лидов за 4 недели"), String(b.l), false], [L("Ціна ліда","Цена лида"), plMoney(b.cpl), false], [L("Ціль","Цель"), plMoney(A.T), false]], gain:L("Повертає зв’язку, що давала ліди дешевше за ціль","Возвращает связку, что давала лиды дешевле цели")}};
   tdPropose({project_id:p.id, items:[item]}).then(r => { if (r && r.ok && r.added) { delete PL.st[p.id]; plLoad(p); } }); }
-function plAcctCard(p){ const A = plAcct(p); if (!A) return ""; plAcctPush(p, A); const m = v => plMoney(v), f7 = A.f7, fb = A.fb;
+function plAcctCard(p){ return plAcctAll(p).map(A => plAcctOne(p, A)).join(""); }
+function plAcctOne(p, A){ plAcctPush(p, A); const m = v => plMoney(v), f7 = A.f7, fb = A.fb;
   const cell = (lab, v, b, fmt, worseUp) => { const ch = b ? v / b - 1 : 0, bad = worseUp ? ch > 0.15 : ch < -0.15; return `<div><span>${lab}</span><b${bad ? ' class="is-bad"' : ""}>${fmt(v)}</b><small>${b ? (ch > 0 ? "+" : "") + Math.round(ch * 100) + "% " + L("до 3 тижнів","к 3 неделям") : ""}</small></div>`; };
   return `<li class="plc plc--warn plc--acct"><span class="plc__a">${ico("warning")}</span><div class="plc__m">
-    <div class="plc__h"><b>${L("Дорого по всьому акаунту","Дорого по всему аккаунту")}</b></div>
-    <p class="plc__t">${L("За 3 повні дні ","За 3 полных дня ")}${m(A.t3.s)}, ${A.t3.l} ${L("лідів за ","лидов по ")}${m(A.t3.s / A.t3.l)} ${L("при цілі ","при цели ")}${m(A.T)}. ${L("Шанс, що це випадковість, ","Шанс, что это случайность, ")}${Math.max(0.1, Math.round(A.J.q * 1000) / 10).toString().replace(".", ",")}%. ${L("Окремо жодна група ще не «точно погана» — тому розбираю весь акаунт.","По отдельности ни одна группа еще не «точно плохая» — поэтому разбираю весь аккаунт.")}</p>
+    <div class="plc__h"><b>${L("Дорого у воронці «","Дорого в воронке «")}${esc(A.f.name)}»</b></div>
+    <p class="plc__t">${L("За 3 повні дні ","За 3 полных дня ")}${m(A.t3.s)}, ${A.t3.l} ${L("лідів за ","лидов по ")}${m(A.t3.s / A.t3.l)} ${L("при цілі ","при цели ")}${m(A.T)}. ${L("Шанс, що це випадковість, ","Шанс, что это случайность, ")}${Math.max(0.1, Math.round(A.J.q * 1000) / 10).toString().replace(".", ",")}%. ${L("Окремо жодна група ще не «точно погана» — тому розбираю всю воронку. Кампанії інших воронок і без воронки не враховую.","По отдельности ни одна группа еще не «точно плохая» — поэтому разбираю всю воронку. Кампании других воронок и без воронки не учитываю.")}</p>
     <div class="plf2 plf2--fun">${cell("CPM", f7.cpm, fb.cpm, m, true)}${cell("CTR", f7.ctr, fb.ctr, plPct, false)}${cell(L("Ціна кліку","Цена клика"), f7.cpc, fb.cpc, m, true)}${cell(L("З кліку в лід","Из клика в лид"), f7.cr, fb.cr, plPct, false)}${cell(L("Ціна ліда","Цена лида"), f7.cpl, fb.cpl, m, true)}</div>
     <ol class="placc">${A.recs.map(r => `<li><b>${r.t}</b><span>${esc(r.w)}</span></li>`).join("")}</ol>
     <p class="sub">${L("Цифри — за 7 днів проти 3 тижнів до того." + (A.best ? " Найкращу зв’язку я поклав у стрічку окремою пропозицією з «Так»." : ""),"Цифры — за 7 дней против 3 недель до этого." + (A.best ? " Лучшую связку я положил в ленту отдельным предложением с «Да»." : ""))}</p></div></li>`; }
