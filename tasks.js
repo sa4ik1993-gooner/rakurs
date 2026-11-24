@@ -53,6 +53,10 @@ function tsParse(t0){ const t = " " + String(t0 || "").toLowerCase().replace(/,/
   if (o.type === "leads" && o.leads && o.dayTo && !o.cpl) { o.budget = o.budget || o.dayTo * (o.oneDay || o.perDay ? 1 : (o.days || 1)); o.cpl = o.budget / o.leads; o.guard = "num"; o.implied = 1; }
   if (o.type === "scale" && !o.factor && !o.dayTo) o.factor = 1.5;
   if (o.type === "scale" && !o.guard) o.guard = "same";
+  /* исключения (Дмитрий, 24.11.2026: «в учет не идут кампании с CAP — они могут не откручиваться»): латинское слово из названий */
+  const ex = [], rx = /(?:не\s+(?:уч\S*|врах\S*|рах\S*|счит\S*|ид\S*|йд\S*|бер\S*)|без|кроме|крім|окрім|виключ\S*|исключ\S*)[^.;]{0,40}?(?:\s(?:с|з|із|со|зі)\s+|\s)[«"']?([a-z][a-z0-9_]{1,20})/g; let mx;
+  while ((mx = rx.exec(t))) if (!ex.includes(mx[1])) ex.push(mx[1]);
+  if (ex.length) o.excl = ex;
   return o; }
 const tsTypeName = t => ({scale:L("Більше реклами з тим самим результатом","Больше рекламы с тем же результатом"), cut:L("Знизити ціну ліда","Снизить цену лида"), pause:L("Вимкнути те, що не працює","Выключить то, что не работает"), leads:L("Більше лідів","Больше лидов")})[t] || "";
 
@@ -175,9 +179,15 @@ async function tsCreate(k, text){ const s = tsScope(k), p = s && W.projs.find(x 
   if (!CLOUD || !sb) { toast(L("Задачі працюють із сервером","Задачи работают с сервером")); return false; }
   let ok = false;
   try { await tsLrnLoad(p); if (typeof PL !== "undefined" && !(PL.st[p.id] && PL.st[p.id].ok) && typeof plCall === "function") { const r0 = await plCall({action:"get", project_id:p.id}); if (r0 && r0.ok) PL.st[p.id] = r0; }
-    const d2 = tsDay(prToday(), -1), rows = await tsRows(p, s, tsDay(d2, -6), d2);
+    const d2 = tsDay(prToday(), -1); let rows = await tsRows(p, s, tsDay(d2, -6), d2);
     const [gs, cs] = await Promise.all([sb.rpc("ad_adsets", {p:p.id, d1:tsDay(d2, -6), d2}), sb.rpc("ad_creatives", {p:p.id, d1:tsDay(d2, -6), d2})]);
     const ext = {sets:(gs.data || []).map(x => ({cid:x.campaign_id, sid:String(x.adset_id || ""), name:x.adset_name || x.adset_id, spend:+x.spend || 0, leads:+x.leads || 0})), crs:(cs.data || []).map(x => ({cid:x.campaign_id, name:x.ad_name, spend:+x.spend || 0, leads:+x.leads || 0}))};
+    if (o.excl && o.excl.length) { const hit = n => o.excl.some(w => String(n || "").toLowerCase().includes(w));
+      rows = rows.filter(r => !hit(r.name));
+      ext.sets.filter(x => hit(x.name)).forEach(x => { const r = rows.find(r => r.id === x.cid); if (!r) return; r.spend = Math.max(0, r.spend - x.spend); r.leads = Math.max(0, r.leads - x.leads); r.day = r.spend / 7; r.cpl = r.leads ? r.spend / r.leads : 0; });
+      ext.sets = ext.sets.filter(x => !hit(x.name)); rows = rows.filter(r => r.spend > 0); }
+    /* тесты Хиро (копии « · CAP », « · GEO ») не берём источником для дубля */
+    ext.sets = ext.sets.filter(x => !/ · (CAP|GEO) /.test(String(x.name || "") + " "));
     const pl = tsPlan(p, s, o, rows, ext); delete pl.ext;
     const nt = Object.assign({id:uid(), text:String(text).trim(), type:o.type, o, scope:s, status:"plan", at:new Date().toISOString()}, pl);
     p.tasks = p.tasks || []; p.tasks.unshift(nt); TS.open = {p:p.id, id:nt.id}; save(); ok = true; }
@@ -204,7 +214,7 @@ function tsDupHtml(p, t, x, i){ const s = tsDupSt(p, x), a = `data-p="${p.id}" d
   const geo = x.geo === "world" ? "world" : "", sched = !!s && !s.fail;
   const kv = [[L("Група","Группа"), esc(x.sn || "") + (cpl ? ` <span class="sub">· ${L("ліди за ","лиды по ")}${tsM(+cpl)} ${L("за 7 днів","за 7 дней")}</span>` : "")],
     [L("Креативи","Креативы"), crs.length ? `<span class="tsdup__crs">${crs.map(c => `<span class="chip">${esc(c)}</span>`).join("")}</span>` : L("до 3 оголошень з лідами за 14 днів","до 3 объявлений с лидами за 14 дней")],
-    [L("Бюджет","Бюджет"), `<b class="mono">${tsM(x.bud)}</b> ${L("на день","в день")}`],
+    [L("Бюджет","Бюджет"), sched ? `<b class="mono">${tsM(x.bud)}</b> ${L("на день","в день")}` : `<span class="tsdup__bud"><input class="tin" inputmode="decimal" data-tsdupbud="${p.id}|${t.id}|${i}" value="${Math.round(x.bud)}" aria-label="${L("Бюджет дубля на день, $","Бюджет дубля в день, $")}"> $ ${L("на день","в день")}</span> ${hint(L("Від 10 до 500 $. Хіро запропонував суму, якої не вистачає до цілі задачі.","От 10 до 500 $. Хиро предложил сумму, которой не хватает до цели задачи."))}`],
     [L("Гео","Гео"), sched ? (geo ? L("увесь світ, крім України","весь мир, кроме Украины") : L("як у групі","как в группе")) : `<span class="seg seg--xs" role="group" aria-label="${L("Гео дубля","Гео дубля")}"><button type="button" data-act="tsDupGeo" ${a} data-g="" aria-pressed="${!geo}">${L("Як у групі","Как в группе")}</button><button type="button" data-act="tsDupGeo" ${a} data-g="world" aria-pressed="${!!geo}">${L("Увесь світ, крім України","Весь мир, кроме Украины")}</button></span> ${hint(L("«Як у групі» — ті самі країни, що зараз. «Увесь світ, крім України» — ширше охоплення для україномовних за кордоном; мова, вік і решта налаштувань як у групі.","«Как в группе» — те же страны, что сейчас. «Весь мир, кроме Украины» — шире охват для украиноязычных за рубежом; язык, возраст и остальные настройки как в группе."))}`],
     [L("Старт","Старт"), L("наступної ночі о 01:00 — у Meta копія буде «Заплановано», вмикати нічого не треба","следующей ночью в 01:00 — в Meta копия будет «Запланировано», включать ничего не нужно")]];
   const foot = !s ? `<button type="button" class="btn btn--main" data-act="tsDupGo" ${a} data-g="${geo}">${ico("clock")} ${L("Запланувати на ніч","Запланировать на ночь")}</button>`
@@ -233,6 +243,7 @@ function tsUnd(t){ const o = t.o || {}, m = v => tsM(v), parts = [];
   if (o.budget) parts.push(L("бюджет ","бюджет ") + (o.min ? L("від ","от ") : "") + m(o.budget) + (o.perDay || /день|добу|сутки/.test(String(t.text).toLowerCase()) ? L(" на день"," в день") : o.oneDay || !o.days ? "" : L(" (≈"," (≈") + m(o.dayTo) + L(" на день)"," в день)")));
   else if (t.target && t.type !== "cut" && t.type !== "pause") parts.push(L("бюджет до ","бюджет до ") + dec(t.target, 0) + L(" $ на день"," $ в день"));
   if (t.guard && t.type !== "cut") parts.push(o.implied ? L("лід не дорожче ","лид не дороже ") + m(t.guard) + " (" + m(o.budget) + " / " + num(o.leads) + ")" : o.guard === "same" ? L("лід не дорожче нинішнього (","лид не дороже нынешнего (") + m(t.guard) + ")" : L("лід не дорожче ","лид не дороже ") + m(t.guard));
+  if (o.excl && o.excl.length) parts.push(L("без кампаній і груп з «","без кампаний и групп с «") + o.excl.join("», «").toUpperCase() + L("» у підрахунку","» в подсчете"));
   return L("Зрозумів так: ","Понял так: ") + parts.join(", ") + ". " + (t.base && t.base.day ? L("Зараз: ","Сейчас: ") + dec(t.base.day, 0) + L(" $ на день, лід за "," $ в день, лид по ") + (t.base.cpl ? m(t.base.cpl) : "—") + "." : ""); }
 function tsCard(p, t){ const g = TS.prog[t.id], today = prToday(), next = t.steps.find(x => !x.done), late = next && next.d <= today;
   if (t.status === "run" && (!g || Date.now() - g.at > 30 * 60000) && !TS.pbusy[t.id] && CLOUD) setTimeout(() => tsProg(p, t), 0);
@@ -390,3 +401,9 @@ Object.assign(ACT, {
     save(); },
   tsGo(d){ W.cur = d.p; W.fun = d.f; W.ftab = "launch"; MP.sel = null; save(); },
 });
+
+/* бюджет дубля правится в карточке (Дмитрий, 24.11.2026): 10–500 $ */
+document.addEventListener("change", e => { const el = e.target; if (!el.dataset || !el.dataset.tsdupbud) return; const [pid, id, i] = el.dataset.tsdupbud.split("|"), [p, t] = tsT({p:pid, id}); if (!t) return;
+  const x = t.steps[+i]; if (!x || x.sched) return; const v = Math.round(Number(String(el.value).replace(",", ".")));
+  if (!(v >= 10 && v <= 500)) { toast(L("Бюджет дубля — від 10 до 500 $ на день","Бюджет дубля — от 10 до 500 $ в день")); el.value = Math.round(x.bud); return; }
+  x.bud = v; x.t = x.t.replace(/бюджет \d+ \$/, "бюджет " + v + " $"); save(); });
