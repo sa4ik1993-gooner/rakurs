@@ -27,7 +27,8 @@ const plVerb = (op, lv) => ({pause:lv === "campaign" ? L("Вимкнути ка�
 const PLM = {};
 const plD = n => { const d = new Date(Date.now() + n * 864e5); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
 function plMoneyLoad(p){ if (PLM[p.id] || !CLOUD || !sb) return; PLM[p.id] = {load:true}; const a = {p:p.id, d1:plD(-3), d2:plD(-1)}, q = fn => Promise.resolve(sb.rpc(fn, a)).then(r => r.data || [], () => []);
-  Promise.all([q("ad_summary"), q("ad_adsets"), q("ad_creatives")]).then(([c, g, ad]) => { const m = {camp:{}, set:{}, ad:{}, adn:{}}, v = o => ({s:+o.spend || 0, l:+o.leads || 0});
+  Promise.all([q("ad_summary"), q("ad_adsets"), q("ad_creatives"), q("ad_ads")]).then(([c, g, ad, ai]) => { const m = {camp:{}, set:{}, ad:{}, adn:{}, adid:{}}, v = o => ({s:+o.spend || 0, l:+o.leads || 0});
+    ai.forEach(o => { m.adid[o.ad_id] = Object.assign(v(o), {set:o.adset_id, cid:o.campaign_id}); });
     c.forEach(o => { m.camp[o.campaign_id] = v(o); }); g.forEach(o => { if (o.adset_id) m.set[o.adset_id] = Object.assign(v(o), {cid:o.campaign_id}); });
     ad.forEach(o => { const k = o.campaign_id + "|" + o.ad_name, x = m.ad[k] = m.ad[k] || {s:0, l:0}; x.s += +o.spend || 0; x.l += +o.leads || 0; const y = m.adn[o.ad_name] = m.adn[o.ad_name] || {s:0, l:0}; y.s += +o.spend || 0; y.l += +o.leads || 0; });
     PLM[p.id] = m; render(); }); }
@@ -49,9 +50,28 @@ const plBtn = (op, y) => op === "pause" || op === "pause_ad" ? L("Вимкнут
 function plStat(p, x, o){ const m = PLM[p.id]; if (!m || m.load) return null; const y = x.payload || {};
   if (o.lv === "campaign") return m.camp[String(y.id || y.cid || "")] || null;
   if (o.lv === "adset") return m.set[String(y.id || "")] || null;
-  if (o.lv === "ad") return (y.cid && m.ad[y.cid + "|" + (y.name || "")]) || m.adn[y.name || ""] || null;
+  if (o.lv === "ad") return m.adid[String(y.id || "")] || null; /* только по ad_id: одинаковые названия в разных группах не смешиваем */
   return null; }
-const plSaveOf = (p, x) => { const y = x.payload || {}; if (x.kind !== "reco" || !plOff(y)) return 0; const st = plStat(p, x, plObj(p, x)); return st && st.s > 0 ? st.s / 3 : 0; };
+/* статус и бюджет объектов прямо из Meta (hiro-propose, action objs, только чтение) */
+const PLO = {};
+function plObjsLoad(p, log){ const want = (log || []).filter(x => x.kind === "reco" && (x.status === "new" || x.status === "scheduled") && plOff(x.payload)).map(x => ({id:String((x.payload || {}).id || ""), lv:plObj(p, x).lv})).filter(o => o.id);
+  const key = want.map(o => o.id).sort().join(","); if (!want.length || (PLO[p.id] && PLO[p.id].key === key) || !CLOUD || !sb) return; PLO[p.id] = {key, load:true, objs:{}};
+  Promise.resolve(sb.functions.invoke("hiro-propose", {body:{action:"objs", project_id:p.id, objs:want}})).then(r => { PLO[p.id] = {key, objs:(r && r.data && r.data.objs) || {}}; render(); }, () => { PLO[p.id] = {key, objs:{}}; }); }
+const plMeta = (p, x) => { const r = PLO[p.id]; return r && !r.load ? r.objs[String((x.payload || {}).id || "")] || null : null; };
+const plGone = (p, x) => { const o = plMeta(p, x); return !!(o && o.st && o.st !== "ACTIVE"); };
+/* экономия в день — только там, где деньги действительно перестанут тратиться:
+   кампания — её дневной бюджет (или средний расход, если бюджет на группах); группа — её бюджет, если бюджет не на кампании (иначе деньги уйдут соседним группам);
+   объявление — 0: бюджет группы перейдёт к другим объявлениям. Уже выключенное и непрочитанное из Meta — 0. */
+function plSaveOf(p, x){ const y = x.payload || {}; if (x.kind !== "reco" || !plOff(y)) return 0; const o = plMeta(p, x); if (!o || o.st !== "ACTIVE") return 0;
+  const lv = plObj(p, x).lv, st = plStat(p, x, plObj(p, x)), avg = st && st.s > 0 ? st.s / 3 : 0;
+  if (lv === "campaign") return o.budget > 0 ? o.budget : avg;
+  if (lv === "adset") return o.cbo ? 0 : o.budget > 0 ? o.budget : avg;
+  return 0; }
+/* что даст выключение, если денег не сэкономит: цена лида в кампании без этого объекта (те же 3 дня) */
+function plCplGain(p, x){ const m = PLM[p.id], y = x.payload || {}; if (!m || m.load) return ""; const lv = plObj(p, x).lv, st = plStat(p, x, plObj(p, x)); if (!st) return "";
+  const cid = lv === "ad" ? st.cid : lv === "adset" ? (m.set[String(y.id || "")] || {}).cid : ""; const c = cid ? m.camp[cid] : null; if (!c || !c.l) return "";
+  const rl = c.l - st.l, after = rl > 0 ? (c.s - st.s) / rl : 0, before = c.s / c.l;
+  return after && after < before ? L("Лід у кампанії стане ~","Лид в кампании станет ~") + plMoney(after) + L(" замість "," вместо ") + plMoney(before) : ""; }
 const plIsUk = t => /[іїєґІЇЄҐ]/.test(t);
 function plRow(p, x, dis, top){ const pay = x.payload || {}, rep = x.kind === "report";
   const day = x.exec_on ? x.exec_on.slice(8, 10) + "." + x.exec_on.slice(5, 7) : "", T = Number((((PL.st[p.id] || {}).settings) || {}).target_cpl) || 0, money = v => plMoney(v);
@@ -64,7 +84,9 @@ function plRow(p, x, dis, top){ const pay = x.payload || {}, rep = x.kind === "r
   else if (o.op === "budget" && pay.from) facts = [[L("Бюджет на день","Бюджет в день"), money(pay.from) + " → " + money(pay.to), false]].concat(st ? [[L("Лідів за 3 дні","Лидов за 3 дня"), String(st.l), false], st.l ? [L("Ціна ліда","Цена лида"), money(st.s / st.l), false] : null].filter(Boolean) : []);
   else if (st) facts = [[L("Витрачено за 3 дні","Потрачено за 3 дня"), money(st.s), false], [L("Лідів","Лидов"), String(st.l), false]];
   const factsH = facts.length ? `<div class="plf2">${facts.map(f => `<div><span>${esc(f[0])}</span><b${f[2] ? ' class="is-bad"' : ""}>${esc(f[1])}</b></div>`).join("")}</div>` : "";
-  const gain = save ? `<div class="plgain">${ico("done")}<span>${L("Заощадить близько ","Сэкономит около ")}${money(save)}${L(" на день"," в день")}</span></div>` : "";
+  const gone = x.kind === "reco" && plGone(p, x), cg = !save && !gone && plOff(pay) ? plCplGain(p, x) : "", om = plMeta(p, x);
+  const gain = save ? `<div class="plgain">${ico("done")}<span>${L("Заощадить близько ","Сэкономит около ")}${money(save)}${L(" на день"," в день")}</span></div>` : cg ? `<div class="plgain">${ico("done")}<span>${esc(cg)}</span></div>` : "";
+  const note = gone ? `<span class="st st--pause">${L("Уже вимкнено в Meta","Уже выключено в Meta")}</span>` : plOff(pay) && om && om.st === "ACTIVE" && !save ? `<p class="plc__t">${o.lv === "ad" ? L("Грошей не заощадить: бюджет групи перейде до інших оголошень.","Денег не сэкономит: бюджет группы перейдёт к другим объявлениям.") : L("Грошей не заощадить: бюджет кампанії перейде до інших груп.","Денег не сэкономит: бюджет кампании перейдёт к другим группам.")}</p>` : "";
   /* пояснение одной строкой — на языке интерфейса */
   const why = x.kind === "alert" ? "" : plOff(pay) ? (st ? (st.l ? L("Ліди дорожчі за ціль. Вимкнення зупиняє цей розхід.","Лиды дороже цели. Выключение останавливает этот расход.") : L("За 3 дні жодного ліда — розхід іде впусту.","За 3 дня ни одного лида — расход идёт впустую.")) : L("Ціна ліда гірша за норму. Вимкнення зупиняє розхід.","Цена лида хуже нормы. Выключение останавливает расход."))
     : o.op === "relaunch" ? L("Група не навчиться за такої ціни. Уночі запущу копію без слабких оголошень.","Группа не обучится при такой цене. Ночью запущу копию без слабых объявлений.")
@@ -84,9 +106,13 @@ function plRow(p, x, dis, top){ const pay = x.payload || {}, rep = x.kind === "r
     : `<span class="st">${{yes:L("Ти погодив","Ты согласовал"), canceled:L("Прибрано з графіка","Убрано из графика"), no:L("Ти відхилив","Ты отклонил"), expired:L("Без відповіді, застаріло","Без ответа, устарело"), dismissed:L("Прибрано","Убрано")}[x.status] || esc(x.status)}${x.decided_by ? " · " + esc(x.decided_by) : ""}</span>`;
   const lead = top ? hava("stop", 40) : `<span class="plc__a">${ico(act[1])}</span>`;
   return `<li class="plc plc--${act[0]}${top ? " plc--top" : ""}"${isNew ? ' data-st="new"' : ""}>${lead}<div class="plc__m">${top ? `<span class="heytag">${L("Hey! Найважливіше","Hey! Самое важное")}</span>` : ""}
-    <div class="plc__h"><b>${esc(title)}</b><time>${esc(plTime(x.at))}</time></div>${plPath(o)}${factsH}${gain}${line ? `<p class="plc__t">${esc(line)}</p>` : ""}${more}${state}</div></li>`; }
+    <div class="plc__h"><b>${esc(title)}</b><time>${esc(plTime(x.at))}</time></div>${plPath(o)}${factsH}${gain}${note}${line ? `<p class="plc__t">${esc(line)}</p>` : ""}${more}${state}</div></li>`; }
 /* панель Хиро над списком: сколько предложений и сколько вместе сэкономят в день; «Принять все безопасные» — только выключения (останавливают расход, включить обратно можно в любой момент) */
-function plSum(p, list, dis){ const n = list.length, sv = list.reduce((a, x) => a + plSaveOf(p, x), 0), safe = list.filter(x => plOff(x.payload)), none = list.filter(x => !plSaveOf(p, x)).length, ask = PL.safe[p.id];
+function plSum(p, list, dis){ const m = PLM[p.id] || {}, seen = {}, camps = {}; let sv = 0;
+  list.forEach(x => { if (plSaveOf(p, x) && plObj(p, x).lv === "campaign") camps[String((x.payload || {}).id || "")] = 1; });
+  list.forEach(x => { const v = plSaveOf(p, x), y = x.payload || {}, id = String(y.id || ""); if (!v || seen[id]) return; seen[id] = 1;
+    const cid = plObj(p, x).lv === "adset" ? ((m.set || {})[id] || {}).cid : ""; if (cid && camps[cid]) return; /* группа внутри выключаемой кампании уже учтена */ sv += v; });
+  const n = list.length, safe = list.filter(x => plOff(x.payload) && !plGone(p, x)), none = list.filter(x => !plSaveOf(p, x)).length, ask = PL.safe[p.id];
   const t = plural(n, L("пропозиція","предложение"), L("пропозиції","предложения"), L("пропозицій","предложений")) + (sv ? L(". Разом заощадять близько ",". Вместе сэкономят около ") + plMoney(sv) + L(" на день"," в день") : "");
   const btn = !safe.length ? "" : ask ? `<button type="button" class="btn btn--main btn--sm" data-act="plSafeAll" data-p="${p.id}" data-v="go"${dis}>${L("Так, вимкнути ","Да, выключить ")}${safe.length}</button><button type="button" class="btn btn--glass btn--sm" data-act="plSafeAll" data-p="${p.id}" data-v="no">${L("Скасувати","Отмена")}</button>`
     : `<button type="button" class="btn btn--glass btn--sm" data-act="plSafeAll" data-p="${p.id}" data-v="ask"${dis}>${L("Прийняти всі безпечні","Принять все безопасные")}</button>`;
@@ -104,7 +130,7 @@ function plPanel(p){ if (!CLOUD) return "";
   const TABS = [["new", L("Пропозиції","Предложения")], ["plan", L("У графіку","В графике")], ["done", L("Зроблено","Сделано")], ["no", L("Відхилено","Отклонено")], ["rep", L("Сигнали і звіти","Сигналы и отчёты")]];
   const cnt = {}; log.forEach(x => { const t = tabOf(x); cnt[t] = (cnt[t] || 0) + 1; });
   let tab = PL.tab[p.id]; if (!tab) tab = TABS.map(t => t[0]).find(k => cnt[k] && k !== "rep" && k !== "no") || (cnt.rep ? "rep" : "new");
-  plMoneyLoad(p);
+  plMoneyLoad(p); plObjsLoad(p, log);
   let list = log.filter(x => tabOf(x) === tab);
   if (tab === "new") list = list.slice().sort((a, b) => plSaveOf(p, b) - plSaveOf(p, a) || (b.at > a.at ? 1 : -1));
   const topId = tab === "new" && list[0] && plSaveOf(p, list[0]) ? list[0].id : null, rows = list.map(x => plRow(p, x, dis, x.id === topId)).join("");
@@ -162,10 +188,10 @@ Object.assign(ACT, {
     PL.msg[d.p] = r.ok ? L("Груп у роботі: ","Групп в работе: ") + r.groups + L(" · пропозицій: "," · предложений: ") + r.recos + (r.errs && r.errs.length ? " · " + esc(r.errs.join(", ")) : "") : esc(plErr(r)); delete PL.st[d.p]; const p = W.projs.find(x => x.id === d.p); if (p) plLoad(p); return false; },
   plTab(d){ PL.tab[d.p] = d.v; },
   async plSafeAll(d){ if (d.v !== "go") { PL.safe[d.p] = d.v === "ask"; return; } PL.safe[d.p] = false;
-    const r0 = PL.st[d.p], ids = ((r0 && r0.log) || []).filter(x => x.kind === "reco" && x.status === "new" && plOff(x.payload)).map(x => x.id); let ok = 0;
+    const r0 = PL.st[d.p], pp = W.projs.find(z => z.id === d.p), ids = ((r0 && r0.log) || []).filter(x => x.kind === "reco" && x.status === "new" && plOff(x.payload) && !(pp && plGone(pp, x))).map(x => x.id); let ok = 0;
     PL.msg[d.p] = L("Вимикаю…","Выключаю…"); render();
     for (const id of ids) { try { const r = (await sb.functions.invoke("hiro-propose", {body:{action:"exec_now", project_id:d.p, id}})).data || {}; if (r.ok) ok++; } catch (e) { /* дальше */ } }
-    PL.msg[d.p] = ""; toast(L("Вимкнено: ","Выключено: ") + ok + L(" з "," из ") + ids.length); delete PL.st[d.p]; delete PLM[d.p]; const p = W.projs.find(x => x.id === d.p); if (p) plLoad(p); return false; },
+    PL.msg[d.p] = ""; toast(L("Вимкнено: ","Выключено: ") + ok + L(" з "," из ") + ids.length); delete PL.st[d.p]; delete PLM[d.p]; delete PLO[d.p]; const p = W.projs.find(x => x.id === d.p); if (p) plLoad(p); return false; },
   async plOffNow(d){ if (!CLOUD || !sb) return false; PL.msg[d.p] = L("Вимикаю…","Выключаю…"); render();
     let r = {}; try { r = (await sb.functions.invoke("hiro-propose", {body:{action:"exec_now", project_id:d.p, id:+d.id}})).data || {}; } catch (e) { r = {}; }
     PL.msg[d.p] = ""; toast(r.text || (r.ok ? L("Вимкнено","Выключено") : plErr(r))); delete PL.st[d.p]; const p = W.projs.find(x => x.id === d.p); if (p) plLoad(p); return false; },
