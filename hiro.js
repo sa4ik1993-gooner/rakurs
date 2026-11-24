@@ -108,6 +108,17 @@ function hiroSay(scr){
   if (paused) { out.pose = "sleep"; out.title = L("Автопілот на паузі","Автопилот на паузе"); out.text = L("Нічого не змінюю в рекламі, лише рахую цифри. Увімкни, і я знову стежитиму щогодини.","Ничего не меняю в рекламе, только считаю цифры. Включи, и я снова буду следить каждый час.");
     out.main = hiroBtn("btn--main", L("Увімкнути автопілот","Включить автопилот"), `data-act="apbToggle" data-p="${paused.id}"`, "autopilot"); return out; }
   if (!e.s.spend) { out.title = L("За цей період показів не було","За этот период показов не было"); out.text = L("Коли реклама запрацює, тут буде головне за день.","Когда реклама заработает, здесь будет главное за день."); return out; }
+  /* дорого по воронке целиком (разбор в ленте Хиро) — не «всё в порядке» */
+  const acc = typeof plAcctAll === "function" ? e.ps.map(p => plAcctAll(p)).flat()[0] : null;
+  if (acc) { out.pose = "stop"; out.title = L("Дорого у воронці «","Дорого в воронке «") + acc.f.name + "»";
+    out.text = L("За 3 повні дні ","За 3 полных дня ") + acc.t3.l + L(" лідів за "," лидов по ") + m(acc.t3.s / acc.t3.l) + L(" при цілі "," при цели ") + m(acc.T) + L(". Розібрав, що саме дорожчає, і що зробити.",". Разобрал, что именно дорожает, и что сделать.");
+    out.main = scr === "today" ? hiroBtn("btn--main", L("Відкрити розбір","Открыть разбор"), 'data-act="hiroAcct"') : hiroBtn("btn--main", L("Відкрити розбір","Открыть разбор"), 'data-act="wsCtab" data-v="today"'); return out; }
+  /* дорожче цілі, але даних ще замало для висновку — так і кажемо, без «все в порядку» */
+  const tgt = e.ps.map(p => { const st = typeof PL !== "undefined" ? PL.st[p.id] : null; return st && st.settings ? Number(st.settings.target_cpl) || 0 : 0; }).find(x => x > 0) || e.cap;
+  if (tgt && (e.cpl > tgt * 1.1 || (!e.s.leads && e.s.spend > tgt * 2))) { out.pose = "watch";
+    out.title = e.s.leads ? L("Лід ","Лид ") + m(e.cpl) + L(" — дорожче за ціль "," — дороже цели ") + m(tgt) : L("Витрачено ","Потрачено ") + m(e.s.spend) + L(", лідів поки немає",", лидов пока нет");
+    out.text = L("Цифри дня попередні: Meta дораховує ліди до 3 днів. Окремо жодна кампанія ще не «точно погана» — рішення ухвалюю за 3 дні, а не за сьогодні.","Цифры дня предварительные: Meta досчитывает лиды до 3 дней. По отдельности ни одна кампания еще не «точно плохая» — решение принимаю по 3 дням, а не по сегодня.");
+    if (scr !== "ads") out.main = hiroBtn("btn--main", L("Відкрити рекламу","Открыть рекламу"), 'data-act="wsCtab" data-v="ads"'); return out; }
   const better = e.pcpl && e.cpl && e.cpl < e.pcpl * 0.97;
   out.pose = better ? "win" : "watch";
   out.title = e.s.leads ? L("Все в порядку: " + num(e.s.leads) + " лідів по " + m(e.cpl), "Всё в порядке: " + num(e.s.leads) + " лидов по " + m(e.cpl)) : L("Витрачено " + m(e.s.spend) + ", лідів поки немає", "Потрачено " + m(e.s.spend) + ", лидов пока нет");
@@ -134,6 +145,8 @@ function hiroChat(){ let b = $("hchat"); const on = !!(W.user && W.co);
   b.hidden = !on; b.innerHTML = `<img src="ui/hiro/watch.webp" alt="" width="40" height="40"><span>${L("Хіро на зв’язку","Хиро на связи")}</span>`; }
 
 Object.assign(ACT, {
+  /* кнопка «Відкрити розбір»: прокрутить к карточке «Дорого у воронці» в ленте */
+  hiroAcct(){ if (typeof PL !== "undefined") (W.projs || []).forEach(p => { PL.tab[p.id] = "new"; }); render(); requestAnimationFrame(() => { const el = document.querySelector(".plc--acct"); if (el) { el.scrollIntoView({behavior:"smooth", block:"center"}); el.classList.add("is-hl"); setTimeout(() => el.classList.remove("is-hl"), 1600); } }); return false; },
   /* «Спитати Хіро»: Telegram-бот Хиро, если чат подключён; иначе — лента автопилота на «Сьогодні» */
   async hiroAsk(){ const p = pfProjs().find(x => PL.st[x.id] && PL.st[x.id].ok && PL.st[x.id].settings && (PL.st[x.id].settings.chats || []).length && PL.st[x.id].bot);
     if (p) { const w = window.open("", "_blank"); const r = await plCall({action:"tg_link", project_id:p.id});
