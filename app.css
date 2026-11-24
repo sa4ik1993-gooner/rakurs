@@ -1621,3 +1621,15 @@ td:first-child{font:600 var(--t-body)/1.3 var(--font-ui)}
 .tfb select:focus-visible{outline:2px solid var(--signal);outline-offset:1px}
 .tfb .hint{align-self:center}
 @media (max-width:560px){.tfb__i{flex:1 1 140px}.tfb select{max-width:none;width:100%}}
+
+/* переключатель компании в меню */
+.wsx{position:relative}
+.wsx .ws{position:relative;padding-right:36px}
+.wsx__c{position:absolute;right:12px;top:50%;transform:translateY(-50%);display:flex;transition:transform .15s}
+.wsx__c svg{width:16px;height:16px}
+.wsx.is-open .wsx__c{transform:translateY(-50%) rotate(180deg)}
+.wsx__m{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:60;display:flex;flex-direction:column;padding:6px;background:var(--surface);border-radius:var(--r-panel);box-shadow:var(--lift),0 12px 32px rgba(0,0,0,.25);max-height:60vh;overflow:auto}
+.wsx__m button{display:flex;align-items:center;gap:8px;padding:9px 10px;border:0;border-radius:var(--r-control);background:none;color:var(--ink);font:500 14px var(--font-ui);text-align:left;cursor:pointer}
+.wsx__m button:hover{background:var(--paper)}
+.wsx__m button.is-on{font-weight:700}
+.wsx__m button svg,.wsx__m button i{width:16px;height:16px;flex:none;color:var(--signal)}

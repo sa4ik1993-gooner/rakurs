@@ -470,10 +470,14 @@ function crumbs(p, f){ if (!W.co) return ""; const it = [], go = (t, attrs) => `
   const ft = (FTABS().find(x => x[0] === ftNorm(W.ftab)) || [])[1];
   it.push(go(p.name, `data-act="wsOpenP" data-id="${p.id}"`), go(L("Воронки","Воронки"), `data-act="wsTab" data-v="funnels"`), go(f.name, `data-act="wsOpenF" data-id="${f.id}"`)); if (ft) it.push(`<b>${esc(ft)}</b>`);
   return it.join('<i aria-hidden="true">›</i>'); }
+/* переключатель компании в меню: у агентства их несколько (Дмитрий, 24.11.2026) */
+const CS = {open:false};
+const coSwitch = () => `<div class="wsx${CS.open ? " is-open" : ""}"><button type="button" class="ws" data-act="coMenu" aria-expanded="${CS.open}" aria-haspopup="menu"><small>${L("Компанія","Компания")} · ${CL.cos.length}</small><b>${esc(W.co.name)}</b><i class="wsx__c">${ico("chevron")}</i></button>
+  ${CS.open ? `<div class="wsx__m" role="menu">${CL.cos.map(c => c.id === W.co.id ? `<button type="button" role="menuitem" class="is-on" data-act="coGo" data-id="${c.id}">${ico("done")}<span>${esc(W.co.name)}</span></button>` : `<button type="button" role="menuitem" data-act="coGo" data-id="${c.id}"><i></i><span>${esc(c.name)}</span></button>`).join("")}</div>` : ""}</div>`;
 function ownShell(){
   const p = P(), f = F(), nb = (act, v, t, on) => `<a role="button" tabindex="0" data-act="${act}" data-v="${v}" ${on?'aria-current="page"':""} title="${String(t).replace(/<[^>]+>.*$/, "").trim()}"><i class="nbi">${TBI[v] ? ico(TBI[v]) : ""}</i><span>${t}</span></a>`;
   $("rail").innerHTML = `<a class="logo" href="index.html">${brandLogo("rail")}</a>
-    ${W.user&&W.co?`<button type="button" class="ws" data-act="wsBackP"><small>${L("Компанія","Компания")}</small><b>${esc(W.co.name)}</b></button>
+    ${W.user&&W.co?(CLOUD&&CL.cos&&CL.cos.length>1?coSwitch():`<button type="button" class="ws" data-act="wsBackP"><small>${L("Компанія","Компания")}</small><b>${esc(W.co.name)}</b></button>`)+`
     <nav class="navg navg--co"><span>${L("Компанія","Компания")}</span>${nb("wsCtab","today",L("Сьогодні","Сегодня"),!p&&W.ctab==="today")}${nb("wsCtab","map",L("Карта","Карта"),!p&&W.ctab==="map")}${nb("wsCtab","ads",L("Реклама","Реклама"),!p&&W.ctab==="ads")}${nb("wsCtab","site",L("Перевірка сайту","Проверка сайта"),!p&&W.ctab==="site")}${nb("wsCtab","projects",L("Проєкти","Проекты")+(W.projs.length?` <b class="cnt">${W.projs.length}</b>`:""),!p&&W.ctab==="projects")}${(() => { const inMore = !p && ["kb","team","set"].includes(W.ctab), open = inMore || railMore(); return `<button type="button" class="navmore" data-act="railMore" aria-expanded="${open}">${open ? L("Менше","Меньше") : L("Ще: база знань, команда, налаштування","Еще: база знаний, команда, настройки")} <span class="chev${open ? " chev--up" : ""}">${ico("chevron")}</span></button>${open ? nb("wsCtab","kb",L("База знань","База знаний")+(W.co.kb.length?` <b class="cnt">${W.co.kb.length}</b>`:""),!p&&W.ctab==="kb")+nb("wsCtab","team",L("Команда","Команда"),!p&&W.ctab==="team")+nb("wsCtab","set",L("Налаштування компанії","Настройки компании"),!p&&W.ctab==="set") : ""}`; })()}</nav>`:""}
     ${W.user&&p?`<nav class="navg"><span>${esc(p.name)}</span>${pChain(p).map(c=>nb("wsTab",c[0],c[1]+(c[2]?"":" <em>·</em>"),!f&&W.tab===c[0])).join("")}</nav>`:""}
     ${W.user&&f?`<nav class="navg"><span>${esc(f.name)}</span>${FTABS().map(c=>nb("wsFtab",c[0],c[1],ftNorm(W.ftab)===c[0])).join("")}</nav>`:""}
@@ -548,6 +552,8 @@ Object.assign(ACT, {
   wsAddMember(){ const m = val("tm-mail").toLowerCase().replace(/^https?:\/\/t\.me\//, "@"); if (!need(/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(m) || (TG() && /^@[a-z0-9_]{4,32}$/.test(m)), TG()?L("Вкажи пошту або нік у Telegram, наприклад @username","Укажи почту или ник в Telegram, например @username"):L("Перевір адресу пошти","Проверь адрес почты"), "tm-mail")) return false; cloudAddMember(m, $("tm-role").value, $("tm-proj").value); return false; },
   wsDelMember(d){ cloudDelMember(d.id); return false; },
   wsSwitchCo(d){ cloudSwitch(d.id); return false; },
+  coMenu(){ CS.open = !CS.open; },
+  coGo(d){ CS.open = false; if (W.co && d.id === W.co.id) return ACT.wsBackP(); if (typeof W.tf === "object") W.tf = {f:"", c:""}; W.pf = ""; cloudSwitch(d.id); return false; },
   cloudRetry(){ CL.tries = 0; cloudQueue(); return false; },
   /* готовый текст приглашения: кто, куда, с какой ролью и как войти */
   wsInvite(d){ const m = CL.members.find(x => x.id === d.id); if (!m) return false; const R = ROLES(), tg = m.email.charAt(0) === "@", link = location.origin + location.pathname;
@@ -688,3 +694,4 @@ ACT.skip = function(){ const h = viewHead(); h.focus(); h.scrollIntoView({block:
 
 render();
 cloudBoot();
+document.addEventListener("click", e => { if (CS.open && !e.target.closest(".wsx")) { CS.open = false; render(); } }, true);
