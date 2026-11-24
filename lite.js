@@ -36,6 +36,7 @@ async function boot(){
   const s = (await sb.auth.getSession()).data.session; S.user = s && s.user;
   sb.auth.onAuthStateChange((_e, ss) => { const had = !!S.user; S.user = ss && ss.user; if (!had && S.user) loadProjects(); });
   if (!S.user) { S.step = "login"; return render(); }
+  try { localStorage.removeItem("lite_back"); } catch (e) {}
   loadProjects(); loadRate();
 }
 async function loadProjects(){ S.step = "load"; render(); const r = await call({action:"projects"});
@@ -158,6 +159,7 @@ document.addEventListener("click", e => { const b = e.target.closest("[data-act]
 document.addEventListener("change", e => { const t = e.target; if (t.dataset.ch === "pid") { S.pid = t.value; ls("lite_pid", S.pid); S.data = null; loadStats(); } });
 document.addEventListener("submit", async e => { const f = e.target; e.preventDefault();
   if (f.dataset.form === "login") { const mail = ($("mail").value || "").trim().toLowerCase(); if (!mail) return; S.mail = mail;
+    ls("lite_back", String(Date.now()));
     const r = await sb.auth.signInWithOtp({email:mail, options:{shouldCreateUser:false, emailRedirectTo:location.origin + location.pathname}});
     if (r.error) return toast(/signups not allowed|not found|not allowed for otp/i.test(r.error.message) ? L("Цієї пошти немає в HEYROW. Попроси таргетолога додати її.","Этой почты нет в HEYROW. Попроси таргетолога добавить её.") : /rate|seconds|limit/i.test(r.error.message) ? L("Забагато листів. Спробуй за годину.","Слишком много писем. Попробуй через час.") : L("Не вдалося надіслати лист: ","Не получилось отправить письмо: ") + r.error.message);
     S.step = "sent"; return render(); }
