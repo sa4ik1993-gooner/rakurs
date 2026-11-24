@@ -390,7 +390,7 @@ Object.assign(ACT, {
   bdChg(d){ const F0 = BD.form; if (!F0) return false; F0.chg = F0.chg || []; const i = F0.chg.indexOf(d.v); if (i < 0) F0.chg.push(d.v); else F0.chg.splice(i, 1); },
   /* вход с карты: «+ Кампания» у Meta Ads открывает запуск нужной воронки */
   bdFromMap(d){ const p = W.projs.find(x => x.id === d.p), f = p && p.funnels.find(x => x.id === d.f); if (!f) return false;
-    W.cur = p.id; W.fun = f.id; W.ftab = d.tab || "launch"; BD.open = f.id; BD.tgt = null; if (CLOUD && bdConn(p) && bdCanWrite(bdConn(p))) bdInit(f, p); else BD.open = null; save();
+    W.cur = p.id; W.fun = f.id; W.ftab = d.tab || "launch"; BD.open = f.id; BD.tgt = null; if (CLOUD && bdConn(p) && bdCanWrite(bdConn(p))) { bdInit(f, p); if (d.acc && bdAccs(bdConn(p)).some(a => String(a.id) === String(d.acc))) BD.form.account = String(d.acc); } else BD.open = null; save();
     setTimeout(() => { const el = document.getElementById("bd"); if (el) el.scrollIntoView({block:"start"}); }, 80); }
 });
 document.addEventListener("change", e => { if (e.target && e.target.id === "bd-goal") render(); });

@@ -189,6 +189,7 @@ function prAccNodes(p, f, c, ck){ if (!prHas(p, f, c)) return []; const x = prOf
   return list.map(a => { const k = ck + "/" + prAK(a.id), j = prMain(prJudge(a.s, a.v, cap, cur)) || {lv:"", t:a.s.spend ? "" : L("витрат немає","расхода нет")};
     const n = {k, lv:4, t:a.name, kpi:prFive(a.s, cur), m:j.t, v:j.lv}, kids = prCampNodes(p, f, c, k, a.id);
     if (kids.length) { n.kids = kids; n.can = true; n.fold = mapFolded(k, list.length > 1); n.ics = []; n.stub = [plural(a.n, L("кампанія","кампания"), L("кампанії","кампании"), L("кампаній","кампаний")), L("з витратами за період","с расходом за период")]; if (n.fold && MP.sel && MP.sel.indexOf(k + "/") === 0) MP.sel = k; }
+    if (c === "meta" && prCanAdd(p)) n.kids = (n.kids || []).concat([{add:"l", k:k + "/+", lv:5, t:L("Кампанія","Кампания"), acc:a.id}]);   /* новая кампания — в колонке кампаний, сразу в этот аккаунт */
     return n; }); }
 
 /* ---------- панель канала ---------- */
