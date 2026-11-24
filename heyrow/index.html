@@ -44,6 +44,11 @@ p{margin:0}
 .hero h1{font:800 var(--t-hero)/1.05 var(--font-display);margin:0 0 var(--s-5);letter-spacing:-.01em;text-wrap:balance}
 .hero .lead{color:var(--line);max-width:560px;margin-bottom:var(--s-6)}
 .hero .btns{display:flex;gap:var(--s-3);flex-wrap:wrap}
+.kick{font:800 28px/1.15 var(--font-display);color:var(--signal);margin:calc(-1 * var(--s-3)) 0 var(--s-5)}
+.hlist{list-style:none;margin:calc(-1 * var(--s-3)) 0 var(--s-5);padding:0;max-width:560px;border-top:var(--stroke) solid var(--ink-line)}
+.hlist li{display:flex;gap:var(--s-3);align-items:baseline;padding:var(--s-2) 0;border-bottom:var(--stroke) solid var(--ink-line);font-size:var(--t-body);color:var(--surface)}
+.hlist li::before{content:"";width:8px;height:8px;flex:none;background:var(--signal);transform:translateY(-2px)}
+.offer{max-width:560px;margin-bottom:var(--s-4);font-weight:600;color:var(--surface)}
 .hero img{width:100%;max-width:420px;height:auto;display:block;justify-self:center}
 
 /* экран «как это работает» */
@@ -150,6 +155,9 @@ footer .wrap{display:flex;justify-content:space-between;gap:var(--s-3);flex-wrap
   form{grid-template-columns:1fr}
   form .btn{justify-self:stretch}
   .hero .btns .btn{flex:1 1 100%}
+  .hero h1{font-size:36px;margin-bottom:var(--s-4)}
+  .kick{font-size:20px}
+  .hero img{max-width:120px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 </style>
@@ -165,7 +173,10 @@ footer .wrap{display:flex;justify-content:space-between;gap:var(--s-3);flex-wrap
   <div>
     <span class="hey">Hey!</span>
     <h1 data-t="h_h1"></h1>
+    <p class="kick pro-only" data-t="h_kick"></p>
     <p class="lead" data-t="h_sub"></p>
+    <ul class="hlist pro-only"><li data-t="h_l1"></li><li data-t="h_l2"></li><li data-t="h_l3"></li></ul>
+    <p class="offer pro-only" data-t="h_off"></p>
     <div class="btns"><a class="btn btn--main" href="#quiz" data-t="h_cta"></a><a class="btn btn--sec" href="#how" data-t="h_cta2"></a></div>
   </div>
   <img src="img/hey.webp" alt="" width="420" height="420" fetchpriority="high">
@@ -343,8 +354,13 @@ foot:"Система рекламы для онлайн-школ"
 const PRO = {
 uk:{
 T:{title:"HEYROW — інструмент таргетолога для онлайн-шкіл",
-h_h1:"Покажи клієнту оплати, а не ціну ліда",
-h_sub:"Я Хіро. Зводжу рекламу твоїх шкіл з оплатами за датами вебінарів, зранку даю рішення на день по всіх проєктах, а звіт клієнту йде в Telegram сам. Сперечаєшся з клієнтом цифрами продажів.",
+h_h1:"Оплати з кожного креативу у звіті клієнту",
+h_kick:"вже після наступного вебінару",
+h_sub:"Я Хіро. Клієнт питає «де продажі?», а в кабінеті тільки ціна ліда і CTR. Я зводжу рекламу онлайн-школи з оплатами за датами вебінарів і щоранку даю рішення по всіх твоїх проєктах.",
+h_l1:"Оплати й окупність по кожній кампанії та креативу",
+h_l2:"Стеля ціни ліда з економіки школи: видно, де лід уже дорогий",
+h_l3:"Звіт клієнту йде в Telegram за розкладом",
+h_off:"Демо-урок 20 хвилин: порахуємо стелю ціни ліда для однієї школи твого клієнта.",
 h_cta2:"Подивитися, що всередині",
 l_h2:"Твій ранок з HEYROW",l_c1:"Блок",
 l_text:"Замість обходу кабінетів по черзі один екран на всі школи. Ось що в ньому.",
@@ -360,7 +376,7 @@ q_say:"Відповідай як є. Покажу, що забрати з тво
 r_lbl1:"місце, де ти втрачаєш час або аргументи",r_lbl2:"місця, де ти втрачаєш час або аргументи",r_lbl5:"місць, де ти втрачаєш час або аргументи",r_h0:"У тебе вже все налагоджено",
 r_note:"Проєктів: {b}. Ось що я бачу:",r_note0:"Схоже, процес уже налагоджений. На демо-уроці покажу, як вести більше проєктів за той самий час.",
 s_bad:"Втрачаєш",
-r_form:"Запишись на демо-урок, 20 хвилин. Покажу рішення на сьогодні й оплати на одному з твоїх проєктів.",
+r_form:"Запишись на демо-урок, 20 хвилин. Порахуємо стелю ціни ліда для однієї школи твого клієнта і покажу, як виглядають оплати по креативах.",
 f_school:"Агенція або сайт (необов'язково)",
 p_h2:"Тариф під кількість проєктів",
 p_cmp:"Рекламний бюджет клієнти платять Meta напряму. Тариф підбираємо на демо-уроці.",
@@ -433,6 +449,7 @@ const isPro = params.get("for") === "pro";
 const t = isPro ? Object.assign({}, T[lang], PRO[lang].T) : T[lang];
 const qs = isPro ? PRO[lang].Q : Q[lang], zs = isPro ? PRO[lang].Z : Z[lang];
 if (isPro) document.querySelector('meta[name="description"]').content = t.h_sub;
+else document.querySelectorAll(".pro-only").forEach(el => el.remove());
 document.documentElement.lang = lang; document.title = t.title;
 document.querySelectorAll("[data-t]").forEach(el => { const v = t[el.dataset.t]; if (v != null) el.textContent = v; });
 
