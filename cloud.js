@@ -65,7 +65,8 @@ async function cloudEnter(user){
   meLoad(md.profile);
   await sb.rpc("claim_membership");
   CL.tg = null; if (TG()) { const t = await sb.from("tg_accounts").select("username,name").maybeSingle(); if (!t.error && t.data) { CL.tg = t.data; if (viaTg) W.user.name = t.data.username || t.data.name || W.user.name; } }
-  const r = await sb.from("companies").select("*").order("created_at"); if (r.error) throw r.error;
+  /* кабинеты HEYROW Beauty (kind = beauty) — отдельный продукт, в основном кабинете их нет */
+  const r = await sb.from("companies").select("*").or("kind.is.null,kind.neq.beauty").order("created_at"); if (r.error) throw r.error;
   CL.cos = r.data || [];
   let want = null; try { want = localStorage.getItem("heyrow_co"); } catch (e) {}
   const co = CL.cos.find(c => c.id === want) || CL.cos[0];

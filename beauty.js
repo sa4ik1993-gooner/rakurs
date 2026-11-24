@@ -1,7 +1,8 @@
 /* HEYROW Beauty — отдельный сервис для мастеров услуг (косметологи и т.п.), у которых реклама ведёт в Instagram Direct.
    Три блока: сводка (Хиро), журнал клиентов «Записалась / Купила / Ні», реклама по покупателям.
    Данные: функция lite (статистика Meta только читается, журнал — таблица lite_sales). В Meta ничего не уходит.
-   Вход — ссылкой из письма, та же учётная запись, что в основном кабинете. Проект и подключение Meta создаёт таргетолог. */
+   Отдельный продукт (Дмитрий, 24.11.2026): своя сессия входа (storageKey heyrow-beauty-auth), своя регистрация, свои кабинеты (companies.kind = beauty) —
+   проекты основного кабинета сюда не попадают и наоборот. Своё подключение рекламного аккаунта (функция meta: check / save). Боковая панель: Сьогодні, Клієнти, Реклама, Підключення. */
 const RK = window.RK || {};
 let sb = null, lang = (() => { try { return localStorage.getItem("lite_lang") || "uk"; } catch (e) { return "uk"; } })();
 const L = (uk, ru) => lang === "ru" ? ru : uk;
@@ -9,7 +10,7 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const ls = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } };
 const today = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-const S = {user:null, step:"boot", mail:"", projects:[], pid:ls("lite_pid") || "", days:+(ls("lite_days") || 7), data:null, busy:false, err:"", form:{status:"bought", cur:ls("lite_cur") || "UAH", d:today()}, ask:null, rate:{USD:0, EUR:0}, tab:ls("lite_tab") || "list"};
+const S = {user:null, step:"boot", mail:"", projects:[], pid:ls("lite_pid") || "", days:+(ls("lite_days") || 7), data:null, busy:false, err:"", form:{status:"bought", cur:ls("lite_cur") || "UAH", d:today()}, ask:null, rate:{USD:0, EUR:0}, tab:ls("lite_tab") || "list", page:ls("beauty_page") || "today", ob:{name:""}, mt:{token:"", seen:null, acc:"", pg:"", busy:false, err:""}};
 const SYM = {UAH:"₴", USD:"$", EUR:"€"};
 /* деньги: пробел между тысячами, запятая в дробях, знак после числа */
 const money = (v, cur, frac) => { const n = +v || 0, f = frac == null ? (Math.abs(n) < 100 ? 2 : 0) : frac;
@@ -32,17 +33,17 @@ function toast(t){ const el = $("toast"); el.textContent = t; el.hidden = false;
 /* ---------- данные ---------- */
 async function boot(){
   if (!RK.url || !RK.key || !window.supabase) { S.step = "noserver"; return render(); }
-  sb = window.supabase.createClient(RK.url, RK.key);
+  sb = window.supabase.createClient(RK.url, RK.key, {auth:{storageKey:"heyrow-beauty-auth", persistSession:true, detectSessionInUrl:true}});
   const s = (await sb.auth.getSession()).data.session; S.user = s && s.user;
   sb.auth.onAuthStateChange((_e, ss) => { const had = !!S.user; S.user = ss && ss.user; if (!had && S.user) loadProjects(); });
   if (!S.user) { S.step = "login"; return render(); }
   try { localStorage.removeItem("beauty_back"); } catch (e) {}
   loadProjects(); loadRate();
 }
-async function loadProjects(){ S.step = "load"; render(); const r = await call({action:"projects"});
+async function loadProjects(){ S.step = "load"; render(); const r = await call({action:"projects", product:"beauty"});
   if (!r.ok) { S.step = "err"; S.err = errText(r); return render(); }
   S.projects = r.projects; if (!S.projects.find(p => p.id === S.pid)) S.pid = (S.projects.find(p => p.meta) || S.projects[0] || {}).id || "";
-  if (!S.pid) { S.step = "noproj"; return render(); }
+  if (!S.pid) { S.step = "onboard"; return render(); }
   ls("lite_pid", S.pid); S.step = "app"; loadStats(); }
 async function loadStats(){ S.busy = true; render(); const r = await call({action:"stats", project_id:S.pid, days:S.days}); S.busy = false;
   if (!r.ok) { S.err = errText(r); S.data = null; } else { S.err = ""; S.data = r; }
@@ -61,7 +62,7 @@ function vLogin(){ return `<section class="hp lite-hero"><div class="hp__t"><spa
   <p>${L("Скільки людей написали в Direct, хто купив і скільки грошей повернула реклама.","Сколько людей написали в Direct, кто купил и сколько денег вернула реклама.")}</p>
   ${S.step === "sent" ? `<p><b>${L("Лист надіслано на ","Письмо отправлено на ")}${esc(S.mail)}.</b> ${L("Відкрий посилання з листа на цьому пристрої.","Открой ссылку из письма на этом устройстве.")}</p><div class="row"><button type="button" class="btn btn--glass" data-act="again">${L("Інша пошта","Другая почта")}</button></div>`
   : `<form class="lite-login" data-form="login"><label class="sr" for="mail">${L("Пошта","Почта")}</label><input id="mail" type="email" required autocomplete="email" placeholder="${L("твоя пошта","твоя почта")}" value="${esc(S.mail)}"><button class="btn btn--main" type="submit">${L("Отримати посилання для входу","Получить ссылку для входа")}</button></form>
-  <p class="lite-fine">${L("Вхід працює для пошти, яку додав твій таргетолог.","Вход работает для почты, которую добавил твой таргетолог.")}</p>`}</div>
+  <p class="lite-fine">${L("Нема акаунта? Цей самий лист створить його. Окремий вхід — не той, що в основному кабінеті HEYROW.","Нет аккаунта? Это же письмо создаст его. Отдельный вход — не тот, что в основном кабинете HEYROW.")}</p>`}</div>
   <img class="hp__h" src="ui/hiro3d/hey.webp" alt="" width="210" height="250"></section>`; }
 
 function vState(pose, title, text, btn){ return `<section class="panel lite-state"><img src="ui/hiro3d/${pose}.webp" alt="" width="160" height="190"><h2>${title}</h2><p class="sub">${text}</p>${btn || ""}</section>`; }
@@ -137,28 +138,75 @@ function vBar(){ const p = S.projects.find(x => x.id === S.pid);
     <span class="seg seg--xs" role="group" aria-label="Мова"><button type="button" data-act="lang" data-v="uk" aria-pressed="${lang === "uk"}">UA</button><button type="button" data-act="lang" data-v="ru" aria-pressed="${lang === "ru"}">RU</button></span>
     ${S.user ? `<button type="button" class="btn btn--sm btn--text" data-act="out">${L("Вийти","Выйти")}</button>` : ""}</span></header>`; }
 
+/* ---------- регистрация кабинета ---------- */
+function vOnboard(){ return `<section class="hp lite-hero"><div class="hp__t"><span class="heytag">Hey!</span><h2>${L("Створимо твій кабінет","Создадим твой кабинет")}</h2>
+  <p>${L("Назви його так, як називається твій салон або сторінка в Instagram. Потім підключимо рекламний акаунт.","Назови его так, как называется твой салон или страница в Instagram. Потом подключим рекламный аккаунт.")}</p>
+  <form class="lite-login" data-form="ob"><label class="sr" for="ob-name">${L("Назва","Название")}</label><input id="ob-name" required maxlength="80" placeholder="${L("напр. Студія краси Олени","напр. Студия красоты Елены")}" value="${esc(S.ob.name)}"><button class="btn btn--main" type="submit"${S.ob.busy ? " disabled" : ""}>${L("Створити кабінет","Создать кабинет")}</button></form>
+  </div><img class="hp__h" src="ui/hiro3d/hey.webp" alt="" width="210" height="250"></section>`; }
+/* ---------- подключение рекламного аккаунта Meta: ключ → проверка → акаунт і сторінка → зберегти ---------- */
+const MTSTEPS = () => [L("У налаштуваннях компанії Meta: Користувачі → Системні користувачі → Додати, роль «Адміністратор».","В настройках компании Meta: Пользователи → Системные пользователи → Добавить, роль «Администратор»."),
+  L("«Призначити об’єкти»: видай йому рекламний акаунт і сторінку Facebook, прив’язану до Instagram.","«Назначить объекты»: выдай ему рекламный аккаунт и страницу Facebook, привязанную к Instagram."),
+  L("«Згенерувати токен»: термін «Ніколи», права ads_read, pages_show_list, pages_read_engagement, а для переписок — instagram_basic, instagram_manage_messages, pages_manage_metadata.","«Сгенерировать токен»: срок «Никогда», права ads_read, pages_show_list, pages_read_engagement, а для переписок — instagram_basic, instagram_manage_messages, pages_manage_metadata."),
+  L("Скопіюй ключ і встав нижче. Meta показує його один раз.","Скопируй ключ и вставь ниже. Meta показывает его один раз.")];
+function vMeta(){ const p = S.projects.find(x => x.id === S.pid) || {}, m = S.mt, dis = m.busy ? " disabled" : "";
+  if (p.meta) return `<section class="panel"><div class="row sp"><span class="tag">${L("Рекламний акаунт Meta","Рекламный аккаунт Meta")}</span><span class="st st--on">${L("підключено","подключено")}</span></div>
+    <p><b>${esc(p.account || "")}</b>${p.currency ? ` <span class="sub">· ${esc(p.currency)}</span>` : ""}</p>
+    ${p.role === "owner" ? `<div class="row">${S.mtAsk === "off" ? `<button type="button" class="btn btn--sm btn--danger" data-act="mtOff">${L("Так, відключити","Да, отключить")}</button><button type="button" class="btn btn--sm btn--text" data-act="mtNo">${L("Скасувати","Отмена")}</button>` : `<button type="button" class="btn btn--sm btn--text" data-act="mtOff">${L("Відключити акаунт","Отключить аккаунт")}</button>`}</div>` : ""}</section>`;
+  const accs = (m.seen && m.seen.accounts) || [], pages = (m.seen && m.seen.pages) || [];
+  return `<section class="panel"><div class="row sp"><span class="tag">${L("Підключи рекламний акаунт Meta","Подключи рекламный аккаунт Meta")}</span><span class="st st--pause">${L("не підключено","не подключено")}</span></div>
+    <p class="sub">${L("Без нього я не бачу витрат на рекламу й не порахую, скільки коштує клієнт. Ключ лише читає статистику — змінювати рекламу не може.","Без него я не вижу расходов на рекламу и не посчитаю, сколько стоит клиент. Ключ только читает статистику — менять рекламу не может.")}</p>
+    <ol class="bty-steps">${MTSTEPS().map(t => `<li>${t}</li>`).join("")}</ol>
+    <div class="row"><a class="btn btn--sm" href="https://business.facebook.com/settings/system-users" target="_blank" rel="noopener">${L("Відкрити налаштування компанії","Открыть настройки компании")}</a></div>
+    ${!m.seen ? `<form class="bty-form" data-form="mt"><label for="mt-token">${L("Ключ доступу","Ключ доступа")}</label><input id="mt-token" type="password" autocomplete="off" required placeholder="EAA…" value="${esc(m.token)}"><button class="btn btn--main" type="submit"${dis}>${m.busy ? L("Перевіряю…","Проверяю…") : L("Перевірити ключ","Проверить ключ")}</button></form>`
+    : `<div class="bty-form"><label for="mt-acc">${L("Рекламний акаунт","Рекламный аккаунт")}</label><select id="mt-acc" data-ch="mtacc">${accs.map(a => `<option value="${esc(a.id)}"${a.id === m.acc ? " selected" : ""}>${esc(a.name || a.id)}${a.currency ? " · " + esc(a.currency) : ""}</option>`).join("")}</select>
+      <label for="mt-pg">${L("Сторінка Facebook (з Instagram)","Страница Facebook (с Instagram)")}</label><select id="mt-pg" data-ch="mtpg"><option value="">${L("— без сторінки —","— без страницы —")}</option>${pages.map(g => `<option value="${esc(g.id)}"${g.id === m.pg ? " selected" : ""}>${esc(g.name || g.id)}</option>`).join("")}</select>
+      <div class="row"><button type="button" class="btn btn--main" data-act="mtSave"${dis || (accs.length ? "" : " disabled")}>${L("Підключити","Подключить")}</button><button type="button" class="btn btn--text" data-act="mtReset">${L("Інший ключ","Другой ключ")}</button></div></div>`}
+    ${m.err ? `<p class="mterr">${esc(m.err)}</p>` : ""}</section>`; }
+const BPAGES = () => [["today", L("Сьогодні","Сегодня"), "today"], ["clients", L("Клієнти","Клиенты"), "user"], ["ads", L("Реклама","Реклама"), "campaigns"], ["connect", L("Підключення","Подключение"), "connections"]];
+function vRail(){ const p = S.projects.find(x => x.id === S.pid), app = S.step === "app";
+  return `<aside class="rail bty-rail"><a class="logo" href="beauty.html"><img src="ui/logo/logo-on-dark.svg" alt="HEYROW" width="132" height="32"></a><span class="bty-tag">Beauty</span>
+    ${app && S.projects.length > 1 ? `<select class="bty-sel" data-ch="pid" aria-label="${L("Кабінет","Кабинет")}">${S.projects.map(x => `<option value="${x.id}"${x.id === S.pid ? " selected" : ""}>${esc(x.name)}</option>`).join("")}</select>` : p ? `<b class="bty-name">${esc(p.name)}</b>` : ""}
+    ${app ? `<nav class="navg">${BPAGES().map(n => `<a role="button" tabindex="0" data-act="page" data-v="${n[0]}"${S.page === n[0] ? ' aria-current="page"' : ""}><i class="nbi">${typeof ico === "function" ? ico(n[2]) : ""}</i><span>${n[1]}</span>${n[0] === "connect" && p && !p.meta ? "<b>1</b>" : ""}</a>`).join("")}</nav>` : ""}
+    <div class="rail__foot"><span class="seg seg--xs" role="group" aria-label="Мова"><button type="button" data-act="lang" data-v="uk" aria-pressed="${lang === "uk"}">UA</button><button type="button" data-act="lang" data-v="ru" aria-pressed="${lang === "ru"}">RU</button></span>
+      ${S.user ? `<small class="bty-mail">${esc(S.user.email || "")}</small><button type="button" class="btn btn--glass btn--sm" data-act="out">${L("Вийти","Выйти")}</button>` : ""}</div></aside>`; }
+function vHead(title){ return `<header class="lite-bar"><h1 class="bty-h">${title}</h1><span class="lite-bar__r">${S.page !== "connect" ? `<span class="seg seg--xs" role="group" aria-label="${L("Період","Период")}">${[[7, L("7 днів","7 дней")], [30, L("30 днів","30 дней")]].map(x => `<button type="button" data-act="days" data-v="${x[0]}" aria-pressed="${S.days === x[0]}">${x[1]}</button>`).join("")}</span>` : ""}</span></header>`; }
+const noMeta = () => `<section class="panel"><div class="row sp"><b>${L("Рекламний акаунт не підключено","Рекламный аккаунт не подключён")}</b><button type="button" class="btn btn--main btn--sm" data-act="page" data-v="connect">${L("Підключити","Подключить")}</button></div><p class="sub">${L("Журнал клієнтів уже працює. Витрати й ціну клієнта покажу, щойно підключиш акаунт.","Журнал клиентов уже работает. Расходы и цену клиента покажу, как только подключишь аккаунт.")}</p></section>`;
 function vSkel(){ return `<section class="hp"><div class="hp__t"><span class="heytag">Hey!</span><h2>${L("Рахую рекламу й клієнтів…","Считаю рекламу и клиентов…")}</h2><p>${L("Беру витрати й переписки з Meta.","Беру расходы и переписки из Meta.")}</p></div><img class="hp__h" src="ui/hiro3d/work.webp" alt="" width="210" height="250"></section>`; }
 
-function render(){ const v = $("view"); let h = vBar();
+function render(){ const v = $("view"), solo = ["boot", "noserver", "login", "sent"].includes(S.step); let h = "";
   if (S.step === "boot" || S.step === "load") h += vSkel();
   else if (S.step === "noserver") h += vState("oops", L("Сервер не налаштовано","Сервер не настроен"), L("Ця сторінка працює лише з підключеним сервером HEYROW.","Эта страница работает только с подключённым сервером HEYROW."));
   else if (S.step === "login" || S.step === "sent") h += vLogin();
   else if (S.step === "err") h += vState("oops", L("Не вдалося відкрити дані","Не получилось открыть данные"), esc(S.err), `<button type="button" class="btn btn--main" data-act="reload">${L("Спробувати ще раз","Попробовать ещё раз")}</button>`);
-  else if (S.step === "noproj") h += vState("empty", L("Тут поки немає проєкту","Здесь пока нет проекта"), L("Попроси таргетолога додати твою пошту до проєкту в HEYROW, тоді тут з’являться реклама й клієнти.","Попроси таргетолога добавить твою почту в проект HEYROW, тогда здесь появятся реклама и клиенты."));
-  else if (!S.data) h += S.busy ? vSkel() : vState("oops", L("Не вдалося взяти статистику","Не получилось взять статистику"), esc(S.err), `<button type="button" class="btn btn--main" data-act="reload">${L("Спробувати ще раз","Попробовать ещё раз")}</button>`);
-  else { const c = calc();
-    h += vHero(c) + vPath(c) + `<div class="lite-cols">${vAdd(c)}${vList(c)}</div>` + vAds(c) + vIg();
+  else if (S.step === "onboard") h += vOnboard();
+  else if (S.page === "connect") h += vHead(L("Підключення","Подключение")) + vMeta() + (S.data ? vIg() : "");
+  else if (!S.data) h += vHead(BPAGES().find(x => x[0] === S.page)[1]) + (S.busy ? vSkel() : vState("oops", L("Не вдалося взяти статистику","Не получилось взять статистику"), esc(S.err), `<button type="button" class="btn btn--main" data-act="reload">${L("Спробувати ще раз","Попробовать ещё раз")}</button>`));
+  else { const c = calc(), p = S.projects.find(x => x.id === S.pid) || {}, nm = !p.meta ? noMeta() : "";
+    h += vHead(BPAGES().find(x => x[0] === S.page)[1]);
+    if (S.page === "today") h += nm + vHero(c) + vPath(c);
+    else if (S.page === "clients") h += `<div class="lite-cols">${vAdd(c)}${vList(c)}</div>`;
+    else h += nm || vAds(c);
     if (S.busy) h += `<p class="sub lite-busy">${L("Оновлюю…","Обновляю…")}</p>`; }
-  v.innerHTML = h; }
+  v.innerHTML = solo ? `<main class="lite">${h}</main>` : `<div class="bty">${vRail()}<main class="lite">${h}</main></div>`; }
 
 /* ---------- действия ---------- */
 const ACT = {
+  page(d){ S.page = d.v; ls("beauty_page", d.v); render(); window.scrollTo(0, 0); },
+  mtReset(){ S.mt = {token:"", seen:null, acc:"", pg:"", busy:false, err:""}; render(); },
+  async mtSave(){ const m = S.mt; if (!m.acc) return; m.busy = true; m.err = ""; render();
+    let r = {}; try { r = (await sb.functions.invoke("meta", {body:{action:"save", project_id:S.pid, token:m.token, account_id:m.acc, account_ids:[m.acc], page_id:m.pg || "", page_ids:m.pg ? [m.pg] : [], pixel_id:""}})).data || {}; } catch (e) { r = {}; }
+    m.busy = false; if (!r.ok) { m.err = L("Не вдалося зберегти: ","Не получилось сохранить: ") + (r.detail || r.error || L("сервер не відповів","сервер не ответил")); return render(); }
+    S.mt = {token:"", seen:null, acc:"", pg:"", busy:false, err:""}; toast(L("Рекламний акаунт підключено","Рекламный аккаунт подключён")); S.page = "today"; ls("beauty_page", "today"); loadProjects(); },
+  async mtOff(){ if (S.mtAsk !== "off") { S.mtAsk = "off"; return render(); } S.mtAsk = null;
+    let r = {}; try { r = (await sb.functions.invoke("meta", {body:{action:"disconnect", project_id:S.pid}})).data || {}; } catch (e) { r = {}; }
+    if (!r.ok) return toast(errText(r)); toast(L("Акаунт відключено","Аккаунт отключён")); loadProjects(); },
+  mtNo(){ S.mtAsk = null; render(); },
   async again(){ S.step = "login"; render(); },
   lang(d){ lang = d.v; ls("lite_lang", lang); document.documentElement.lang = lang === "ru" ? "ru" : "uk"; render(); },
   days(d){ S.days = +d.v; ls("lite_days", String(S.days)); loadStats(); },
   reload(){ S.pid ? loadStats() : loadProjects(); },
   async out(){ await sb.auth.signOut(); S.user = null; S.data = null; S.step = "login"; render(); },
-  focusAdd(){ const el = $("f-who"); if (el) { el.scrollIntoView({behavior:"smooth", block:"center"}); el.focus({preventScroll:true}); } },
+  focusAdd(){ if (S.page !== "clients") { S.page = "clients"; ls("beauty_page", "clients"); render(); } const el = $("f-who"); if (el) { el.scrollIntoView({behavior:"smooth", block:"center"}); el.focus({preventScroll:true}); } },
   fStatus(d){ keepForm(); S.form.status = d.v; render(); },
   fCur(d){ keepForm(); S.form.cur = d.v; ls("lite_cur", d.v); render(); },
   ask(d){ S.ask = +d.id; render(); },
@@ -182,14 +230,27 @@ const ACT = {
   async del(d){ const r = await call({action:"del", project_id:S.pid, id:+d.id}); S.ask = null; if (!r.ok) return toast(errText(r)); S.data.sales = S.data.sales.filter(s => s.id !== +d.id); render(); toast(L("Запис прибрано","Запись убрана")); },
 };
 function keepForm(){ const f = S.form, g = id => $(id) && $(id).value; if ($("f-who")) { f.who = g("f-who"); f.amount = g("f-amount") || ""; f.d = g("f-d") || today(); f.ad = g("f-ad") || ""; } }
+document.addEventListener("keydown", e => { const b = e.target.closest && e.target.closest("[role=button][data-act]"); if (b && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); const f = ACT[b.dataset.act]; if (f) f(b.dataset); } });
 document.addEventListener("click", e => { const b = e.target.closest("[data-act]"); if (!b) return; const f = ACT[b.dataset.act]; if (f) { e.preventDefault(); f(b.dataset); } });
-document.addEventListener("change", e => { const t = e.target; if (t.dataset.ch === "pid") { S.pid = t.value; ls("lite_pid", S.pid); S.data = null; loadStats(); } });
+document.addEventListener("change", e => { const t = e.target; if (t.dataset.ch === "pid") { S.pid = t.value; ls("lite_pid", S.pid); S.data = null; loadStats(); }
+  if (t.dataset.ch === "mtacc") S.mt.acc = t.value; if (t.dataset.ch === "mtpg") S.mt.pg = t.value; });
 document.addEventListener("submit", async e => { const f = e.target; e.preventDefault();
   if (f.dataset.form === "login") { const mail = ($("mail").value || "").trim().toLowerCase(); if (!mail) return; S.mail = mail;
     ls("beauty_back", String(Date.now()));
-    const r = await sb.auth.signInWithOtp({email:mail, options:{shouldCreateUser:false, emailRedirectTo:location.origin + location.pathname}});
+    const r = await sb.auth.signInWithOtp({email:mail, options:{shouldCreateUser:true, emailRedirectTo:location.origin + location.pathname}});
     if (r.error) return toast(/signups not allowed|not found|not allowed for otp/i.test(r.error.message) ? L("Цієї пошти немає в HEYROW. Попроси таргетолога додати її.","Этой почты нет в HEYROW. Попроси таргетолога добавить её.") : /rate|seconds|limit/i.test(r.error.message) ? L("Забагато листів. Спробуй за годину.","Слишком много писем. Попробуй через час.") : L("Не вдалося надіслати лист: ","Не получилось отправить письмо: ") + r.error.message);
     S.step = "sent"; return render(); }
+  if (f.dataset.form === "ob") { const name = ($("ob-name").value || "").trim(); if (!name) return; S.ob = {name, busy:true}; render();
+    const co = await sb.from("companies").insert({name, kind:"beauty"}).select().single();
+    if (co.error) { S.ob.busy = false; render(); return toast(L("Не вдалося створити кабінет: ","Не получилось создать кабинет: ") + co.error.message); }
+    const pr = await sb.from("projects").insert({company_id:co.data.id, name, data:{beauty:true}}).select().single();
+    if (pr.error) { S.ob.busy = false; render(); return toast(L("Кабінет створено, але проєкт — ні: ","Кабинет создан, но проект — нет: ") + pr.error.message); }
+    S.pid = pr.data.id; ls("lite_pid", S.pid); S.page = "connect"; ls("beauty_page", "connect"); S.ob = {name:""}; toast(L("Кабінет створено. Тепер підключи рекламний акаунт.","Кабинет создан. Теперь подключи рекламный аккаунт.")); return loadProjects(); }
+  if (f.dataset.form === "mt") { const m = S.mt; m.token = ($("mt-token").value || "").trim(); if (!m.token) return; m.busy = true; m.err = ""; render();
+    let r = {}; try { r = (await sb.functions.invoke("meta", {body:{action:"check", token:m.token}})).data || {}; } catch (e) { r = {}; }
+    m.busy = false; if (!r.ok || !r.seen) { m.err = L("Ключ не підійшов: ","Ключ не подошёл: ") + (r.detail || r.error || L("сервер не відповів","сервер не ответил")); return render(); }
+    m.seen = r.seen; m.acc = (r.seen.accounts[0] || {}).id || ""; m.pg = (r.seen.pages[0] || {}).id || "";
+    if (!r.seen.accounts.length) m.err = L("Ключ не бачить жодного рекламного акаунта. Видай акаунт системному користувачу («Призначити об’єкти»).","Ключ не видит ни одного рекламного аккаунта. Выдай аккаунт системному пользователю («Назначить объекты»)."); return render(); }
   if (f.dataset.form === "add") { keepForm(); const x = S.form;
     if (x.status === "bought" && !(+String(x.amount).replace(",", ".") > 0)) { toast(L("Впиши суму покупки.","Впиши сумму покупки.")); $("f-amount") && $("f-amount").focus(); return; }
     const row = {who:x.who || "", status:x.status, amount:x.status === "no" ? 0 : String(x.amount || "0").replace(/\s/g, ""), cur:x.cur, d:x.d || today(), ad_id:x.ad || ""};

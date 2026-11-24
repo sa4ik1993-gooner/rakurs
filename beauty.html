@@ -5,8 +5,8 @@
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>HEYROW Beauty</title>
-<script src="brand.js?v=202611241342"></script>
-<link rel="stylesheet" href="app.css?v=202611241342">
+<script src="brand.js?v=202611241350"></script>
+<link rel="stylesheet" href="app.css?v=202611241350">
 <style>
 /* HEYROW Beauty: только раскладка; цвета, шрифты, отступы — токены из ui/tokens.css через app.css */
 body{background:var(--grad-page,var(--paper))}
@@ -56,13 +56,34 @@ body{background:var(--grad-page,var(--paper))}
 .lite-busy{text-align:center}
 @media (max-width:900px){.lite-cols{grid-template-columns:1fr}.hp__h{display:none}}
 @media (max-width:560px){.lite-path{flex-direction:column}.lite-path>i{transform:rotate(90deg)}.lite-row{grid-template-columns:minmax(0,1fr) auto;row-gap:var(--s-2)}.lite-row__m{grid-area:1/1}.lite-row__a{grid-area:1/2}.lite-row>.seg{grid-area:2/1;justify-self:start}.lite-row>:last-child{grid-area:2/2;justify-self:end}}
+/* отдельный кабинет: боковая панель как в основном HEYROW, упрощённая */
+.bty{display:grid;grid-template-columns:var(--rail) minmax(0,1fr);min-height:100vh}
+.bty>.lite{max-width:1120px;width:100%;margin:0 auto}
+.bty-rail{display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.bty-tag{align-self:flex-start;margin:calc(-1 * var(--s-3)) 0 0 var(--s-2);font:800 12px/1 var(--font-display);color:var(--signal);letter-spacing:0}
+.bty-name{padding:0 var(--s-2);font:600 var(--t-body)/1.3 var(--font-ui);color:var(--on-dark)}
+.bty-sel{margin:0 var(--s-2);min-height:var(--control-sm);border:1px solid var(--glass-line);border-radius:var(--r-control);background:var(--glass);color:var(--on-dark);padding:0 var(--s-2)}
+.bty-sel option{color:var(--ink)}
+.bty-mail{color:var(--on-dark-dim);font-size:var(--t-small);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bty-rail .rail__foot{gap:var(--s-2);margin-top:auto}
+.bty-rail .seg{background:var(--glass)}.bty-rail .seg button{color:var(--on-dark-muted)}.bty-rail .seg button[aria-pressed="true"]{background:var(--on-dark);color:var(--ink)}
+.bty-h{font:800 var(--t-title)/1.15 var(--font-display);margin:0}
+.bty-steps{margin:0;padding-left:var(--s-5);display:flex;flex-direction:column;gap:var(--s-2);max-width:680px;line-height:1.45}
+.bty-form{display:flex;flex-direction:column;gap:var(--s-2);max-width:520px}
+.bty-form label{font-size:var(--t-small);color:var(--muted)}
+.bty-form input,.bty-form select{min-height:var(--field);border:1px solid var(--line-strong);border-radius:var(--r-control);padding:0 var(--s-3);background:var(--surface);color:var(--ink)}
+@media (max-width:900px){.bty{grid-template-columns:1fr}
+  .bty-rail{position:static;height:auto;overflow:visible;flex-direction:row;flex-wrap:wrap;align-items:center;gap:var(--s-2) var(--s-3);padding:var(--s-3) max(16px,env(safe-area-inset-left,0px))}
+  .bty-rail .logo img{width:96px}.bty-tag{margin:0}
+  .bty-rail .navg{flex-direction:row;flex-wrap:wrap;width:100%;gap:var(--s-1)}.bty-rail .navg a{min-height:36px}
+  .bty-rail .rail__foot{margin:0 0 0 auto;flex-direction:row;align-items:center}.bty-mail{display:none}}
 </style>
 </head>
 <body>
-<main class="lite" id="view"></main>
+<div id="view"></div>
 <div class="toast" id="toast" hidden role="status"></div>
-<script src="config.js?v=202611241342"></script>
+<script src="config.js?v=202611241350"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-<script src="beauty.js?v=202611241342"></script>
+<script src="beauty.js?v=202611241350"></script>
 </body>
 </html>
