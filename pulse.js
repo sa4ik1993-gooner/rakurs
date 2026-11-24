@@ -241,7 +241,7 @@ function tdCampHiro(p, f, r, js){ const j = prMain(js); if (!j || (j.lv !== "cri
   if (rec) return `<ul class="feed pllog">${plRow(p, rec, st.admin ? "" : " disabled")}</ul>`;
   const h = hiroPlan({p, f, o:r}); tdFeed([{p, f, o:r}]);
   return `<ul class="prv"><li class="prv--${j.lv}"><div class="hpro">${hava("idea", 24)}<span><b>${esc(h.title)}.</b> ${esc(h.why)}</span></div><div class="row"><span class="sub">${esc(tdWhyOff(p))}</span></div></li></ul>`; }
-const TD_KEY = "rakurs_today";
+const TD_KEY = "heyrow_today";
 /* ---------- решение Хиро по проблемной кампании ----------
    Хиро сам выбирает одно действие: выключить кампанию без лидов, выключить худшее объявление или оставить до завтра.
    Действие уходит в ленту автопилота (функция pilot, action propose); в Meta — только после «Да», ночью. */

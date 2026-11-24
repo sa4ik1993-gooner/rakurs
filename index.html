@@ -5,10 +5,10 @@
 <meta charset="utf-8">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Rakurs</title>
+<title>HEYROW</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="description" content="Rakurs — ІІ-таргетолог для онлайн-шкіл: голосове керування рекламою, досмотри по секундах, гіпотези з продажів, рахунок по оплатах.">
-<script src="brand.js?v=202611241023"></script>
+<meta name="description" content="HEYROW — ІІ-таргетолог для онлайн-шкіл: голосове керування рекламою, досмотри по секундах, гіпотези з продажів, рахунок по оплатах.">
+<script src="brand.js?v=202611241031"></script>
 <style>
 /* Layout: the page is an editing suite — a tick ruler under the header, a scrubbable
    retention curve inside a viewfinder frame as the hero, square corners everywhere. */
@@ -504,7 +504,7 @@ foot:"{brand} · ранний доступ · 2026"
 }};
 
 let lang = "uk";
-try { const s = localStorage.getItem("rakurs_lang"); if (s === "ru" || s === "uk") lang = s; } catch (e) {}
+try { const s = localStorage.getItem("heyrow_lang"); if (s === "ru" || s === "uk") lang = s; } catch (e) {}
 try { const q = new URLSearchParams(location.search).get("lang"); if (q === "ru" || q === "uk") lang = q; } catch (e) {}
 const t = k => ((I18N[lang] && I18N[lang][k]) || k).replace(/\{brand\}/g, BRAND.name);
 
@@ -516,7 +516,7 @@ function applyLang(){
   drawRet();
 }
 document.querySelectorAll(".lang button").forEach(b => b.addEventListener("click", () => {
-  lang = b.dataset.lang; try { localStorage.setItem("rakurs_lang", lang); } catch (e) {} applyLang();
+  lang = b.dataset.lang; try { localStorage.setItem("heyrow_lang", lang); } catch (e) {} applyLang();
 }));
 
 /* ---- график досмотров (пример) ---- */

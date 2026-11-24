@@ -1,3 +1,5 @@
+/* переезд названия: ключи браузера rakurs_* → heyrow_* (один раз; старые не трогаем) */
+(function(){ try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.indexOf("rakurs_") === 0) { const n = "heyrow_" + k.slice(7); if (localStorage.getItem(n) === null) localStorage.setItem(n, localStorage.getItem(k)); } } } catch (e) {} })();
 /* Оформление платформы — в одном месте. Чтобы сменить айдентику, правится только этот файл:
    название, логотип, значок вкладки, шрифты и цвета светлой и тёмной темы.
    Остальные файлы берут цвета через var(--имя), название — через BRAND.name, логотип — через brandLogo(). */
@@ -88,8 +90,8 @@ window.BRAND = {
     return app ? img(L.onLight) : img(L.onLight, "lg-l") + img(L.onDark, "lg-d");
   };
   const fill = () => {
-    if (document.title) document.title = document.title.replace("Rakurs", B.name);
-    const d = document.querySelector('meta[name="description"]'); if (d) d.content = d.content.replace("Rakurs", B.name);
+    if (document.title) document.title = document.title.replace(/Rakurs|HEYROW/, B.name);
+    const d = document.querySelector('meta[name="description"]'); if (d) d.content = d.content.replace(/Rakurs|HEYROW/, B.name);
     document.querySelectorAll('[data-brand="logo"]').forEach(el => { el.innerHTML = brandLogo("page"); });
     document.querySelectorAll('[data-brand="name"]').forEach(el => { el.textContent = B.name; });
   };

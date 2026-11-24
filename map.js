@@ -157,10 +157,10 @@ function mapDemoTree(){
   return t;
 }
 /* скрытые карточки: чтобы при разборе рекламы оставить на доске только нужное. Хранится в браузере этого человека. */
-MP.hide = {}; try { MP.hide = JSON.parse(localStorage.getItem("rakurs_map_hide")) || {}; } catch (e) {}
+MP.hide = {}; try { MP.hide = JSON.parse(localStorage.getItem("heyrow_map_hide")) || {}; } catch (e) {}
 const mapHK = n => n.add ? n.k + "/+" + n.add : n.more ? n.k + "/+more" : n.k;
 const mapHidden = n => !!MP.hide[mapHK(n)];
-const mapHideSave = () => { try { localStorage.setItem("rakurs_map_hide", JSON.stringify(MP.hide)); } catch (e) {} };
+const mapHideSave = () => { try { localStorage.setItem("heyrow_map_hide", JSON.stringify(MP.hide)); } catch (e) {} };
 /* узел карты v2: круглый значок уровня (у канала — белый кружок со знаком площадки) и статус-плашка */
 const LVI = ["hero", "projects", "funnel", "campaigns", "connections", "launch"];
 const ndIco = n => n.ic ? `<i class="ndi ndi--ch">${chIcon(n.ic)}</i>` : `<i class="ndi ndi--l${n.lv}" aria-hidden="true">${ico(LVI[n.lv] || "launch")}</i>`;
@@ -228,8 +228,8 @@ function mapDemoInfo(){
 }
 /* Виды карты: канбан (дерево карточек слева направо), список (дерево вниз с раскрытием), таблица (все уровни строками).
    Нажатие на карточку/строку открывает окно с настройками и выводами — не нужно листать вниз. Вид запоминается в браузере. */
-MP.dir = (() => { try { return localStorage.getItem("rakurs_map_dir") === "v" ? "v" : "h"; } catch (e) { return "h"; } })();
-MP.view = (() => { try { const v = localStorage.getItem("rakurs_map_view"); return ["board", "list", "table"].includes(v) ? v : "board"; } catch (e) { return "board"; } })();
+MP.dir = (() => { try { return localStorage.getItem("heyrow_map_dir") === "v" ? "v" : "h"; } catch (e) { return "h"; } })();
+MP.view = (() => { try { const v = localStorage.getItem("heyrow_map_view"); return ["board", "list", "table"].includes(v) ? v : "board"; } catch (e) { return "board"; } })();
 const MAP_VIEWS = () => [["board", L("Канбан","Канбан")], ["list", L("Список","Список")], ["table", L("Таблиця","Таблица")]];
 const mapViewSw = () => `<span class="seg mvs" role="group" aria-label="${L("Вигляд карти","Вид карты")}">${MAP_VIEWS().map(v => `<button type="button" data-act="mapView" data-v="${v[0]}" aria-pressed="${MP.view === v[0]}">${v[1]}</button>`).join("")}</span>${MP.view === "board" ? `<span class="seg mdir" role="group" aria-label="${L("Напрямок канбану","Направление канбана")}"><button type="button" data-act="mapDir" data-v="h" aria-pressed="${MP.dir !== "v"}" title="${L("Горизонтально","Горизонтально")}">${L("Горизонтально","Горизонтально")}</button><button type="button" data-act="mapDir" data-v="v" aria-pressed="${MP.dir === "v"}" title="${L("Вертикально","Вертикально")}">${L("Вертикально","Вертикально")}</button></span>` : ""}`;
 const mapKids = n => (n.kids || []).filter(x => !mapHidden(x) && !x.ghost);
@@ -263,8 +263,8 @@ const vMapDemo = () => `<div class="map">${mapBoard(mapDemoTree(), MP.demo)}${ma
 Object.assign(ACT, {
   mapSel(d){ const demo = !W.co, k = demo ? "demo" : "sel"; MP[k] = MP[k] === d.k ? null : d.k;
     setTimeout(() => { const e = [...document.querySelectorAll(".nd[data-k]")].find(x => x.dataset.k === d.k); if (e) e.focus({preventScroll:true}); }, 0); },
-  mapDir(d){ MP.dir = d.v === "v" ? "v" : "h"; try { localStorage.setItem("rakurs_map_dir", MP.dir); } catch (e) { /* */ } },
-  mapView(d){ MP.view = d.v; try { localStorage.setItem("rakurs_map_view", d.v); } catch (e) { /* */ } },
+  mapDir(d){ MP.dir = d.v === "v" ? "v" : "h"; try { localStorage.setItem("heyrow_map_dir", MP.dir); } catch (e) { /* */ } },
+  mapView(d){ MP.view = d.v; try { localStorage.setItem("heyrow_map_view", d.v); } catch (e) { /* */ } },
   mapClose(){ const k = MP.sel; MP.sel = null; setTimeout(() => { const e = [...document.querySelectorAll("[data-act=mapSel]")].find(x => x.dataset.k === k); if (e) e.focus({preventScroll:true}); }, 0); },
   mapAdd(d){ const [, pid, fid] = d.k.split("/");
     if (d.what === "l") return ACT.bdFromMap({p:pid, f:fid});

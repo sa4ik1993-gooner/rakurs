@@ -231,7 +231,7 @@ V.analytics = function(){
 
 /* ---------- действия ---------- */
 Object.assign(ACT, {
-  tier(d){ S.tier = d.v; try { localStorage.setItem("rakurs_tier", S.tier); } catch (e) {} if (lite() && ["hyp","rules","journal"].includes(route())) location.hash = "today"; toast(lite()?L("Lite: коротко і простими словами","Lite: коротко и простыми словами"):L("Pro: усі цифри, цілі й когорти","Pro: все цифры, цели и когорты")); },
+  tier(d){ S.tier = d.v; try { localStorage.setItem("heyrow_tier", S.tier); } catch (e) {} if (lite() && ["hyp","rules","journal"].includes(route())) location.hash = "today"; toast(lite()?L("Lite: коротко і простими словами","Lite: коротко и простыми словами"):L("Pro: усі цифри, цілі й когорти","Pro: все цифры, цели и когорты")); },
   modal(d){ S.modal = d.id; S.asst.open = false; if (d.id === "project") S.ob = obFresh(); },
   obNav(d){ const o = S.ob, v = +d.v;
     if (v === 9) { o.step++; o.q = 0; return; }
@@ -267,5 +267,5 @@ document.addEventListener("input", e => { const t = e.target;
   if (t.id === "aud-t" && S.ob) S.ob.text = t.value;
   if ("nf" in t.dataset) { const c = $("nf-calc"); if (c) c.innerHTML = nfCalc(nfv("nf-price")||CHECK, nfv("nf-pay")||1, nfv("nf-l2b")||1, nfv("nf-b2p")||1); } });
 document.addEventListener("change", e => { const t = e.target; if (!t.dataset.tg) return; const [id, k] = t.dataset.tg.split("."), n = pnum(t.value), f = S.funnels.find(x=>x.id===id); if (f && n > 0) { f.tg[k] = n; renderView(); } });
-try { const t = localStorage.getItem("rakurs_tier"); if (t === "lite" || t === "pro") S.tier = t; } catch (e) {}
+try { const t = localStorage.getItem("heyrow_tier"); if (t === "lite" || t === "pro") S.tier = t; } catch (e) {}
 /* первый render() — в конце ws.js */

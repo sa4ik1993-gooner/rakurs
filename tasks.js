@@ -180,7 +180,7 @@ function tsBox(k, pick){ const busy = TS.busy[k], mic = (window.SpeechRecognitio
   return `<div class="tsb">${pick || ""}<div class="row tsi"><input id="ts-${esc(k)}" data-tsk="${esc(k)}" value="${esc(TS.txt[k] || "")}" placeholder="${L("Що зробити? Напр.: збільшити рекламу вдвічі з тією ж ціною ліда","Что сделать? Напр.: увеличить рекламу вдвое с той же ценой лида")}" aria-label="${L("Задача","Задача")}"${busy ? " disabled" : ""}>${mic}<button type="button" class="btn btn--sm btn--solid" data-act="tsAdd" data-k="${esc(k)}"${busy ? " disabled" : ""}>${busy ? L("Рахуємо…","Считаем…") : L("Поставити","Поставить")}</button></div>
     <div class="opts opts--sm">${TS_EX().map(x => `<button type="button" class="opt" data-act="tsEx" data-k="${esc(k)}" data-v="${esc(x)}">${esc(x)}</button>`).join("")}</div></div>`; }
 /* календарь: 4 недели с понедельника текущей; в дне — шаги задач. Нажали — окно задачи по центру; «×» — убрать задачу. */
-TS.view = (() => { try { return localStorage.getItem("rakurs_ts_view") || "cal"; } catch (e) { return "cal"; } })(); TS.open = null; TS.arm = "";
+TS.view = (() => { try { return localStorage.getItem("heyrow_ts_view") || "cal"; } catch (e) { return "cal"; } })(); TS.open = null; TS.arm = "";
 function tsCal(ps){ const today = prToday(), d0 = new Date(today + "T12:00:00"), mon = tsDay(today, -((d0.getDay() + 6) % 7)), days = [...Array(28)].map((_, i) => tsDay(mon, i)), by = {};
   ps.forEach(p => (p.tasks || []).filter(t => t.status === "run" || t.status === "plan").forEach(t => t.steps.forEach((x, i) => { (by[x.d] = by[x.d] || []).push({p, t, x, i}); })));
   const hiro = {}; ps.forEach(p => (((typeof PL !== "undefined" && PL.st[p.id]) || {}).log || []).filter(x => x.kind === "reco" && x.status === "scheduled" && x.exec_on).forEach(x => { (hiro[x.exec_on] = hiro[x.exec_on] || []).push({p, x}); }));
@@ -201,7 +201,7 @@ TS.sc = "";
 /* Рекомендации: платформа сама находит кампании, которые можно масштабировать без потери качества, и спрашивает «да / нет».
    Условия: ≥10 лидов за 7 дней, лид не дороже 90% потолка воронки, за последние 3 дня цена лида не выросла больше чем на 10% и есть ≥3 лида.
    «Да» — задача из двух шагов (поднять на 15%, проверка через 3 дня); бюджет в Meta меняет рекламодатель. «Нет» — не предлагать 7 дней. */
-const OF_KEY = "rakurs_offers";
+const OF_KEY = "heyrow_offers";
 const ofSeen = () => { try { const o = JSON.parse(localStorage.getItem(OF_KEY) || "{}"), now = Date.now(); Object.keys(o).forEach(k => { if (o[k] < now) delete o[k]; }); return o; } catch (e) { return {}; } };
 TS.off = {}; TS.offBusy = {};
 async function tsOffLoad(p){ if (TS.offBusy[p.id]) return; TS.offBusy[p.id] = true;
@@ -299,7 +299,7 @@ Object.assign(ACT, {
     TS.off[p.id].idle = TS.off[p.id].idle.filter(x => x.id !== c.id); save(); toast(L("Задачу поставлено","Задача поставлена")); },
   ofNo(d){ const o = ofSeen(); o[d.id] = Date.now() + 7 * 864e5; try { localStorage.setItem(OF_KEY, JSON.stringify(o)); } catch (e) { /* */ } },
   tsMode(d){ const [p, t] = tsT(d); if (!t) return false; const x = t.steps.find(y => y.dup); if (!x) return false; x.mode = d.v; x.t = d.v === "adset" ? x.tA : x.tC; save(); },
-  tsView(d){ TS.view = d.v; try { localStorage.setItem("rakurs_ts_view", d.v); } catch (e) { /* */ } },
+  tsView(d){ TS.view = d.v; try { localStorage.setItem("heyrow_ts_view", d.v); } catch (e) { /* */ } },
   tsOpen(d){ TS.open = {p:d.p, id:d.id}; TS.arm = ""; },
   tsClose(){ TS.open = null; },
   tsDelA(d){ if (TS.arm !== d.id) { TS.arm = d.id; return; } TS.arm = ""; ACT.tsDel(d); },

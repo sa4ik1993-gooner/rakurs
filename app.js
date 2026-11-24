@@ -1,6 +1,6 @@
-/* Rakurs — кликабельный демо-кабинет. Только фронт: все данные примерные, действия меняют состояние в памяти. */
+/* HEYROW — кликабельный демо-кабинет. Только фронт: все данные примерные, действия меняют состояние в памяти. */
 let lang = "uk";
-try { const s = localStorage.getItem("rakurs_lang"); if (s === "ru" || s === "uk") lang = s; } catch (e) {}
+try { const s = localStorage.getItem("heyrow_lang"); if (s === "ru" || s === "uk") lang = s; } catch (e) {}
 try { const q = new URLSearchParams(location.search).get("lang"); if (q === "ru" || q === "uk") lang = q; } catch (e) {}
 
 
@@ -294,7 +294,7 @@ rules(){
 },
 connections(){
   const C = [["Meta Ads",L("2 кабінети, піксель, сторінка","2 кабинета, пиксель, страница"),1],["TikTok Ads",L("1 кабінет","1 кабинет"),1],["Google Ads",L("1 кабінет, читання і запис","1 кабинет, чтение и запись"),1],
-    ["Google Drive",L("папка «Креативи 3D», 38 файлів","папка «Креативы 3D», 38 файлов"),1],[L("Таблиця продажів","Таблица продаж"),L("оновлено сьогодні о 08:02","обновлено сегодня в 08:02"),1],["Telegram",L("бот @rakurs_demo_bot, 4 учасники","бот @rakurs_demo_bot, 4 участника"),1],
+    ["Google Drive",L("папка «Креативи 3D», 38 файлів","папка «Креативы 3D», 38 файлов"),1],[L("Таблиця продажів","Таблица продаж"),L("оновлено сьогодні о 08:02","обновлено сегодня в 08:02"),1],["Telegram",L("бот @heyrow_demo_bot, 4 учасники","бот @heyrow_demo_bot, 4 участника"),1],
     ["CRM",L("щоб рахувати заперечення й оплати без таблиці","чтобы считать возражения и оплаты без таблицы"),S.conn.crm?2:0]];
   return `<div class="head"><div><h1>${L("Підключення","Подключения")}</h1><p class="sub">${L("Підключає інтегратор " + BRAND.name + " через офіційні API майданчиків. Доступ можна відкликати будь-коли.","Подключает интегратор " + BRAND.name + " через официальные API площадок. Доступ можно отозвать в любой момент.")}</p></div></div>
   <div class="conn">${C.map((c,i)=>`<div class="panel"><div class="row sp"><h2>${c[0]}</h2>${c[2]===1?pill("good",L("підключено","подключено")):c[2]===2?pill("warn",L("запит надіслано","запрос отправлен")):pill("mute",L("не підключено","не подключено"))}</div><p class="sub">${c[1]}</p>${c[2]===0?`<div class="row"><button class="btn btn--sm" data-act="connect">${L("Запит інтегратору","Запрос интегратору")}</button></div>`:""}</div>`).join("")}</div>`;
@@ -544,7 +544,7 @@ const ACT = {
   rule(d){ S.rules[+d.id] = S.rules[+d.id] ? 0 : 1; },
   connect(){ S.conn.crm = 1; toast(L("Запит інтегратору надіслано","Запрос интегратору отправлен")); },
   stop(){ S.frozen = !S.frozen; if (S.frozen) S.funnels.forEach(f => { if (f.mode === "auto") f.mode = "btn"; }); toast(S.frozen ? L("Автодії заморожено","Автодействия заморожены") : L("Автодії знову активні","Автодействия снова активны")); },
-  theme(){ const el = document.documentElement, dark = el.dataset.theme ? el.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; el.dataset.theme = dark ? "light" : "dark"; try { localStorage.setItem("rakurs_theme", el.dataset.theme); } catch (e) {} },
+  theme(){ const el = document.documentElement, dark = el.dataset.theme ? el.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; el.dataset.theme = dark ? "light" : "dark"; try { localStorage.setItem("heyrow_theme", el.dataset.theme); } catch (e) {} },
   reset(){ timers.forEach(t => { clearTimeout(t); clearInterval(t); }); timers = []; S = fresh(); toast(L("Демо скинуто до початкового стану","Демо сброшено к начальному состоянию")); },
   say(d){ say(d.id); return false; },
   asstOk(d){ asstOk(+d.id); return false; },
@@ -554,13 +554,13 @@ const ACT = {
 };
 /* Личный профиль и личные настройки человека (не компании): имя, должность, период карты по умолчанию.
    Лежат в браузере и, когда есть сервер, в данных его учётной записи — поэтому приходят на любое устройство после входа. */
-const ME = {name:"", title:"", period:"t"}; try { Object.assign(ME, JSON.parse(localStorage.getItem("rakurs_me")) || {}); } catch (e) {}
+const ME = {name:"", title:"", period:"t"}; try { Object.assign(ME, JSON.parse(localStorage.getItem("heyrow_me")) || {}); } catch (e) {}
 const meMode = () => /^\d+$/.test(ME.period) ? +ME.period : ME.period || "t";
 let meT = 0;
-function meSave(){ try { localStorage.setItem("rakurs_me", JSON.stringify(ME)); } catch (e) {}
+function meSave(){ try { localStorage.setItem("heyrow_me", JSON.stringify(ME)); } catch (e) {}
   clearTimeout(meT); meT = setTimeout(() => { try { if (typeof CLOUD !== "undefined" && CLOUD && sb && sb.auth && sb.auth.updateUser) Promise.resolve(sb.auth.updateUser({data:{profile:ME}})).catch(() => {}); } catch (e) {} }, 900); }
 function meLoad(o){ if (!o || typeof o !== "object") return; ["name", "title", "period"].forEach(k => { if (typeof o[k] === "string") ME[k] = o[k]; });
-  try { localStorage.setItem("rakurs_me", JSON.stringify(ME)); } catch (e) {} if (typeof PR !== "undefined" && !PR.touched) PR.mode = meMode(); }
+  try { localStorage.setItem("heyrow_me", JSON.stringify(ME)); } catch (e) {} if (typeof PR !== "undefined" && !PR.touched) PR.mode = meMode(); }
 const isDark = () => { const el = document.documentElement; return el.dataset.theme ? el.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; };
 /* Подсказка в значке «?»: пояснения не занимают место на экране, открываются наведением или нажатием. */
 const hint = (t, cls) => `<span class="hint${cls ? " hint--" + cls : ""}"><button type="button" class="hint__b" aria-label="${L("Підказка","Подсказка")}" aria-expanded="false">${ico("help")}</button><span class="hint__t" role="tooltip">${t}</span></span>`;
@@ -579,7 +579,7 @@ document.addEventListener("click", e => {
   const hb = e.target.closest(".hint__b"); document.querySelectorAll(".hint.on").forEach(h => { if (!hb || h !== hb.parentNode) { h.classList.remove("on"); h.firstChild.setAttribute("aria-expanded", "false"); } });
   if (hb) { const on = hb.parentNode.classList.toggle("on"); hb.setAttribute("aria-expanded", String(on)); return; }
   const lb = e.target.closest(".lang button");
-  if (lb) { lang = lb.dataset.lang; try { localStorage.setItem("rakurs_lang", lang); } catch (x) {} render(); return; }
+  if (lb) { lang = lb.dataset.lang; try { localStorage.setItem("heyrow_lang", lang); } catch (x) {} render(); return; }
   if (e.target.closest("#fab")) { S.asst.open = true; renderAsst(); return; }
   const el = e.target.closest("[data-act]"); if (!el) return;
   const r = ACT[el.dataset.act](el.dataset); if (r !== false) render();

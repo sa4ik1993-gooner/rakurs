@@ -67,7 +67,7 @@ async function cloudEnter(user){
   CL.tg = null; if (TG()) { const t = await sb.from("tg_accounts").select("username,name").maybeSingle(); if (!t.error && t.data) { CL.tg = t.data; if (viaTg) W.user.name = t.data.username || t.data.name || W.user.name; } }
   const r = await sb.from("companies").select("*").order("created_at"); if (r.error) throw r.error;
   CL.cos = r.data || [];
-  let want = null; try { want = localStorage.getItem("rakurs_co"); } catch (e) {}
+  let want = null; try { want = localStorage.getItem("heyrow_co"); } catch (e) {}
   const co = CL.cos.find(c => c.id === want) || CL.cos[0];
   if (co) await cloudOpen(co.id); else { W.co = null; W.projs = []; W.cur = W.fun = null; cloudSnap(); }
 }
@@ -79,7 +79,7 @@ async function cloudOpen(id){
   W.projs = (p.data || []).map(r => Object.assign({}, r.data, {id:r.id, name:r.name}));
   CL.known = {co:c.data.updated_at}; (p.data || []).forEach(r => { CL.known[r.id] = r.updated_at; });
   if (!W.projs.some(x => x.id === W.cur)) { W.cur = null; W.fun = null; }
-  norm(); cloudSnap(); CL.at = Date.now(); try { localStorage.setItem("rakurs_co", id); } catch (e) {}
+  norm(); cloudSnap(); CL.at = Date.now(); try { localStorage.setItem("heyrow_co", id); } catch (e) {}
   cloudLibLoad(id);
 }
 /* общая библиотека платформы: одобренные находки других компаний (пока — пути продажи). Таблицы может ещё не быть — тогда молча пусто. */
@@ -160,7 +160,7 @@ async function cloudSwitch(id){ CL.opening = true; CL.state = "load"; render();
   try { await cloudOpen(id); W.ctab = "map"; CL.state = "saved"; } catch (e) { cErr(e, L("Не вдалося відкрити компанію","Не удалось открыть компанию")); }
   CL.opening = false; render(); }
 async function cloudDeleteCo(){ const r = await sb.from("companies").delete().eq("id", W.co.id); if (r.error) return cErr(r.error, L("Не вдалося видалити","Не удалось удалить"), "act");
-  CL.cos = CL.cos.filter(c => c.id !== W.co.id); W.co = null; W.projs = []; W.cur = W.fun = null; try { localStorage.removeItem("rakurs_co"); } catch (e) {}
+  CL.cos = CL.cos.filter(c => c.id !== W.co.id); W.co = null; W.projs = []; W.cur = W.fun = null; try { localStorage.removeItem("heyrow_co"); } catch (e) {}
   if (CL.cos[0]) await cloudOpen(CL.cos[0].id); else cloudSnap(); render(); toast(L("Компанію видалено","Компания удалена")); }
 /* файлы: хранилище на сервере, папка компании → проекта. В данных кабинета остаётся только путь к файлу. */
 const FILE_MAX = 50 * 1024 * 1024;

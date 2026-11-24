@@ -3,9 +3,9 @@
 const blankW = () => ({mode:"own", user:null, co:null, projs:[], cur:null, fun:null, tab:"about", ftab:"go", ctab:"today", wipe:false});
 const blankBrand = () => ({colors:"", fonts:"", voice:"", files:[]});
 let W = blankW();
-try { const s = JSON.parse(localStorage.getItem("rakurs_ws")); if (s && Array.isArray(s.projs)) W = Object.assign(W, s, {wipe:false}); } catch (e) {}
+try { const s = JSON.parse(localStorage.getItem("heyrow_ws")); if (s && Array.isArray(s.projs)) W = Object.assign(W, s, {wipe:false}); } catch (e) {}
 if (CLOUD) W = blankW();   /* с сервером локальная копия не используется */
-const accKey = id => "rakurs_acc_" + id;
+const accKey = id => "heyrow_acc_" + id;
 const accGet = id => { try { const a = JSON.parse(localStorage.getItem(accKey(id))); return a && Array.isArray(a.projs) ? a : null; } catch (e) { return null; } };
 /* приводит сохранённые данные к текущей структуре */
 function norm(){ W.ctab = W.ctab || "today"; if (W.ctab === "acc") W.ctab = "me";
@@ -13,7 +13,7 @@ function norm(){ W.ctab = W.ctab || "today"; if (W.ctab === "acc") W.ctab = "me"
   W.projs.forEach(p => { p.kb = p.kb || []; p.exp = p.exp || []; p.kbOff = p.kbOff || []; const b = p.brand = Object.assign(blankBrand(), p.brand); if (b.own == null) b.own = !!(b.colors || b.fonts || b.voice); (p.funnels || []).forEach(f => { f.ch = f.ch || []; f.sale = f.sale || p.sale || "web"; }); }); }
 norm();
 if (location.hash === "#sample") { W.mode = "sample"; location.hash = "today"; }
-const save = () => { if (CLOUD) return cloudQueue(); try { localStorage.setItem("rakurs_ws", JSON.stringify(W)); if (W.user) localStorage.setItem(accKey(W.user.id), JSON.stringify(Object.assign({}, W, {mode:"own", wipe:false}))); } catch (e) {} };
+const save = () => { if (CLOUD) return cloudQueue(); try { localStorage.setItem("heyrow_ws", JSON.stringify(W)); if (W.user) localStorage.setItem(accKey(W.user.id), JSON.stringify(Object.assign({}, W, {mode:"own", wipe:false}))); } catch (e) {} };
 const own = () => W.mode !== "sample";
 const P = () => W.projs.find(p => p.id === W.cur);
 const F = () => { const p = P(); return p && p.funnels.find(f => f.id === W.fun); };
@@ -140,7 +140,7 @@ function todayLine(){ const a = [], d = (lv, t) => `<span class="dot dot--${lv}"
   if (TS.cnt) { if (TS.cnt.due) a.push(d("warn", plural(TS.cnt.due, L("крок","шаг"), L("кроки","шага"), L("кроків","шагов")) + L(" задач сьогодні"," задач сегодня"))); if (TS.cnt.run) a.push(d("info", plural(TS.cnt.run, L("задача","задача"), L("задачі","задачи"), L("задач","задач")) + L(" в роботі"," в работе"))); if (TS.cnt.off) a.push(d("good", TS.cnt.off + L(" можна масштабувати"," можно масштабировать"))); if (TS.cnt.idle) a.push(d("good", TS.cnt.idle + L(" ефективних без показів"," эффективных без показов"))); }
   return a.length ? `<p class="stl">${a.join("")}</p>` : ""; }
 /* «Сегодня» — главная: пульс за период и решения на сегодня, ниже — цели на месяц. Карта — отдельно. */
-const railMore = () => { try { return localStorage.getItem("rakurs_rail_more") === "1"; } catch (e) { return false; } };
+const railMore = () => { try { return localStorage.getItem("heyrow_rail_more") === "1"; } catch (e) { return false; } };
 function vToday(){ const on = W.projs.some(p => typeof prOn === "function" && prOn(p));
   if (!W.projs.length) return empty(L("Тут будуть рішення на сьогодні","Здесь будут решения на сегодня"), L("Додай проєкт на карті й підключи рекламний кабінет, і я почну.","Добавь проект на карте и подключи рекламный кабинет, и я начну."), `<button class="btn btn--main" data-act="wsCtab" data-v="map">${L("Додати проєкт","Добавить проект")}</button>`, true);
   return `<div class="map today">${on ? prOverview(pfOne()) : `<div class="panel">${empty(L("Тут будуть рішення на сьогодні.","Здесь будут решения на сегодня."), L("Підключи рекламний кабінет, і я почну.","Подключи рекламный кабинет, и я начну."), `<button class="btn btn--main" data-act="mapConn" data-id="${W.projs[0].id}">${L("Підключити кабінет","Подключить кабинет")}</button>`)}</div>`}${typeof plPanel === "function" ? pfProjs().filter(p => p.meta && p.meta.conn).map(plPanel).join("") : ""}${typeof tsToday === "function" ? tsToday() : ""}${typeof goalsBoard === "function" ? goalsBoard(pfOne()) : ""}</div>`; }
@@ -356,7 +356,7 @@ function calcF(f, p){ const x = fT(f,p); return `<div class="kpis">${[[L("Бюд
 const FTABS = () => [["go", L("Як іде","Как идёт")], ["launch", L("Запуск","Запуск")], ["set", L("Налаштування","Настройки")]];
 const ftNorm = t => ({an:"set", aud:"set", goals:"set", land:"launch", cr:"launch"})[t] || (["go", "launch", "set"].includes(t) ? t : "go");
 /* свёрнутый блок с одной строкой итога; что раскрыто — запоминается в браузере */
-const FOLD_KEY = "rakurs_fold";
+const FOLD_KEY = "heyrow_fold";
 /* «Подробнее»: таблица под строкой, сверху остаются цифры и выводы */
 const more = (id, label, html) => `<details class="more" data-fold="${esc(id)}"${foldSt()[id] ? " open" : ""}><summary>${label ? label.charAt(0).toUpperCase() + label.slice(1) : L("Детальніше","Подробнее")}${ico("chevron")}</summary>${html}</details>`;
 const foldSt = () => { try { return JSON.parse(localStorage.getItem(FOLD_KEY) || "{}"); } catch (e) { return {}; } };
@@ -542,7 +542,7 @@ Object.assign(ACT, {
   wsAuthTg(){ if (CLOUD) return false; const u = val("au-tg").replace(/^@+/, ""); if (!need(/^[A-Za-z0-9_]{4,32}$/.test(u), L("Нік: латиниця, цифри й _, від 4 символів","Ник: латиница, цифры и _, от 4 символов"), "au-tg")) return false;
     if (!authGate("@" + u)) return false; if (!AU.login && !need($("au-ok").checked, L("Потрібна згода з умовами","Нужно согласие с условиями"), "au-ok")) return false; AU.id = "@" + u; AU.step = 1; },
   wsAuthTgOk(){ authDone("tg", AU.id); },
-  wsLogout(){ if (CLOUD) { cloudLogout(); return false; } save(); W = blankW(); AU = auFresh(); AU.login = true; try { localStorage.setItem("rakurs_ws", JSON.stringify(W)); } catch (e) {} toast(L("Ти вийшов. Дані збережено в акаунті","Ты вышел. Данные сохранены в аккаунте")); },
+  wsLogout(){ if (CLOUD) { cloudLogout(); return false; } save(); W = blankW(); AU = auFresh(); AU.login = true; try { localStorage.setItem("heyrow_ws", JSON.stringify(W)); } catch (e) {} toast(L("Ти вийшов. Дані збережено в акаунті","Ты вышел. Данные сохранены в аккаунте")); },
   wsTgLogin(){ cloudTg(false); return false; },
   wsTgLink(){ cloudTg(true); return false; },
   wsAddMember(){ const m = val("tm-mail").toLowerCase().replace(/^https?:\/\/t\.me\//, "@"); if (!need(/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(m) || (TG() && /^@[a-z0-9_]{4,32}$/.test(m)), TG()?L("Вкажи пошту або нік у Telegram, наприклад @username","Укажи почту или ник в Telegram, например @username"):L("Перевір адресу пошти","Проверь адрес почты"), "tm-mail")) return false; cloudAddMember(m, $("tm-role").value, $("tm-proj").value); return false; },
@@ -556,15 +556,15 @@ Object.assign(ACT, {
                 `Привет! Открыл тебе доступ в кабинет «${W.co.name}». Роль: ${R[m.role] || m.role}. Доступ: ${proj ? "проект «" + proj + "»" : "все проекты компании"}.\n\nСсылка: ${link}\n\nКак войти: ${tg ? "вкладка «Telegram» → «Войти через Telegram», под ником " + m.email + ". Почта и пароль не нужны." : "вкладка «Почта», адрес " + m.email + ". На него придёт письмо со ссылкой для входа, пароль не нужен."}`);
     (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast(L("Запрошення скопійовано — надішли його людині","Приглашение скопировано — отправь его человеку")), () => { window.prompt(L("Скопіюй текст запрошення","Скопируй текст приглашения"), t); }); return false; },
   wsCopyLink(){ const t = location.origin + location.pathname; (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(()=>toast(L("Посилання скопійовано","Ссылка скопирована")), ()=>toast(L("Виділи посилання й скопіюй вручну","Выдели ссылку и скопируй вручную"))); return false; },
-  themeSet(d){ const el = document.documentElement; if (d.v === "auto") delete el.dataset.theme; else el.dataset.theme = d.v; try { if (d.v === "auto") localStorage.removeItem("rakurs_theme"); else localStorage.setItem("rakurs_theme", d.v); } catch (e) {} },
+  themeSet(d){ const el = document.documentElement; if (d.v === "auto") delete el.dataset.theme; else el.dataset.theme = d.v; try { if (d.v === "auto") localStorage.removeItem("heyrow_theme"); else localStorage.setItem("heyrow_theme", d.v); } catch (e) {} },
   mePeriod(d){ ME.period = d.v; meSave(); PR.touched = 0; PR.mode = meMode(); },
   wsCtab(d){ W.cur = null; W.fun = null; W.ctab = d.v; save(); },
-  railMore(){ try { localStorage.setItem("rakurs_rail_more", railMore() ? "0" : "1"); } catch (e) { /* */ } },
+  railMore(){ try { localStorage.setItem("heyrow_rail_more", railMore() ? "0" : "1"); } catch (e) { /* */ } },
   wsGoCoKb(){ W.cur = null; W.fun = null; W.ctab = "kb"; save(); },
   wsBrandOwn(d){ P().brand.own = d.v === "1"; save(); },
   kbOpen(d){ KBO = (KBO === d.id && !d.on) ? null : d.id; },
   wsKbT(d){ const p = P(), i = p.kbOff.indexOf(d.id); if (i < 0) p.kbOff.push(d.id); else p.kbOff.splice(i, 1); save(); },
-  wsExport(){ const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(Object.assign({}, W, {wipe:false}), null, 1)], {type:"application/json"})); a.download = "rakurs_" + slug(W.co.name) + ".json"; document.body.appendChild(a); a.click(); a.remove(); toast(L("Якщо файл не завантажився, скористайтесь «Скопіювати копію»","Если файл не скачался, воспользуйтесь «Скопировать копию»")); return false; },
+  wsExport(){ const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(Object.assign({}, W, {wipe:false}), null, 1)], {type:"application/json"})); a.download = "heyrow_" + slug(W.co.name) + ".json"; document.body.appendChild(a); a.click(); a.remove(); toast(L("Якщо файл не завантажився, скористайтесь «Скопіювати копію»","Если файл не скачался, воспользуйтесь «Скопировать копию»")); return false; },
   wsCopyAll(){ (navigator.clipboard ? navigator.clipboard.writeText(JSON.stringify(W)) : Promise.reject()).then(()=>toast(L("Копію скопійовано в буфер","Копия скопирована в буфер")), ()=>toast(L("Браузер не дав скопіювати — завантаж файл","Браузер не дал скопировать — скачай файл"))); return false; },
   wsKind(d){ W.kind = d.v; const n = val("co-name"); renderView(); const e = $("co-name"); if (e) e.value = n; return false; },
   wsCo(){ const n = val("co-name"); if (!need(n, L("Введи назву компанії","Введи название компании"), "co-name")) return false; if (CLOUD) { cloudCreateCo(n, W.kind || "own"); return false; } W.co = {name:n, kind:W.kind || "own"}; norm(); save(); },
