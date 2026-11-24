@@ -190,7 +190,7 @@ async function tsCreate(k, text){ const s = tsScope(k), p = s && W.projs.find(x 
     ext.sets = ext.sets.filter(x => !/ · (CAP|GEO) /.test(String(x.name || "") + " "));
     const pl = tsPlan(p, s, o, rows, ext); delete pl.ext;
     const nt = Object.assign({id:uid(), text:String(text).trim(), type:o.type, o, scope:s, status:"plan", at:new Date().toISOString()}, pl);
-    p.tasks = p.tasks || []; p.tasks.unshift(nt); TS.open = {p:p.id, id:nt.id}; save(); ok = true; }
+    p.tasks = p.tasks || []; p.tasks.unshift(nt); TS.open = {p:p.id, id:nt.id}; TS.fresh = nt.id; save(); ok = true; }
   catch (e) { toast(String(e.message || e)); }
   return ok; }
 
@@ -266,7 +266,7 @@ function tsBox(k, pick){ const busy = TS.busy[k], mic = (window.SpeechRecognitio
 /* календарь: 4 недели с понедельника текущей; в дне — шаги задач. Нажали — окно задачи по центру; «×» — убрать задачу. */
 TS.view = (() => { try { return localStorage.getItem("heyrow_ts_view") || "cal"; } catch (e) { return "cal"; } })(); TS.open = null; TS.arm = "";
 function tsCal(ps){ const today = prToday(), d0 = new Date(today + "T12:00:00"), mon = tsDay(today, -((d0.getDay() + 6) % 7)), days = [...Array(28)].map((_, i) => tsDay(mon, i)), by = {};
-  ps.forEach(p => (p.tasks || []).filter(t => t.status === "run" || t.status === "plan").forEach(t => t.steps.forEach((x, i) => { (by[x.d] = by[x.d] || []).push({p, t, x, i}); })));
+  ps.forEach(p => (p.tasks || []).filter(t => t.status === "run").forEach(t => t.steps.forEach((x, i) => { (by[x.d] = by[x.d] || []).push({p, t, x, i}); })));
   const hiro = {}; ps.forEach(p => (((typeof PL !== "undefined" && PL.st[p.id]) || {}).log || []).filter(x => x.kind === "reco" && x.status === "scheduled" && x.exec_on).forEach(x => { (hiro[x.exec_on] = hiro[x.exec_on] || []).push({p, x}); }));
   const wd = [L("Пн","Пн"), L("Вт","Вт"), L("Ср","Ср"), L("Чт","Чт"), L("Пт","Пт"), L("Сб","Сб"), L("Нд","Вс")];
   return `<div class="tcal"><div class="tcal__h">${wd.map(w => `<span>${w}</span>`).join("")}</div><div class="tcal__g">${days.map(d => `<div class="tcd${d === today ? " tcd--now" : ""}${d < today ? " tcd--past" : ""}"><span class="tcd__n">${d.slice(8, 10) === "01" || d === days[0] ? tsDM(d) : +d.slice(8, 10)}</span>
@@ -279,7 +279,10 @@ function tsPop(){ if (!TS.open) return ""; const p = W.projs.find(x => x.id === 
     <div class="row sp"><span class="tag">${L("Задача","Задача")}${sn ? " · " + esc(sn) : ""}</span><button type="button" class="btn btn--sm" data-act="tsClose">${ico("close")} ${L("Закрити","Закрыть")}</button></div>
     ${tsCard(p, t)}
     ${(t.why || []).length ? `<div class="tsw2"><b>${L("Що робитиме Хіро","Что будет делать Хиро")}</b><ul>${t.why.map(w => `<li>${esc(w)}</li>`).join("")}</ul></div>` : ""}</div></div>`; }
-document.addEventListener("keydown", e => { if (e.key === "Escape" && TS.open) { TS.open = null; render(); } });
+/* закрыли окно только что поставленной задачи, не нажав «Почати», — задача не ставится (Дмитрий, 24.11.2026: «отменил, а в графике уже стоит») */
+function tsDropFresh(){ const o = TS.open; if (!o || TS.fresh !== o.id) return; TS.fresh = ""; const p = W.projs.find(x => x.id === o.p), t = p && (p.tasks || []).find(x => x.id === o.id);
+  if (p && t && t.status === "plan" && !t.steps.some(x => x.sched)) { p.tasks = p.tasks.filter(x => x !== t); save(); if (typeof toast === "function") toast(L("Задачу не поставлено","Задача не поставлена")); } }
+document.addEventListener("keydown", e => { if (e.key === "Escape" && TS.open) { tsDropFresh(); TS.open = null; render(); } });
 /* на «Сегодня»: охват выбирается из воронок и аккаунтов */
 TS.sc = "";
 /* Рекомендации: платформа сама находит кампании, которые можно масштабировать без потери качества, и спрашивает «да / нет».
@@ -365,12 +368,13 @@ Object.assign(ACT, {
     const geo = d.g === "world" ? "world" : "";
     const r = await tdPropose({project_id:p.id, items:[{key:"task:dup:" + x.sid + ":" + prToday() + ":" + Date.now(), title:L("Дубль зв’язки","Дубль связки"), body:x.sn + "\n" + x.t, payload:{op:"dup", cid:x.cid, id:x.sid, budget:x.bud, geo, facts:[[L("Бюджет на день","Бюджет в день"), x.bud + " $", false]], gain:L("Більше лідів без збиття навчання поточних груп","Больше лидов без сбоя обучения текущих групп")}}]});
     const id = r && r.ids && r.ids[0]; if (!id) { toast(r && r.frozen ? r.frozen : L("Не вийшло: бюджет на рівні кампанії, немає підключення або такий дубль сьогодні вже є.","Не получилось: бюджет на уровне кампании, нет подключения или такой дубль сегодня уже есть.")); return false; }
-    const z = typeof plCall === "function" ? await plCall({action:"decide", project_id:p.id, id, v:"y"}) : null; x.sched = id; save();
+    const z = typeof plCall === "function" ? await plCall({action:"decide", project_id:p.id, id, v:"y"}) : null; x.sched = id;
+    if (t.status === "plan") { t.status = "run"; t.started = prToday(); } if (TS.fresh === t.id) TS.fresh = ""; save();
     if (typeof PL !== "undefined") { delete PL.st[p.id]; if (typeof plLoad === "function") plLoad(p); }
     toast(z && z.text ? z.text : L("Пропозицію створив — прийми її в стрічці Хіро","Предложение создал — прими его в ленте Хиро")); },
   tsDupGeo(d){ const [p, t] = tsT(d); if (!t) return false; const x = t.steps[+d.i]; if (!x || x.sched) return false; x.geo = d.g === "world" ? "world" : ""; save(); },
   tsDupRe(d){ const [p, t] = tsT(d); if (!t) return false; const x = t.steps[+d.i]; if (!x) return false; delete x.sched; save(); },
-  tsRun(d){ const [p, t] = tsT(d); if (!t) return false; t.status = "run"; t.started = prToday(); const sh = Math.round((Date.parse(prToday()) - Date.parse(t.start)) / 864e5); if (sh > 0) t.steps.forEach(x => { x.d = tsDay(x.d, sh); }); save(); },
+  tsRun(d){ const [p, t] = tsT(d); if (!t) return false; if (TS.fresh === t.id) TS.fresh = ""; t.status = "run"; t.started = prToday(); const sh = Math.round((Date.parse(prToday()) - Date.parse(t.start)) / 864e5); if (sh > 0) t.steps.forEach(x => { x.d = tsDay(x.d, sh); }); save(); },
   tsDone(d){ const [p, t] = tsT(d); if (!t) return false; const x = t.steps[+d.v]; if (!x) return false; x.done = prToday(); if (t.steps.every(y => y.done)) { t.status = "done"; toast(L("Задачу виконано","Задача выполнена")); } save(); },
   tsStop(d){ const [p, t] = tsT(d); if (!t) return false; t.status = "stop"; save(); },
   tsDel(d){ const [p, t] = tsT(d); if (!t) return false; p.tasks = p.tasks.filter(x => x !== t); save(); },
@@ -394,7 +398,7 @@ Object.assign(ACT, {
   tsMode(d){ const [p, t] = tsT(d); if (!t) return false; const x = t.steps.find(y => y.dup); if (!x) return false; x.mode = d.v; x.t = d.v === "adset" ? x.tA : x.tC; save(); },
   tsView(d){ TS.view = d.v; try { localStorage.setItem("heyrow_ts_view", d.v); } catch (e) { /* */ } },
   tsOpen(d){ TS.open = {p:d.p, id:d.id}; TS.arm = ""; },
-  tsClose(){ TS.open = null; },
+  tsClose(){ tsDropFresh(); TS.open = null; },
   tsDelA(d){ if (TS.arm !== d.id) { TS.arm = d.id; return; } TS.arm = ""; ACT.tsDel(d); },
   tsBack(d){ const [p, t] = tsT(d); if (!t) return false; const i = t.steps.findIndex(x => !x.done); if (i > 0) { t.steps[i - 1].done = ""; t.backs = (t.backs || 0) + 1; }
     if ((t.backs || 0) >= TS_BACKS) { t.status = "stop"; t.note = L("Зупинено: після ","Остановлено: после ") + TS_BACKS + L(" відкатів кампанії не тримають ціну ліда на більшому бюджеті — вони вперлися в стелю."," откатов кампании не держат цену лида на большем бюджете — они уперлись в потолок."); }
