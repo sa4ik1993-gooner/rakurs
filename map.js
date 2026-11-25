@@ -74,7 +74,7 @@ function chPlanBody(f, p){ const rows = chPlan(f, p), tot = rows.reduce((a, r) =
       ${rows.map(r => `<tr><td><b>${chOf(r.id)[1]}</b></td><td class="n"><input class="tin" data-chs="${r.id}" value="${Math.round(r.share * 10) / 10}" inputmode="decimal" aria-label="${chOf(r.id)[1]}, %"> <span class="sub mono">%</span></td><td class="n mono">${money(r.bud)}</td><td class="n mono">${num(r.leads)}</td><td class="n mono">${num(r.pay)}</td></tr>`).join("")}
       <tr class="sum"><td><b>${L("Воронка","Воронка")}</b></td><td class="n mono"><b>${Math.round(tot)}%</b></td><td class="n mono"><b>${money(sum("bud"))}</b></td><td class="n mono"><b>${num(sum("leads"))}</b></td><td class="n mono"><b>${num(sum("pay"))}</b></td></tr></tbody></table></div>
       <div class="row"><button class="btn btn--sm" data-act="chEven">${L("Розділити порівну","Разделить поровну")}</button></div>
-      <p class="sub">${L("Частка — це частина бюджету воронки на канал. Поки немає факту, ліди й оплати діляться в тій самій пропорції; після підключення кабінетів у кожного каналу буде своя ціна ліда.","Доля — это часть бюджета воронки на канал. Пока нет факта, лиды и оплаты делятся в той же пропорции; после подключения кабинетов у каждого канала будет своя цена лида.")}</p>`
+      <div class="hrow">${hint(L("Частка — це частина бюджету воронки на канал. Поки немає факту, ліди й оплати діляться в тій самій пропорції; після підключення кабінетів у кожного каналу буде своя ціна ліда.","Доля — это часть бюджета воронки на канал. Пока нет факта, лиды и оплаты делятся в той же пропорции; после подключения кабинетов у каждого канала будет своя цена лида."), "wide")}</div>`
     : `${empty(L("У воронки немає каналів трафіку","У воронки нет каналов трафика"), L("Познач канали — план розкладеться за ними.","Отметь каналы — план разложится по ним."))}${chOpts(p, f)}`}`; }
 const chPlanPanel = (f, p) => `<div class="panel" id="ch-plan">${chPlanBody(f, p)}</div>`;
 /* свод проекта по каналам: канал → воронка → проект */
@@ -88,7 +88,7 @@ function chSumPanel(p){ if (!p.funnels.length) return "";
     <div class="tw tw--in"><table><thead><tr><th>${L("Канал","Канал")}</th><th class="n">${L("Воронок","Воронок")}</th><th class="n">${L("Бюджет","Бюджет")}</th><th class="n">${L("Частка","Доля")}</th><th class="n">${L("Лідів","Лидов")}</th><th class="n">${L("Оплат","Оплат")}</th><th>${L("Кабінет","Кабинет")}</th></tr></thead><tbody>
       ${ids.map(c => row(chOf(c)[1], acc[c], p.conn[c] === 1 ? pill("good", L("підключено","подключен")) : p.conn[c] ? pill("warn", L("до підключення","к подключению")) : pill("mute", L("немає","нет")))).join("")}
       ${none.n ? row(L("Канал не обрано","Канал не выбран"), none, pill("warn", L("розподіли у воронці","распредели в воронке"))) : ""}</tbody></table></div>
-    <p class="sub">${L("Цифри зводяться знизу вгору: частки каналів задаються у воронці, тут — сума за всіма воронками проєкту.","Цифры сводятся снизу вверх: доли каналов задаются в воронке, здесь — сумма по всем воронкам проекта.")}</p></div>`; }
+    <div class="hrow">${hint(L("Частки каналів задаються у воронці, тут — сума за всіма воронками проєкту.","Доли каналов задаются в воронке, здесь — сумма по всем воронкам проекта."), "wide")}</div></div>`; }
 
 /* Факт на карте: расход и лиды за 7 дней из статистики, уже собранной на сервере.
    Только чтение: к рекламному кабинету карта не обращается, свежесть данных — забота блока «Факт рекламы» и ночного обновления. */
@@ -191,7 +191,7 @@ const mapBoard = (tree, sel, n = Math.max(4, mapDeep(tree) + 1)) => `<div class=
   <ul class="mt">${mapNode(tree, sel)}</ul></div></div>`;
 /* «как читать карту» — в подсказке «i» над доской, а не блоком на экране */
 const mapLegend = () => `<b>${L("Як читати карту","Как читать карту")}</b><ol class="lvls">${LEVELS().slice(0, W.projs.some(prOn) ? 6 : 4).map((l, i) => `<li><i>0${i + 1}</i><div><b>${l[0]}</b><span>${l[1]}</span></div></li>`).join("")}</ol>
-  <span>${L("Цифри зводяться знизу вгору. Натисни на картку — побачиш її гілку й висновки. Риска в кутку ховає картку з гілкою, око повертає сховане.","Цифры сводятся снизу вверх. Нажми на карточку — увидишь ее ветку и выводы. Черточка в углу скрывает карточку с веткой, глаз возвращает скрытое.")}</span>`;
+  <span>${L("Цифри зводяться знизу вгору. Натисни на картку — побачиш її гілку. Риска ховає картку, око повертає.","Цифры сводятся снизу вверх. Нажми на карточку — увидишь ее ветку. Черточка скрывает карточку, глаз возвращает.")}</span>`;
 const lvTag = i => `<span class="tag">${L("Рівень","Уровень")} 0${i + 1} · ${LEVELS()[i][0]}</span>`;
 const chOpts = (p, f) => `<div class="opts opts--sm">${CHAN().map(c => `<button type="button" class="opt opt--ch opt--ch-${c[0]}" data-act="mapCh" data-p="${p.id}" data-f="${f.id}" data-v="${c[0]}" aria-pressed="${(f.ch || []).includes(c[0])}">${chIcon(c[0])}${c[1]}</button>`).join("")}</div>`;
 
@@ -207,7 +207,7 @@ function mapInfo0(){
   if (cid) { const ch = chOf(cid);
     return `<div class="panel">${lvTag(3)}<h2>${ch[1]}</h2><p class="sub">${LEVELS()[3][1]}</p>
       <dl class="kv"><dt>${L("Воронка","Воронка")}</dt><dd>${esc(f.name)}</dd><dt>${L("Проєкт","Проект")}</dt><dd>${esc(p.name)}</dd><dt>${L("Кабінет","Кабинет")}</dt><dd>${p.conn[cid] ? pill("good", L("позначено до підключення","отмечен к подключению")) : pill("warn", L("не підключено","не подключен"))}</dd>${mapFx(p, f, cid) ? `<dt>${L("Реклама","Реклама")}</dt><dd class="mono">${mapFx(p, f, cid)}</dd>` : ""}</dl>
-      <p class="sub">${L("Витрати, ліди й оплати цього каналу зводяться у воронку, а воронки — у проєкт.","Расход, лиды и оплаты этого канала сводятся в воронку, а воронки — в проект.")}</p>
+
       <div class="row"><button class="btn btn--sm btn--solid" data-act="mapConn" data-id="${p.id}">${L("Підключення проєкту","Подключения проекта")}</button><button class="btn btn--sm" data-act="mapCh" data-p="${p.id}" data-f="${f.id}" data-v="${cid}">${L("Прибрати канал із воронки","Убрать канал из воронки")}</button></div></div>`; }
   if (f) return `<div class="panel">${lvTag(2)}<h2>${esc(f.name)}</h2><p class="sub">${LEVELS()[2][1]}</p>
       <dl class="kv"><dt>${L("Проєкт","Проект")}</dt><dd>${esc(p.name)}</dd><dt>${L("Ціль","Цель")}</dt><dd class="mono">${f.tg.pay} ${L("оплат","оплат")} × ${money(f.tg.check)}</dd><dt>${L("Лендингів","Лендингов")}</dt><dd class="mono">${f.lands.length}</dd><dt>${L("Креативів","Креативов")}</dt><dd class="mono">${f.crs.length}</dd>${mapFx(p, f) ? `<dt>${L("Реклама","Реклама")}</dt><dd class="mono">${mapFx(p, f)}</dd>` : ""}</dl>
