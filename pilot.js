@@ -622,7 +622,7 @@ function plPanel(p){ if (!CLOUD) return "";
       <button type="button" class="btn btn--sm" data-act="plNow" data-p="${p.id}" data-v="0">${L("Перевірити акаунт зараз","Проверить аккаунт сейчас")}</button>
       <button type="button" class="btn btn--sm" data-act="plNow" data-p="${p.id}" data-v="1"${dis}>${L("Надіслати звіт зараз","Отправить отчет сейчас")}</button></div>
     <div class="row pltg"><span class="lbl">Telegram</span>${(s && s.chats && s.chats.length) ? s.chats.map(c => `<span class="st st--on">${esc(c)}</span>`).join(" ") : `<span class="st st--pause">${L("Не підключено","Не подключено")}</span>`}
-      <button type="button" class="btn btn--sm" data-act="plTg" data-p="${p.id}"${dis}${r.bot ? "" : ` title="${esc(plErr({error:"no_bot"}))}"`}>${ico("send")} ${L("Підключити Telegram","Подключить Telegram")}</button>${s && s.chats && s.chats.length ? `<button type="button" class="btn btn--sm" data-act="plTgTest" data-p="${p.id}">${L("Надіслати тест","Отправить тест")}</button>` : ""}</div>`;
+      ${s && s.chats && s.chats.length ? `<button type="button" class="btn btn--sm" data-act="plTgTest" data-p="${p.id}">${L("Надіслати тест","Отправить тест")}</button>` : `<button type="button" class="btn btn--sm" data-act="plTg" data-p="${p.id}"${dis}${r.bot ? "" : ` title="${esc(plErr({error:"no_bot"}))}"`}>${ico("send")} ${L("Підключити Telegram","Подключить Telegram")}</button>`}</div>`;
   return `<div class="panel plt">${head(L("Що пропоную і що зробив","Что предлагаю и что сделал"))}<span class="row"><span class="scrl-cnt sub"></span>${st}</span></div>
     ${feed}
     ${PL.msg[p.id] ? `<p class="sub" role="status">${PL.msg[p.id]}</p>` : ""}
