@@ -115,7 +115,7 @@ function hiroSay(scr){
     out.main = hiroBtn("btn--main", L("Увімкнути автопілот","Включить автопилот"), `data-act="apbToggle" data-p="${paused.id}"`, "autopilot"); return out; }
   if (!e.s.spend) { out.title = L("За цей період показів не було","За этот период показов не было"); out.text = L("Коли реклама запрацює, тут буде головне за день.","Когда реклама заработает, здесь будет главное за день."); return out; }
   /* дорого по воронке целиком (разбор в ленте Хиро) — не «всё в порядке» */
-  const acc = typeof plAcctAll === "function" ? e.ps.map(p => plAcctAll(p)).flat()[0] : null;
+  const acc = typeof plAcctAll === "function" ? e.ps.map(p => plAcctAll(p)).flat().filter(A => typeof tfAcct !== "function" || tfAcct(A))[0] : null; /* A1: только воронка из фильтра «Сьогодні» */
   if (acc && acc.now && acc.now.ok && acc.now.better) { out.pose = "watch"; out.title = L("Сьогодні дешевше у воронці «","Сегодня дешевле в воронке «") + acc.f.name + "»"; out.text = acc.now.txt;
     out.main = scr === "today" ? hiroBtn("btn--main", L("Відкрити розбір","Открыть разбор"), 'data-act="hiroAcct"') : hiroBtn("btn--main", L("Відкрити розбір","Открыть разбор"), 'data-act="wsCtab" data-v="today"'); return out; }
   if (acc) { out.pose = "stop"; out.title = L("Дорого у воронці «","Дорого в воронке «") + acc.f.name + "»";
