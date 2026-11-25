@@ -90,7 +90,9 @@ function rkFilter(rows){ const q = fxKey(RK2.q), qc = fxKey(RK2.qc);
 
 /* ---------- кампании: дерево ---------- */
 function rkCamp(){ const {rows, loading} = rkRows(); if (loading && !rows.length) return `<div class="panel">${prSkel()}</div>`;
-  if (!rows.length) return empty(L("Даних про рекламу немає","Данных о рекламе нет"), L("Підключи рекламний кабінет у проєкті.","Подключи рекламный кабинет в проекте."));
+  /* C6: кабинет подключён, но за период трат нет (например, «Сьогодні» сразу после полуночи) — не просим подключать заново */
+  if (!rows.length) return pfProjs().some(prOn) ? empty(L("За цей період витрат немає","За этот период трат нет"), PR.mode === "t" ? L("Новий день щойно почався — обери «Вчора» або «Останні 7 днів».","Новый день только начался — выбери «Вчера» или «Последние 7 дней».") : L("Обери інший період.","Выбери другой период."))
+    : empty(L("Даних про рекламу немає","Данных о рекламе нет"), L("Підключи рекламний кабінет у проєкті.","Подключи рекламный кабинет в проекте."));
   const list = rkFilter(rows).sort((a, b) => (rkVal(a, RK2.sort) - rkVal(b, RK2.sort)) * RK2.dir), tot = rkSum(list), cur = list.length && list.every(r => r.cur === list[0].cur) ? list[0].cur : "";
   const caps = [...new Set(list.map(r => r.cap).filter(Boolean))], cap1 = caps.length === 1 ? caps[0] : 0;
   const head = `<tr><th>${L("Назва","Название")}</th><th>${L("Воронка","Воронка")}</th>${RK_COLS().map(([k, t]) => `<th class="n"><button type="button" class="sortb" data-act="rkSort" data-v="${k}" aria-pressed="${RK2.sort === k}">${t}${RK2.sort === k ? (RK2.dir < 0 ? " ↓" : " ↑") : ""}</button></th>`).join("")}</tr>`;
