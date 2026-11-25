@@ -67,7 +67,8 @@ const csvN = v => typeof v === "number" ? String(Math.round(v * 100) / 100).repl
 function rkRows(){ const out = []; let loading = false;
   pfProjs().filter(prOn).forEach(p => { prLoad(p); const x = prOf(p); if (!x.cur) { if (!x.err) loading = true; return; }
     x.cur.forEach(r => { const fid = fxFunnel(p, r), f = p.funnels.find(z => z.id === fid), sb2 = x.sb[fxKey(r.name)] || {}, acc = x.am ? prAccOf(x, r.id, r.prov) : "";
-      out.push(Object.assign({p, x, f, fid, acc, accName:acc ? prAccName(p, acc, r.prov) : "", cap:f ? prT(f, p) : 0, cur:prCur(p), book:sb2.book || 0, pay:sb2.pay || 0, rev:sb2.rev || 0}, r)); }); });
+      /* строка из базы несёт пустое поле f (funnel_id) — кладём её первой, чтобы не затереть найденную воронку (QA 24.11) */
+      out.push(Object.assign({}, r, {p, x, f, fid, acc, accName:acc ? prAccName(p, acc, r.prov) : "", cap:f ? prT(f, p) : 0, cur:prCur(p), book:sb2.book || 0, pay:sb2.pay || 0, rev:sb2.rev || 0})); }); });
   return {rows:out, loading}; }
 const rkSum = a => a.reduce((s, r) => { ["spend", "imp", "clicks", "leads", "book", "pay", "rev"].forEach(k => { s[k] += r[k] || 0; }); return s; }, {spend:0, imp:0, clicks:0, leads:0, book:0, pay:0, rev:0});
 const RK_COLS = () => [["spend", L("Витрати","Расход")], ["imp", L("Покази","Показы")], ["clicks", L("Кліки","Клики")], ["ctr", "CTR"], ["leads", L("Ліди","Лиды")], ["cpl", L("Ціна ліда","Цена лида")], ["book", L("Бронювання","Брони")], ["pay", L("Оплати","Оплаты")], ["rev", L("Виручка","Выручка")], ["roas", "ROAS"]];
