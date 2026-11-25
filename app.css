@@ -1416,6 +1416,7 @@ td:first-child{font:600 var(--t-body)/1.3 var(--font-ui)}
 .plc__h{display:flex;justify-content:space-between;align-items:baseline;gap:var(--s-3)}
 .plc__h b{font:700 16px/1.3 var(--font-ui)}
 .plc__h time{font-size:var(--t-small);color:var(--muted);white-space:nowrap}
+.plc__h .plc__at{margin-left:auto}
 .plc__t{margin:0;color:var(--muted);font-size:var(--t-data);line-height:1.45;max-width:680px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 /* путь объекта: кампания › группа › объявление */
 .plpath{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s-1) var(--s-2)}
