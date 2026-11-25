@@ -84,9 +84,12 @@ async function cloudOpen(id){
   cloudLibLoad(id);
 }
 /* общая библиотека платформы: одобренные находки других компаний (пока — пути продажи). Таблицы может ещё не быть — тогда молча пусто. */
-async function cloudLibLoad(coId){ try { const l = await sb.from("library").select("id,title,body,company_id").eq("kind", "sale_path").eq("status", "approved");
+/* QA 16 (26.11): таблицы library в базе нет — каждый вход давал 404. Обмен находками между компаниями — только после защиты данных
+   (platform-security-before-launch), поэтому выключено флагом, а не создана таблица. */
+const LIB_ON = false;
+async function cloudLibLoad(coId){ if (!LIB_ON) return; try { const l = await sb.from("library").select("id,title,body,company_id").eq("kind", "sale_path").eq("status", "approved");
     if (l.error) return; CL.lib = (l.data || []).filter(r => r.company_id !== coId).map(r => ({id:"l_" + r.id, name:r.title, steps:(r.body || {}).steps || ""})).filter(x => x.steps); } catch (e) {} }
-function cloudLibAdd(kind, x){ try { if (!sb || !W.co || !W.co.id) return; Promise.resolve(sb.from("library").insert({kind, title:x.name, body:{steps:x.steps}, company_id:W.co.id})).then(() => {}, () => {}); } catch (e) {} }
+function cloudLibAdd(kind, x){ if (!LIB_ON) return; try { if (!sb || !W.co || !W.co.id) return; Promise.resolve(sb.from("library").insert({kind, title:x.name, body:{steps:x.steps}, company_id:W.co.id})).then(() => {}, () => {}); } catch (e) {} }
 function cloudQueue(){ if (!sb || !W.user || !W.co || !W.co.id) return; CL.state = "dirty"; cloudBadge(); clearTimeout(CL.timer); clearTimeout(CL.retry); CL.timer = setTimeout(cloudSync, 900); }
 async function cloudSync(){
   if (!sb || !W.user || !W.co || !W.co.id) return;   /* вышли или сменили компанию, пока ждали */

@@ -211,7 +211,7 @@ async function tsCreate(k, text){ const s = tsScope(k), p = s && W.projs.find(x 
 function tsDupSt(p, x){ if (!x.sched) return null; const st = typeof PL !== "undefined" && PL.st[p.id], row = st && st.ok ? (st.log || []).find(r => r.id === x.sched) : null;
   if (!row) return {k:"mute", t:L("Передано Хіро","Передано Хиро")};
   const y = row.payload || {}, dd = row.exec_on ? tsDM(row.exec_on) : "", hm = typeof plPrepHm === "function" ? plPrepHm(y) : "01:00";
-  if (row.status === "fail") return {k:"crit", t:L("Не вийшло: ","Не получилось: ") + (row.result || ""), fail:1};
+  if (row.status === "fail") return {k:"crit", t:L("Не вийшло: ","Не получилось: ") + (typeof plMetaErr === "function" ? plMetaErr(row.result) : row.result || ""), fail:1};
   if (row.status === "done") return {k:"good", t:L("Запущено","Запущено") + (y.geo === "world" ? L(" · країни з оплатами"," · страны с оплатами") : "")};
   if (row.status === "canceled" || row.status === "dismissed" || row.status === "no") return {k:"mute", t:L("Прибрано з графіка","Убрано из графика"), fail:1};
   if (row.status === "scheduled" && y.prep && y.prep.nid) return {k:"good", t:L("Створено, стартує сама · ","Создано, стартует сама · ") + dd + L(" о "," в ") + hm + "", url:typeof plPrepUrl === "function" ? plPrepUrl(y) : ""};

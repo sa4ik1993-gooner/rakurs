@@ -146,7 +146,7 @@ function plRow(p, x, dis, top){ const pay = x.payload || {}, rep = x.kind === "r
     : isNew ? `<div class="row plbtn"><button type="button" class="btn btn--sm ${top ? "btn--main" : "btn--solid"}" data-act="${plOff(pay) ? "plOffNow" : "plDecide"}" data-p="${p.id}" data-id="${x.id}" data-v="y"${dis}>${plBtn(o.op, pay)}</button><button type="button" class="btn btn--sm plwhy" data-act="plWhy" data-p="${p.id}" data-id="${x.id}">${L("Чому так","Почему так")}</button>${dis ? "" : uxMore(`<button type="button" data-act="plDecide" data-p="${p.id}" data-id="${x.id}" data-v="n">${L("Запропонуй інше","Предложи другое")}</button><button type="button" data-act="plDecide" data-p="${p.id}" data-id="${x.id}" data-v="x">${L("Прибрати","Убрать")}</button>`)}</div>`
     : x.status === "scheduled" ? `<div class="row plbtn">${plOff(pay) ? `<button type="button" class="btn btn--sm btn--solid" data-act="plOffNow" data-p="${p.id}" data-id="${x.id}"${dis}>${L("Вимкнути зараз","Выключить сейчас")}</button>` : `<span class="st st--pause">${pay.prep && pay.prep.nid ? L("Готово · стартує о ","Готово · стартует в ") + plPrepHm(pay) + " " : L("Зроблю вночі ","Сделаю ночью ")}<span class="mono">${day}</span></span>`}<button type="button" class="btn btn--sm btn--text" data-act="plDecide" data-p="${p.id}" data-id="${x.id}" data-v="c"${dis}>${L("Прибрати з графіка","Убрать из графика")}</button></div>`
     : x.status === "done" ? `<span class="st ${x.result === "watch" ? "st--on" : "st--fix"}">${x.result === "watch" ? L("Залишив, стежу","Оставил, слежу") : L("Виправив автопілот","Исправил автопилот")}</span>`
-    : x.status === "fail" ? `<span class="st st--err">${L("Не вийшло: ","Не получилось: ")}${esc(x.result || "")}</span>`
+    : x.status === "fail" ? `<span class="st st--err" title="${esc(x.result || "")}">${L("Не вийшло: ","Не получилось: ")}${esc(plMetaErr(x.result))}</span>`
     : `<span class="st">${{yes:L("Ти погодив","Ты согласовал"), canceled:L("Прибрано з графіка","Убрано из графика"), no:L("Ти відхилив","Ты отклонил"), expired:L("Без відповіді, застаріло","Без ответа, устарело"), dismissed:L("Прибрано","Убрано"), outdated:L("Хіро зняв: пропозиція застаріла","Хиро снял: предложение устарело")}[x.status] || esc(x.status)}${x.decided_by && x.status !== "outdated" ? " · " + esc(x.decided_by) : ""}</span>${x.status === "outdated" && x.result && plIsUk(x.result) === (lang === "uk") ? `<p class="plc__t">${esc(x.result)}</p>` : ""}`;
   const lead = top ? hava("stop", 40) : `<span class="plc__a">${ico(act[1])}</span>`;
   return `<li class="plc plc--${act[0]}${top ? " plc--top" : ""}"${isNew ? ' data-st="new"' : ""}${x.kind === "reco" ? ` data-open="plWhy" data-p="${p.id}" data-id="${x.id}"` : ""}>${lead}<div class="plc__m">${top ? `<span class="heytag">${L("Hey! Найважливіше","Hey! Самое важное")}</span>` : ""}
@@ -600,6 +600,17 @@ function plScaleRow(p, c){ const o = TS.off[p.id] || {}, m = v => plMoney(v);
     <div class="plf2"><div><span>${L("Лід за 7 днів","Лид за 7 дней")}</span><b>${m(c.c7)}</b></div><div><span>${L("Гранична ціна","Потолок лида")}</span><b>${m(c.cap)}</b></div><div><span>${L("Бюджет на день","Бюджет в день")}</span><b>${m(c.day)} → ${m(c.day * 1.15)}</b></div></div>
     <p class="plc__t">${L("Лід дешевший за граничну ціну, останні 3 дні стабільно (","Лид дешевле потолка, последние 3 дня стабильно (")}${m(c.c3)}).</p>
     <div class="row plbtn"><button type="button" class="btn btn--sm btn--solid" data-act="ofYes" data-p="${p.id}" data-id="${esc(c.id)}">${L("Так","Да")}</button>${uxMore(`<button type="button" data-act="ofNo" data-id="${esc(c.id)}">${L("Ні, не пропонувати 7 днів","Нет, не предлагать 7 дней")}</button>`)}</div></div></li>`; }
+/* ошибки Meta — коротко, на языке экрана и с тем, что делать (QA 11, 26.11). Сырой текст Meta — в подсказке. */
+function plMetaErr(raw){ const t = String(raw || ""), m = [
+    [/видален|deleted|удален/i, L("групу вже видалено в Meta — змінити її не можна, лише створити нову","группа уже удалена в Meta — изменить ее нельзя, только создать новую")],
+    [/час початку|start.?time|время начала/i, L("показ уже почався — час старту не змінити; копія працює, перевір її в Ads Manager","показ уже начался — время старта не изменить; копия работает, проверь ее в Ads Manager")],
+    [/регулю|regulated|тайван|taiwan/i, L("у списку є країни з особливими правилами Meta (напр., Тайвань) — прибери їх або обери «Як у групі»","в списке есть страны с особыми правилами Meta (напр., Тайвань) — убери их или выбери «Как в группе»")],
+    [/#613|rate limit|забагато|слишком много/i, L("Meta тимчасово обмежила запити — Хіро повторить пізніше","Meta временно ограничила запросы — Хиро повторит позже")],
+    [/скопіювати оголошення|copy.*ad|скопировать объявлени/i, L("не вдалося скопіювати оголошення — перевір, що вони активні й пройшли модерацію","не удалось скопировать объявления — проверь, что они активны и прошли модерацию")],
+    [/бюджет уже змінено|budget.*changed/i, L("бюджет уже змінили вручну — Хіро не перезаписує","бюджет уже изменили вручную — Хиро не перезаписывает")],
+    [/крок більший/i, L("зміна бюджету завелика за раз — не більше +20%","изменение бюджета слишком большое за раз — не больше +20%")],
+    [/token|токен|permission|дозвол|доступ/i, L("немає доступу до кабінету — перевір підключення Meta","нет доступа к кабинету — проверь подключение Meta")]].find(z => z[0].test(t));
+  return m ? m[1] : L("Meta відхилила зміну","Meta отклонила изменение"); }
 function plPanel(p){ if (!CLOUD) return "";
   const r = PL.st[p.id]; if (r === undefined && !PL.busy[p.id]) setTimeout(() => plLoad(p), 0);
   const head = t => `<div class="row sp"><h2>${t}</h2>`;
@@ -624,9 +635,13 @@ function plPanel(p){ if (!CLOUD) return "";
   let list = log.filter(x => tab === "arc" ? inArc(x) : tabOf(x) === tab);
   if (tab === "new") list = list.slice().sort((a, b) => plSaveOf(p, b) - plSaveOf(p, a) || (b.at > a.at ? 1 : -1));
   else if (tab === "arc") list = list.slice().sort((a, b) => b.at > a.at ? 1 : -1);
-  const topId = tab === "new" && list[0] && plSaveOf(p, list[0]) ? list[0].id : null, rows = list.map(x => plRow(p, x, dis, x.id === topId)).join("");
+  const topId = tab === "new" && list[0] && plSaveOf(p, list[0]) ? list[0].id : null;
+  /* QA 10 (26.11): у «Зроблено» удачи и неудачи раздельно — неудачи отдельной группой «Не вийшло · N», счётчик красным */
+  const nFail = log.filter(x => x.status === "fail").length;
+  const rows = tab === "done" ? list.filter(x => x.status !== "fail").map(x => plRow(p, x, dis, false)).join("") + (nFail ? `<li class="plsub plsub--bad">${L("Не вийшло · ","Не получилось · ")}${nFail}</li>` + list.filter(x => x.status === "fail").map(x => plRow(p, x, dis, false)).join("") : "")
+    : list.map(x => plRow(p, x, dis, x.id === topId)).join("");
   const nNew = (cnt.new || 0) + nHyp + scale.length;
-  const tabs = any ? `<div class="seg pltabs" role="tablist">${TABS.map(t => `<button type="button" role="tab" data-act="plTab" data-p="${p.id}" data-v="${t[0]}" aria-pressed="${tab === t[0]}">${t[1]}${t[0] === "new" && nNew ? ` <span class="plcnt">${nNew}</span>` : ""}</button>`).join("")}</div>` : "";
+  const tabs = any ? `<div class="seg pltabs" role="tablist">${TABS.map(t => `<button type="button" role="tab" data-act="plTab" data-p="${p.id}" data-v="${t[0]}" aria-pressed="${tab === t[0]}">${t[1]}${t[0] === "new" && nNew ? ` <span class="plcnt">${nNew}</span>` : t[0] === "done" && nFail ? ` <span class="plcnt plcnt--bad" title="${L("Не вийшло","Не получилось")}">${nFail}</span>` : ""}</button>`).join("")}</div>` : "";
   const arcN = {later:nLater, no:cnt.no || 0, old:cnt.old || 0, rep:cnt.rep || 0}; arcN.all = arcN.later + arcN.no + arcN.old + arcN.rep;
   const arcBar = tab === "arc" ? `<div class="seg plarc" role="group" aria-label="${L("Що показати в архіві","Что показать в архиве")}">${ARC.map(a => `<button type="button" data-act="plArc" data-p="${p.id}" data-v="${a[0]}" aria-pressed="${arc === a[0]}">${a[1]}${arcN[a[0]] ? ` <span class="plcnt plcnt--mute">${arcN[a[0]]}</span>` : ""}</button>`).join("")}</div>` : "";
   const none = tab === "arc" ? {all:L("В архіві порожньо.","В архиве пусто."), later:L("Відкладених ідей немає. Відкладене зберігається 5 днів.","Отложенных идей нет. Отложенное хранится 5 дней."), no:L("Відхилених немає.","Отклоненных нет."), old:L("Застарілих пропозицій немає.","Устаревших предложений нет."), rep:L("Звітів ще немає.","Отчетов еще нет.")}[arc]
