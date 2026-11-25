@@ -1640,3 +1640,38 @@ td:first-child{font:600 var(--t-body)/1.3 var(--font-ui)}
 .plz__r .ck{flex:1 1 180px;min-width:0}
 .plz__t{display:flex;align-items:center;gap:6px}
 .plz__t .tin{width:90px;min-height:34px}
+/* ---------- график динамики (trend.js, 25.11.2026) ---------- */
+.trm{flex:1 1 260px;min-width:0;max-width:340px;margin-left:auto;display:flex;flex-direction:column;gap:var(--s-1)}
+.trm .row{gap:var(--s-2);align-items:center}
+.trm__h{font:600 var(--t-small)/1.2 var(--font-ui);color:var(--signal)}
+.trm__sk{height:64px;border-radius:var(--r-control);background:var(--line);opacity:.5}
+.trm__sk--big{height:260px}
+.tr__svg{display:block;width:100%;height:260px;overflow:visible}
+.tr__svg--mini{height:64px}
+.tr__hz{fill:var(--signal);opacity:.07}
+.tr__hl{stroke:var(--signal);stroke-width:1.5;stroke-dasharray:4 3}
+.tr__ht{fill:var(--signal);font:700 11px var(--font-ui)}
+.tr__gl{stroke:var(--line);stroke-width:1}
+.tr__yl{fill:var(--muted);font:11px var(--font-ui);text-anchor:end}
+.tr__xl{fill:var(--muted);font:11px var(--font-ui);text-anchor:middle}
+.tr__tg{stroke:var(--plus);stroke-width:1.2;stroke-dasharray:6 4}
+.tr__tt{fill:var(--plus);font:600 11px var(--font-ui);text-anchor:end}
+.tr__ln{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.tr__pt{fill:var(--ink)}.tr__pt.is-h{fill:var(--signal)}
+.tr__bar{fill:var(--line-strong)}.tr__bar.is-h{fill:var(--signal)}
+.modal:has(.trw){width:min(920px,calc(100% - 32px))}
+.trw{display:flex;flex-direction:column;gap:var(--s-3);min-width:0}
+.trw h2{margin:0}
+.trw__c{flex-wrap:wrap;gap:var(--s-2)}
+.trw__k{display:flex;flex-wrap:wrap;gap:var(--s-2) var(--s-6)}
+.trw__k div{display:flex;flex-direction:column;gap:2px}
+.trw__k span{font-size:var(--t-small);color:var(--muted)}
+.trw__k b{font:700 20px/1.2 var(--font-ui);font-variant-numeric:tabular-nums}
+.trw__k b.is-good{color:var(--plus)}.trw__k b.is-bad{color:var(--minus)}
+.trw__t{max-height:280px;overflow:auto;border:1px solid var(--line);border-radius:var(--r-control)}
+.trw__t table{width:100%;border-collapse:collapse;font:var(--t-data) var(--font-ui);font-variant-numeric:tabular-nums}
+.trw__t th,.trw__t td{padding:var(--s-1) var(--s-3);text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+.trw__t th:first-child,.trw__t td:first-child{text-align:left}
+.trw__t th{position:sticky;top:0;background:var(--surface);color:var(--muted);font-weight:600}
+.trw__t tr.is-h td:first-child{box-shadow:inset 3px 0 0 var(--signal)}
+@media (max-width:700px){.trm{max-width:none;margin-left:0}.tr__svg{height:200px}}
