@@ -10,13 +10,16 @@ const rsBase = n => String(n || "").normalize("NFC").replace(/_gtv\d*$/i, "").re
 function rsTh(){ const o = Object.assign({}, RS_DEF), c = ((W.co || {}).set || {}).rs || {};
   Object.keys(RS_DEF).forEach(k => { const n = parseFloat(String(c[k] == null ? "" : c[k]).replace(",", ".")); if (n > 0) o[k] = n; }); return o; }
 /* поля порогов исследования для «Настроек» компании */
-function rsSetPanel(adm){ const v = ((W.co || {}).set || {}).rs || {}, row = (k, label, unit, tip) => `<div class="field"><label for="rs-${k}">${label} ${hint(tip)}</label><div class="row row--u"><input id="rs-${k}" class="tin" data-w="co.set.rs.${k}" value="${esc(String(v[k] == null ? "" : v[k]))}" placeholder="${RS_DEF[k]}" inputmode="decimal"${adm ? "" : " disabled"}><span class="sub mono">${unit}</span></div></div>`;
-  return `<div class="panel"><span class="tag">${L("Дослідження воронки","Исследование воронки")} ${hint(L("Пороги вигорання й сміттєвих креативів. Порожнє поле — наше значення за замовчуванням.","Пороги выгорания и мусорных креативов. Пустое поле — наше значение по умолчанию."))}</span><div class="form">
+function rsSetPanel(adm){
+  return `<div class="panel"><span class="tag">${L("Дослідження воронки","Исследование воронки")} ${hint(L("Пороги вигорання й сміттєвих креативів. Порожнє поле — наше значення за замовчуванням.","Пороги выгорания и мусорных креативов. Пустое поле — наше значение по умолчанию."))}</span>${rsSetFields(adm)}</div>`; }
+/* поля порогов без рамки панели — для боковой панели «Налаштувати автопілот» (пакет B, шаг 5) */
+function rsSetFields(adm){ const v = ((W.co || {}).set || {}).rs || {}, row = (k, label, unit, tip) => `<div class="field"><label for="rs-${k}">${label} ${hint(tip)}</label><div class="row row--u"><input id="rs-${k}" class="tin" data-w="co.set.rs.${k}" value="${esc(String(v[k] == null ? "" : v[k]))}" placeholder="${RS_DEF[k]}" inputmode="decimal"${adm ? "" : " disabled"}><span class="sub mono">${unit}</span></div></div>`;
+  return `<div class="form">
     ${row("cplUp", L("Вигорання: ціна ліда дорожча на","Выгорание: цена лида дороже на"), "%", L("Порівняно з найкращим із трьох попередніх вікон по 28 днів.","По сравнению с лучшим из трех предыдущих окон по 28 дней."))}
     ${row("payDown", L("Вигорання: частка оплат нижча на","Выгорание: доля оплат ниже на"), "%", L("Оплати від лідів у вікні 29–56 днів тому проти найкращого з ранніх вікон.","Оплаты от лидов в окне 29–56 дней назад против лучшего из ранних окон."))}
     ${row("trashRate", L("Сміттєвий: бронювань і оплат від лідів менше ніж","Мусорный: броней и оплат от лидов меньше чем"), "%", L("Від середнього по воронці, якщо лід дешевший за медіану.","От среднего по воронке, если лид дешевле медианы."))}
     ${row("minLeads", L("Мінімум лідів у вікні","Минимум лидов в окне"), L("лідів","лидов"), L("Менше — «мало даних».","Меньше — «мало данных»."))}
-    ${row("minCrLeads", L("Мінімум лідів на креатив","Минимум лидов на креатив"), L("лідів","лидов"), L("Менше — креатив не оцінюється.","Меньше — креатив не оценивается."))}</div></div>`; }
+    ${row("minCrLeads", L("Мінімум лідів на креатив","Минимум лидов на креатив"), L("лідів","лидов"), L("Менше — креатив не оцінюється.","Меньше — креатив не оценивается."))}</div>`; }
 
 async function rsRun(p, f){ if (!prOn(p) || RS.busy[f.id]) return; RS.busy[f.id] = true; RS.err[f.id] = ""; render();
   try {

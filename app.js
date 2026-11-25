@@ -541,7 +541,7 @@ const ACT = {
   closeOverlay(){ S.cr = null; S.launch = null; S.modal = null; S.trim = null; UXC = null; },
   uxAsk(d){ const f = UX_ASK[d.ask]; UXC = f ? f(d) : null; if (UXC) UXC.d = Object.assign({}, d); },
   uxNo(){ UXC = null; },
-  uxGo(){ const c = UXC; UXC = null; if (!c) return; if (c.arm && typeof delAsk === "function") delAsk(c.arm); const f = ACT[c.act]; return f ? f(Object.assign({}, c.d, c.data || {})) : undefined; },
+  uxGo(){ const c = UXC; UXC = null; if (!c) return; if (c.arm && typeof delAsk === "function") delAsk(c.arm); if (c.pre) c.pre(); const f = ACT[c.act]; return f ? f(Object.assign({}, c.d, c.data || {})) : undefined; },
   trim(){ const f = S.fam.find(x=>x.id===S.cr); S.trim = {i:0};
     const iv = setInterval(() => { S.trim.i++; if (S.trim.i >= 4) { clearInterval(iv);
         const bound = PHR.reduce((b,p)=>Math.abs(p-f.drop)<Math.abs(b-f.drop)?p:b, PHR[0]);

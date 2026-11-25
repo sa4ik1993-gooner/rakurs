@@ -664,7 +664,10 @@ function plSetHTML(p){ const r = PL.st[p.id], e = PL.edit[p.id]; if (!r || !r.ok
       ${sec(L("Як я працюю","Как я работаю"), mode, modeH)}
       ${sec(L("Воронки й ціна ліда","Воронки и цена лида"), zones, L("Хіро веде лише відмічені воронки. «Лід до» — норма: дорожче — шукаю причину й пропоную, що змінити. «Кампанії» — які кампанії належать до воронки.","Хиро ведет только отмеченные воронки. «Лид до» — норма: дороже — ищу причину и предлагаю, что изменить. «Кампании» — какие кампании относятся к воронке."))}
       ${sec(L("Рекламні акаунти","Рекламные аккаунты"), accOpts, L("У яких акаунтах Meta Хіро стежить за рекламою й може щось змінювати.","В каких аккаунтах Meta Хиро следит за рекламой и может что-то менять."))}
-      ${sec(L("Сповіщення","Оповещения"), tg, L("Куди Хіро пише пропозиції з кнопками «Так / Ні», тривоги та ранковий звіт по цьому проєкту. Можна додати груповий чат команди.","Куда Хиро пишет предложения с кнопками «Да / Нет», тревоги и утренний отчет по этому проекту. Можно добавить групповой чат команды."))}</div>
+      ${sec(L("Сповіщення","Оповещения"), tg, L("Куди Хіро пише пропозиції з кнопками «Так / Ні», тривоги та ранковий звіт по цьому проєкту. Можна додати груповий чат команди.","Куда Хиро пишет предложения с кнопками «Да / Нет», тревоги и утренний отчет по этому проекту. Можно добавить групповой чат команды."))}
+      ${typeof coThrFields === "function" ? `<details class="pls__s pls__fold"${PL.thrOpen ? " open" : ""}><summary><h3 class="pls__h">${L("Пороги висновків","Пороги выводов")}</h3><span class="sub">${L("для всіх проєктів · зберігається одразу","для всех проектов · сохраняется сразу")}</span>${ico("chevron")}</summary>
+        <div class="pls__fb"><p class="sub">${L("Коли Хіро пише «лід подорожчав», «CTR падає», «вигорання» й «сміттєвий креатив». Порожнє поле — значення за замовчуванням.","Когда Хиро пишет «лид подорожал», «CTR падает», «выгорание» и «мусорный креатив». Пустое поле — значение по умолчанию.")}</p>
+        <div class="form">${coThrFields(canAdmin())}</div>${typeof rsSetFields === "function" ? `<h4 class="pls__h">${L("Дослідження воронки","Исследование воронки")}</h4>${rsSetFields(canAdmin())}` : ""}</div></details>` : ""}</div>
     <div class="pls__foot">${PL.msg[p.id] ? `<span class="sub" role="status">${PL.msg[p.id]}</span>` : ""}<button type="button" class="btn btn--main" data-act="plSave" data-p="${p.id}"${dis}>${L("Зберегти","Сохранить")}</button></div></div>`; }
 { const ov0 = overlay; overlay = function(){ if (PL.set) { const p = W.projs.find(x => x.id === PL.set), h = p && plSetHTML(p); if (h) return ["drawer", h]; } return ov0(); }; }
 { const cl0 = ACT.closeOverlay; ACT.closeOverlay = function(){ PL.set = ""; return cl0.apply(this, arguments); }; }
@@ -741,3 +744,5 @@ document.addEventListener("click", e => { if (e.target.closest("[data-act],a,but
   const d = li.dataset, f = ACT[d.open]; if (!f) return; f({v:d.ov, p:d.p, f:d.f, i:d.i, id:d.id}); render(); });
 /* решение из окна закрывает окно (лента перечитывается с сервера) — логика plDecide / plOffNow та же */
 ["plDecide", "plOffNow"].forEach(k => { const f0 = ACT[k]; if (f0) ACT[k] = function(d){ if (PL.why && String(PL.why.id) === String(d.id)) PL.why = null; return f0.apply(this, arguments); }; });
+/* секция «Пороги висновків» помнит, открыта ли она: панель перерисовывается целиком */
+document.addEventListener("toggle", e => { if (e.target.classList && e.target.classList.contains("pls__fold")) PL.thrOpen = e.target.open; }, true);
