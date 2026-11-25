@@ -104,11 +104,12 @@ function hiroSay(scr){
     if (wait.length) { HIRO_W.t0 = HIRO_W.t0 || Date.now(); if (Date.now() - HIRO_W.t0 < 8000) { if (!HIRO_W.tm) HIRO_W.tm = setTimeout(() => { HIRO_W.tm = 0; render(); }, 8100);
       out.pose = "work"; out.title = L("Збираю цифри з Meta…","Собираю цифры из Meta…"); out.text = L("Це займе кілька секунд.","Это займет несколько секунд."); out.load = true; return out; } } }
   const m = n => prM(n, e.cur), per = prLabel(prRange());
-  out.keys = [[L("Витрати · ","Расход · ") + per, m(e.s.spend)], [L("Ліди","Лиды"), num(e.s.leads)], [L("Ціна ліда","Цена лида"), e.cpl ? m(e.cpl) : "—", e.cap && e.cpl > e.cap]];
+  /* на «Сьогодні» цифры дня — один раз, в пульсе (пакет B, 25.11.2026); в панели Хиро — только событие */
+  out.keys = scr === "today" ? [] : [[L("Витрати · ","Расход · ") + per, m(e.s.spend)], [L("Ліди","Лиды"), num(e.s.leads)], [L("Ціна ліда","Цена лида"), e.cpl ? m(e.cpl) : "—", e.cap && e.cpl > e.cap]];
   const paused = hiroPausedOf(e.ps);
   if (e.bad.length) { const n = e.bad.length, b = e.bad[0];
     out.pose = "stop"; out.title = plural(n, L("кампанія дорожча за граничну ціну","кампания дороже потолка"), L("кампанії дорожчі за граничну ціну","кампании дороже потолка"), L("кампаній дорожчі за граничну ціну","кампаний дороже потолка"));
-    out.text = (e.cpl ? L("Ціна ліда ","Цена лида ") + m(e.cpl) + (e.cap ? L(" за граничної ціни "," при потолке ") + m(e.cap) : "") + ". " : "") + L("Найбільше витрачає ","Больше всех тратит ") + b.o.name + (b.cpl ? L(": лід за ",": лид по ") + m(b.cpl) : L(": лідів немає",": лидов нет")) + ".";
+    out.text = (scr === "today" ? (e.cap ? L("Гранична ціна ліда ","Потолок лида ") + m(e.cap) + ". " : "") : e.cpl ? L("Ціна ліда ","Цена лида ") + m(e.cpl) + (e.cap ? L(" за граничної ціни "," при потолке ") + m(e.cap) : "") + ". " : "") + L("Найбільше витрачає ","Больше всех тратит ") + b.o.name + (b.cpl ? L(": лід за ",": лид по ") + m(b.cpl) : L(": лідів немає",": лидов нет")) + ".";
     /* на «Сегодня» решение раскрывается тут же, в списке ниже, без перехода на карту */
     out.main = scr === "today" ? hiroBtn("btn--main", L("Відкрити рішення","Открыть решение"), `data-act="tdOpen" data-k="${esc(hiroKey(b))}"`) : hiroBtn("btn--main", L("Відкрити рішення","Открыть решения"), 'data-act="wsCtab" data-v="today"');
     out.sec = scr === "today" ? "" : scr === "map" ? hiroBtn("btn--glass", L("Показати кампанію","Показать кампанию"), `data-act="prGo" data-k="${esc(hiroKey(b))}"`) : hiroBtn("btn--glass", L("Показати на карті","Показать на карте"), `data-act="prGo" data-k="${esc(hiroKey(b))}"`);
@@ -139,16 +140,14 @@ function hiroSay(scr){
 /* панель Хиро: тёмный градиент, светящаяся линия, Hey-плашка, заголовок, фраза, кнопки, цифры, Хиро в полный рост */
 function hiroPanel(scr){ if (!W.user || !W.co) return "";
   const h = hiroSay(scr);
-  const keys = h.load ? `<dl class="hp__k">${[0, 1, 2].map(() => '<div><dt><span class="skr skr--d"></span></dt><dd><span class="skr skr--d"></span></dd></div>').join("")}</dl>`
+  const keys = h.load && scr !== "today" ? `<dl class="hp__k">${[0, 1, 2].map(() => '<div><dt><span class="skr skr--d"></span></dt><dd><span class="skr skr--d"></span></dd></div>').join("")}</dl>`
     : h.keys.length ? `<dl class="hp__k">${h.keys.map(k => `<div><dt>${k[0]}</dt><dd${k[2] ? ' class="hot"' : ""}>${k[1]}</dd></div>`).join("")}</dl>` : "";
   return `<section class="hp" aria-label="${L("Хіро: головне зараз","Хиро: главное сейчас")}"><div class="hp__t"><span class="heytag">Hey!</span><h2>${esc(h.title)}</h2>${h.text ? `<p>${esc(h.text)}</p>` : ""}${h.main || h.sec ? `<div class="row">${h.main || ""}${h.sec || ""}</div>` : ""}</div>${keys}<img class="hp__h" src="ui/hiro3d/${h.pose}.webp" alt="" width="210" height="250"></section>`; }
 
 /* карточка Хиро внизу меню */
-function hiroRail(){ if (!W.user || !W.co) return ""; const e = hiroEv(null);
-  /* B1: «Сьогодні» — только когда выбран период «сьогодні»; иначе — период с датами */
-  const per = typeof PR !== "undefined" && PR.mode === "t" ? L("Сьогодні ","Сегодня ") : L("За ","За ") + prLabel(prRange()) + ": ";
-  const t = e && e.s && e.s.leads ? per + plural(e.s.leads, L("лід","лид"), L("ліди","лида"), L("лідів","лидов")) + L(" за "," по ") + prM(e.cpl, e.cur) + L(". Спитай мене, що покращити.",". Спроси меня, что улучшить.")
-    : L("Я стежу за рекламою щогодини. Спитай мене, що покращити.","Я слежу за рекламой каждый час. Спроси меня, что улучшить.");
+function hiroRail(){ if (!W.user || !W.co) return "";
+  /* без цифр дня: они один раз — в пульсе на «Сьогодні» (пакет B, 25.11.2026) */
+  const t = L("Я стежу за рекламою щогодини. Спитай мене, що покращити.","Я слежу за рекламой каждый час. Спроси меня, что улучшить.");
   return `<div class="hrail"><img src="ui/hiro3d/hey.webp" alt="" width="132" height="150"><b>Hey!</b><span>${esc(t)}</span><button type="button" class="btn btn--glass btn--sm" data-act="hiroAsk">${L("Спитати Хіро","Спросить Хиро")}</button></div>`; }
 
 /* плавающая кнопка «Хіро на зв’язку» */

@@ -1765,3 +1765,87 @@ td:first-child{font:600 var(--t-body)/1.3 var(--font-ui)}
 .tsc__d[open]>summary{color:var(--ink)}
 .tss__n{color:var(--muted);font-weight:600;white-space:nowrap;margin-right:4px}
 .tsold{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s-2);margin:var(--s-2) 0;padding:8px 12px;border-radius:var(--r-control);background:var(--track);font-size:var(--t-data)}
+
+/* ===================== Пакет B (25.11.2026): окно-компонент и меню «⋯» из ux-v3 (heyrow-ui/UX.md, разделы 4–5) ===================== */
+.modal:has(> .uxw){padding:0;gap:0;overflow:hidden;border:0;border-radius:var(--r-hero);box-shadow:var(--pop);max-height:calc(100dvh - 48px);width:min(560px,calc(100% - 32px));background:var(--surface)}
+.modal:has(> .uxw--read){width:min(720px,calc(100% - 32px))}
+.modal:has(> .uxw--wide){width:min(920px,calc(100% - 32px))}
+.uxw{display:flex;flex-direction:column;min-height:0;flex:1 1 auto;background:var(--surface);color:var(--ink)}
+.uxw__h{flex:none;display:flex;align-items:flex-start;gap:var(--s-3);padding:18px 24px 14px;border-bottom:1px solid var(--line);background:var(--surface)}
+.uxw__hd{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.uxw__t{font:500 12px/1.3 var(--font-ui);color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.uxw__ttl{margin:0;font:700 18px/1.25 var(--font-display);letter-spacing:0;text-wrap:balance;overflow-wrap:anywhere}
+.uxw__hx{flex:none;display:flex;gap:6px;align-items:center}
+.uxw__x{width:32px;height:32px;border-radius:50%;border:0;background:var(--track);color:var(--muted);display:grid;place-items:center;cursor:pointer;padding:0;flex:none;--icon-accent:var(--muted);list-style:none}
+.uxw__x::-webkit-details-marker{display:none}
+.uxw__x:hover{background:var(--line);color:var(--ink);--icon-accent:var(--ink)}
+.uxw__x .ic{width:16px;height:16px}
+.uxw__b{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:20px 24px 24px;display:flex;flex-direction:column;gap:var(--s-4)}
+.uxw__b > *{margin-top:0;margin-bottom:0}
+.uxw__b p,.uxw__b li{max-width:560px}
+.uxw__f{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:var(--s-2);padding:12px 24px;border-top:1px solid var(--line);background:color-mix(in srgb,var(--paper) 50%,var(--surface))}
+.uxw__f .uxsp{margin-left:auto}
+.uxw__f .btn{min-height:36px}
+.uxw .btn--risk{border:1px solid var(--minus);color:var(--minus);background:transparent}
+.uxw .btn--risk:hover{background:var(--minus-soft)}
+.uxw .lead-ic{flex:none;margin-top:2px}
+/* меню «⋯» */
+.uxmore{position:relative}
+.uxmore > summary{cursor:pointer}
+.uxmore__m{position:absolute;right:0;top:calc(100% + 6px);z-index:5;min-width:220px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-control);box-shadow:var(--pop);padding:6px;display:flex;flex-direction:column}
+.uxmore__m > *{justify-content:flex-start;text-align:left;width:100%;border:0!important;background:none;min-height:36px;padding:0 10px;border-radius:8px;font:500 var(--t-body) var(--font-ui);color:var(--ink);cursor:pointer;display:flex;align-items:center;gap:8px}
+.uxmore__m > *:hover{background:var(--paper)}
+.uxmore__m .is-risk{color:var(--minus)}
+.uxdone{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:8px 0}
+.uxdone__h{width:120px;height:120px;object-fit:contain}
+.uxdone h3{margin:6px 0 0;font:700 18px/1.3 var(--font-display)}
+.uxdone p{margin:0;color:var(--muted)}
+.uxdone--bad h3{color:var(--minus)}
+.ic--ext{width:14px;height:14px;opacity:.8}
+/* общие блоки тела окна: суть, «подпись → значение», плашки, цифры, раскрытие */
+.uxgist{font:400 15px/1.45 var(--font-ui);margin:0;max-width:560px}
+.uxlab{font:700 10px/1.2 var(--font-display);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+.uxkv{display:grid;margin:0;max-width:560px}
+.uxkv > div{display:flex;justify-content:space-between;align-items:baseline;gap:var(--s-4);padding:8px 0;border-bottom:1px solid var(--line)}
+.uxkv > div:last-child{border-bottom:0}
+.uxkv dt{color:var(--muted);font-size:13px}
+.uxkv dd{margin:0;font:600 14px/1.3 var(--font-ui);text-align:right;font-variant-numeric:tabular-nums}
+.uxkv dd.is-bad{color:var(--minus)}
+.uxrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;font-size:13px}
+.uxrow .sub{font-size:13px}
+.uxnums{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;max-width:560px}
+.uxnums small{display:block;color:var(--muted);font-size:11px;line-height:1.3}
+.uxnums b{font:700 14px/1.3 var(--font-display);font-variant-numeric:tabular-nums}
+.uxnums .is-bad{color:var(--minus)}
+.uxfold{border-top:1px solid var(--line);padding-top:10px}
+.uxfold > summary{display:flex;justify-content:space-between;align-items:center;cursor:pointer;font:600 13px var(--font-ui);list-style:none}
+.uxfold > summary::-webkit-details-marker{display:none}
+.uxfold > summary .ic{width:16px;height:16px;color:var(--signal);transition:transform .15s}
+.uxfold[open] > summary .ic{transform:rotate(180deg)}
+.uxfold__b{display:flex;flex-direction:column;gap:10px;padding-top:10px}
+.uxfold__b ul,.uxfold__b ol{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;max-width:560px}
+.uxfold .uxfold{border-top:0;padding-top:0}
+.uxnote{font-size:12px;line-height:1.4;color:var(--muted);margin:0;max-width:560px}
+.uxbad{background:var(--minus-soft);color:var(--minus);border-radius:12px;padding:10px 12px;font-size:13px;margin:0;max-width:560px}
+.uxok{background:var(--plus-soft);color:var(--plus);border-radius:12px;padding:10px 12px;font-size:13px;margin:0}
+.uxsk{display:block;height:14px;border-radius:7px;background:var(--track);animation:uxsk 1.2s ease-in-out infinite}
+@keyframes uxsk{50%{opacity:.5}}
+@media (prefers-reduced-motion:reduce){.uxsk{animation:none}}
+/* телефон: все три вида — лист снизу на всю ширину, до 92% высоты */
+@media (max-width:640px){
+  .modal:has(> .uxw){left:0;right:0;top:auto;bottom:0;transform:none;width:100%!important;max-height:92dvh;border-radius:var(--r-hero) var(--r-hero) 0 0}
+  .mpop__in:has(> .uxw){height:auto;max-height:92dvh;width:100%;border-radius:var(--r-hero) var(--r-hero) 0 0}
+  .tsm:has(.uxw){align-items:flex-end;padding:0}
+  .tsm__in:has(> .uxw){width:100%;max-height:92dvh;border-radius:var(--r-hero) var(--r-hero) 0 0}
+  .uxw__h{padding:16px 16px 12px}.uxw__b{padding:16px 16px 20px}.uxw__f{padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px))}
+  .uxnums{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+.uxw__f .btn{padding:0 14px;font-size:13px}
+.plc .uxmore{display:inline-block}
+.uxmore__m{max-width:min(300px,calc(100vw - 32px))}
+/* Пакет B, шаг 2: «Сьогодні» — архив ленты фильтром, «⋯» в карточках */
+.plarc{flex-wrap:wrap;max-width:100%;margin:0 0 var(--s-2)}
+.plcnt--mute{background:var(--track);color:var(--muted)}
+.plarc button[aria-pressed="true"] .plcnt--mute{background:rgba(255,255,255,.18);color:inherit}
+.plbtn{align-items:center}
+.plbtn .uxmore > summary{width:30px;height:30px}

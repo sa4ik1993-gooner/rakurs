@@ -308,7 +308,26 @@ const modeName = m => ({adv:L("Радник","Советник"),btn:L("За к�
 function crCard(f){ return `<button type="button" class="cr" data-act="openCr" data-id="${f.id}"><div class="thumb" style="--h:${f.h}"><em>${tc(f.dur)}</em><span>${f.id}_v${f.v}</span></div><div class="row sp">${st(f.st)}<b class="mono">${f.spend?"ROAS "+dec(roas(f)):L("новий","новый")}</b></div><span class="sub mono">${f.v} ${L("версії","версии")} · ${money(f.spend)}</span></button>`; }
 
 /* ---------- оверлеи ---------- */
+/* ---------- окно: один компонент (heyrow-ui/UX.md, разделы 4–5; перенесено из ux-v3 по кускам) ----------
+   kind: "decide" — окно решения 560px; "read" — окно разбора 720px. Шапка: тип, заголовок, «⋯», серый крестик. Подвал — только когда есть действие. */
+function uxWin(o){ const x = `<button type="button" class="uxw__x" ${o.close || 'data-act="closeOverlay"'} aria-label="${L("Закрити","Закрыть")}">${ico("close")}</button>`;
+  return `<div class="uxw uxw--${o.kind || "read"}${o.cls ? " " + o.cls : ""}"><header class="uxw__h">${o.lead || ""}<div class="uxw__hd">${o.type ? `<span class="uxw__t">${o.type}</span>` : ""}<h2 class="uxw__ttl">${o.title || ""}</h2></div><div class="uxw__hx">${o.menu || ""}${x}</div></header>
+    <div class="uxw__b">${o.body || ""}</div>${o.foot ? `<footer class="uxw__f">${o.foot}</footer>` : ""}</div>`; }
+/* меню «⋯»: пункты — готовые кнопки со своими data-act; открывается без JS (details), закрывается щелчком мимо */
+const UX_DOTS = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>';
+const uxMore = (items, label) => items ? `<details class="uxmore"><summary class="uxw__x" aria-label="${label || L("Ще дії","Еще действия")}" title="${label || L("Ще дії","Еще действия")}">${UX_DOTS}</summary><div class="uxmore__m" role="menu">${items}</div></details>` : "";
+/* D8: меню целиком внутри своего окна (боковая панель, окно, экран) — сдвигаем, если вылезает */
+document.addEventListener("toggle", e => { const d = e.target; if (!d.classList || !d.classList.contains("uxmore") || !d.open) return; const m = d.querySelector(".uxmore__m"); if (!m) return; m.style.transform = "";
+  const box = d.closest(".uxw__b, .uxw, .mpop__in, .drawer, .modal"), b = box ? box.getBoundingClientRect() : {left:0, right:innerWidth}, lo = Math.max(8, b.left + 8), hi = Math.min(innerWidth - 8, b.right - 8), r = m.getBoundingClientRect();
+  if (r.left < lo) m.style.transform = "translateX(" + Math.round(lo - r.left) + "px)"; else if (r.right > hi) m.style.transform = "translateX(" + Math.round(hi - r.right) + "px)"; }, true);
+document.addEventListener("click", e => { document.querySelectorAll(".uxmore[open]").forEach(d => { if (!d.contains(e.target) || e.target.closest(".uxmore__m [data-act]")) d.open = false; }); }, true);
+/* подтверждение опасного действия в окне решения (UX.md, раздел 8): что исчезнет и что нельзя вернуть; кнопка выполняет прежний data-act */
+let UXC = null; const UX_ASK = {};
+function uxAskHtml(){ const c = UXC; return uxWin({kind:"decide", type:c.type || L("Підтвердження","Подтверждение"), title:c.title, close:'data-act="uxNo"',
+  body:`<p class="uxgist">${c.text || ""}</p>${c.items && c.items.length ? `<div><p class="uxlab">${L("Що зникне","Что исчезнет")}</p><dl class="uxkv">${c.items.map(k => `<div><dt>${k[0]}</dt><dd>${k[1]}</dd></div>`).join("")}</dl></div>` : ""}<p class="uxbad">${L("Повернути це не вийде.","Вернуть это не получится.")}</p>`,
+  foot:`<button type="button" class="btn" data-act="uxNo">${L("Скасувати","Отмена")}</button><button type="button" class="btn btn--risk uxsp" data-act="uxGo">${c.btn}</button>`}); }
 function overlay(){
+  if (UXC) return ["modal", uxAskHtml()];
   if (S.cr) return ["drawer", drawerCr(S.fam.find(f => f.id === S.cr))];
   if (S.launch) return ["drawer", drawerLaunch(S.launches.find(l => l.n === S.launch))];
   if (S.modal === "funnel") return ["modal", modalFunnel()];
@@ -519,7 +538,10 @@ const ACT = {
   mode(d){ S.funnels.find(f=>f.id===d.id).mode = d.v; toast(L("Режим змінено","Режим изменен")); },
   openCr(d){ S.asst.open = false; S.cr = d.id; S.playhead = S.fam.find(f=>f.id===d.id).drop; S.trim = null; },
   seek(d){ S.playhead = +d.id; },
-  closeOverlay(){ S.cr = null; S.launch = null; S.modal = null; S.trim = null; },
+  closeOverlay(){ S.cr = null; S.launch = null; S.modal = null; S.trim = null; UXC = null; },
+  uxAsk(d){ const f = UX_ASK[d.ask]; UXC = f ? f(d) : null; if (UXC) UXC.d = Object.assign({}, d); },
+  uxNo(){ UXC = null; },
+  uxGo(){ const c = UXC; UXC = null; if (!c) return; const f = ACT[c.act]; return f ? f(Object.assign({}, c.d, c.data || {})) : undefined; },
   trim(){ const f = S.fam.find(x=>x.id===S.cr); S.trim = {i:0};
     const iv = setInterval(() => { S.trim.i++; if (S.trim.i >= 4) { clearInterval(iv);
         const bound = PHR.reduce((b,p)=>Math.abs(p-f.drop)<Math.abs(b-f.drop)?p:b, PHR[0]);
@@ -588,7 +610,7 @@ document.addEventListener("click", e => {
 });
 document.addEventListener("input", e => { if (e.target.id === "share") { S.share = +e.target.value; $("shv").textContent = S.share; $("capv").textContent = (dec(0.06 * 0.56 * CHECK * S.share / 100) + " $"); } });
 document.addEventListener("keydown", e => {
-  if (e.key === "Escape") { if (S.cr || S.launch || S.modal) { ACT.closeOverlay(); render(); } else if (S.asst.open) { S.asst.open = false; renderAsst(); } }
+  if (e.key === "Escape") { if (UXC) { UXC = null; render(); return; } if (S.cr || S.launch || S.modal) { ACT.closeOverlay(); render(); } else if (S.asst.open) { S.asst.open = false; renderAsst(); } }
   if (e.key === "Enter" && e.target.matches("tr[data-act]")) { ACT[e.target.dataset.act](e.target.dataset); render(); }
 });
 window.addEventListener("hashchange", () => { if (route() !== "funnels") S.funnel = null; render(); });
