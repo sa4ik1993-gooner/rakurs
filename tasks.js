@@ -276,7 +276,7 @@ function tsHints(k){ const base = TS_EX(), s = typeof tsScope === "function" ? t
     if (w.l >= 7) add(Math.round(w.l * 1.3 / 5) * 5 + L(" лідів за тиждень"," лидов за неделю")); }
   /* свои частые: тексты задач этого проекта (и этой воронки), чаще всего ставившиеся — первыми */
   const cnt = {}; (p.tasks || []).filter(t => t.text && (!s.f || !t.scope || !t.scope.f || t.scope.f === s.f)).forEach(t => { const key = t.text.trim(); cnt[key] = (cnt[key] || 0) + 1; });
-  Object.entries(cnt).sort((a, b) => b[1] - a[1]).slice(0, 2).forEach(e => add(e[0].length > 60 || (lang === "ru" ? /[іїєґ]/i : /[ыэъё]/i).test(e[0]) ? "" : e[0])); /* один экран — один язык (E1) */
+  Object.entries(cnt).sort((a, b) => b[1] - a[1]).slice(0, 2).forEach(e => add(e[0].length > 60 || (lang === "ru" ? /[іїєґ]/i.test(e[0]) : /[ыэъё]/i.test(e[0]) || !/[іїєґ’']/i.test(e[0])) ? "" : e[0])); /* один экран — один язык (E1) */
   base.forEach(add); return out.slice(0, 5); }
 /* поле задачи: на «Сегодня» с выбором охвата, в окне карточки — для этой карточки */
 function tsBox(k, pick){ const busy = TS.busy[k], mic = (window.SpeechRecognition || window.webkitSpeechRecognition) ? `<button type="button" class="btn btn--ico${TS.mic && TS.micK === k ? " btn--solid" : ""}" data-act="tsMic" data-k="${esc(k)}" aria-label="${L("Надиктувати","Надиктовать")}" title="${L("Надиктувати","Надиктовать")}"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="7.5" y="2.5" width="5" height="9" rx="2.5"/><path d="M4.5 9.5a5.5 5.5 0 0 0 11 0M10 15v2.5"/></svg></button>` : "";
