@@ -21,7 +21,7 @@ function trgDaily(ps){ const by = {}; let start = "", load = false;
     x.rows.forEach(o => { if (typeof tfRow === "function" && !tfRow(p, o)) return; const b = by[o.day] = by[o.day] || {k:o.day, s:0, i:0, c:0, l:0}; b.s += o.s; b.i += o.i; b.c += o.c; b.l += o.l; }); });
   return {days:Object.values(by).sort((a, b) => a.k < b.k ? -1 : 1), start, load}; }
 /* разбивка: день / неделя (с понедельника) / месяц; пустые дни внутри периода — нулями, чтобы ось была честной */
-function trgBuckets(days, g, n){ const t = prToday(), first = n ? prShift(t, -(n - 1)) : (days[0] ? days[0].k : t), map = {}; days.forEach(d => { map[d.k] = d; });
+function trgBuckets(days, g, n){ const t = prToday(), d0 = days.find(d => d.s || d.l), f0 = n ? prShift(t, -(n - 1)) : t, first = d0 && d0.k > f0 ? d0.k : !n && d0 ? d0.k : f0, map = {}; /* не раньше первого дня с данными */ days.forEach(d => { map[d.k] = d; });
   const out = [], idx = {}; for (let k = first; k <= t; k = prShift(k, 1)) { const d = map[k] || {k, s:0, i:0, c:0, l:0}, key = g === "w" ? dpMon(k) : g === "m" ? k.slice(0, 7) : k;
     let b = idx[key]; if (!b) { b = idx[key] = {k:key, d1:k, d2:k, s:0, i:0, c:0, l:0}; out.push(b); } b.d2 = k; b.s += d.s; b.i += d.i; b.c += d.c; b.l += d.l; }
   return out; }
@@ -48,7 +48,7 @@ function trgSvg(B, mk, start, o){ const M = TRGM()[mk], W0 = o.w, H0 = o.h, pl =
 /* цель — из настроек автопилота (если один проект/воронка); иначе без линии */
 function trgTarget(ps){ if (typeof PL === "undefined") return 0; const t = ps.map(p => { const st = PL.st[p.id]; return st && st.settings ? Number(st.settings.target_cpl) || 0 : 0; }).filter(Boolean); return t.length === 1 || new Set(t).size === 1 ? t[0] : 0; }
 /* до / с Хиро за выбранный период */
-function trgCmp(days, start, n){ if (!start) return null; const t = prToday(), from = n ? prShift(t, -(n - 1)) : "";
+function trgCmp(days, start, n){ if (!start) return null; const t = prToday(), d0 = days.find(d => d.s || d.l), f0 = n ? prShift(t, -(n - 1)) : "", from = d0 && d0.k > f0 ? d0.k : f0;
   const sum = a => a.reduce((x, d) => ({s:x.s + d.s, l:x.l + d.l, n:x.n + 1}), {s:0, l:0, n:0});
   const before = sum(days.filter(d => d.k < start && (!from || d.k >= from))), after = sum(days.filter(d => d.k >= start && (!from || d.k >= from)));
   const nA = Math.round((Date.parse(t) - Date.parse(start)) / 864e5) + 1, nB = from ? Math.max(0, Math.round((Date.parse(start) - Date.parse(from)) / 864e5)) : before.n;
