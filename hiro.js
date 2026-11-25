@@ -144,14 +144,6 @@ function hiroPanel(scr){ if (!W.user || !W.co) return "";
     : h.keys.length ? `<dl class="hp__k">${h.keys.map(k => `<div><dt>${k[0]}</dt><dd${k[2] ? ' class="hot"' : ""}>${k[1]}</dd></div>`).join("")}</dl>` : "";
   return `<section class="hp" aria-label="${L("Хіро: головне зараз","Хиро: главное сейчас")}"><div class="hp__t"><span class="heytag">Hey!</span><h2>${esc(h.title)}</h2>${h.text ? `<p>${esc(h.text)}</p>` : ""}${h.main || h.sec ? `<div class="row">${h.main || ""}${h.sec || ""}</div>` : ""}</div>${keys}<img class="hp__h" src="ui/hiro3d/${h.pose}.webp" alt="" width="210" height="250"></section>`; }
 
-/* строка Хиро (пакет B, шаг 3; UX.md, раздел 3): на всех экранах, кроме «Сьогодні», — 48px, одна фраза и «Відкрити розбір»,
-   только когда есть решение (дорогие кампании, дорого у воронці). Событие — общее (hiroSay без раздела), разбор — на «Сьогодні».
-   Крестик прячет строку до следующего события: помним заголовок события в этом браузере. */
-const HS_KEY = "heyrow_hstrip_x";
-function hiroStrip(scr){ if (!W.user || !W.co || !W.projs.length) return ""; const h = hiroSay(scr === "proj" ? "strip" : scr); if (!h || h.load || h.pose !== "stop" || !h.title) return "";
-  let x = ""; try { x = localStorage.getItem(HS_KEY) || ""; } catch (e) {} if (x === h.title) return "";
-  return `<div class="hstrip" role="status"><img src="ui/hiro/stop.webp" alt="" width="32" height="32"><span>${esc(h.title)}</span><button type="button" class="hstrip__a" data-act="wsCtab" data-v="today">${L("Відкрити розбір","Открыть разбор")}</button><button type="button" class="hstrip__x" data-act="hstripX" data-v="${esc(h.title)}" aria-label="${L("Закрити","Закрыть")}">${ico("close")}</button></div>`; }
-Object.assign(ACT, { hstripX(d){ try { localStorage.setItem(HS_KEY, d.v || ""); } catch (e) {} } });
 /* карточка Хиро внизу меню */
 function hiroRail(){ if (!W.user || !W.co) return "";
   /* без цифр дня: они один раз — в пульсе на «Сьогодні» (пакет B, 25.11.2026) */

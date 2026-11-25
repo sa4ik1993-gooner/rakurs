@@ -213,11 +213,9 @@ function vCompany(){ if (!todayBoot && W.co) { todayBoot = true; if (W.ctab === 
   }[t]();
   const big = ["today","map","ads"].includes(t), ttl = {today:L("Сьогодні","Сегодня"), map:L("Карта","Карта"), ads:L("Реклама","Реклама")}[t];
   const stl = t === "today" ? todayLine() : "";
-  /* заголовок страницы — название раздела, не компании; компания и проект — в строке пути (пакет B, шаг 3; UX.md, раздел 2) */
-  if (big) return `<div class="head head--pg"><div><h1>${ttl}</h1>${stl}</div>${t !== "today" && typeof prHeadR === "function" ? prHeadR() : ""}</div>
+  if (big) return `<div class="head head--pg"><div><span class="tag">${esc(W.co.name)}${pfOne() ? " · " + esc(pfOne().name) : ""}</span><h1>${ttl}</h1>${stl}</div>${t !== "today" && typeof prHeadR === "function" ? prHeadR() : ""}</div>
   ${body}`;
-  const secT = {site:L("Перевірка сайту","Проверка сайта"), projects:L("Проєкти","Проекты"), kb:L("База знань","База знаний"), team:L("Команда","Команда"), set:L("Налаштування компанії","Настройки компании"), me:L("Профіль","Профиль")}[t] || "";
-  return `<div class="head"><div><h1>${secT}</h1></div>
+  return `<div class="head"><div><span class="tag">${t==="me"?L("Профіль","Профиль"):t==="set"?L("Налаштування компанії","Настройки компании"):W.co.kind==="agency"?L("Агентство","Агентство"):L("Компанія","Компания")}</span><h1>${esc(t==="me" ? ME.name || W.user.name || W.user.id : W.co.name)}</h1></div>
     </div>
   ${["kb","team","set","me"].includes(t) ? `<div class="seg seg--co" role="group" aria-label="${L("Налаштування компанії","Настройки компании")}">${[["kb",L("База знань","База знаний")],["team",L("Команда","Команда")],["set",L("Налаштування","Настройки")],["me",L("Профіль","Профиль")]].map(x=>`<button type="button" data-act="wsCtab" data-v="${x[0]}" aria-pressed="${t===x[0]}">${x[1]}</button>`).join("")}</div>` : ""}
   ${body}`;
@@ -346,7 +344,8 @@ function vProject(p){
       ${typeof trPanel === "function" ? trPanel(p) : ""}${typeof auditPanel === "function" ? auditPanel(p) : ""}<div class="conn">${OBCONN().map(c=>{ const v = p.conn[c[0]]; return `<div class="panel"><div class="row sp"><h2>${c[1]}</h2>${c[0]==="meta"&&mtBroken(p)?pill("crit",L("потрібна увага","нужно внимание")):v===1?pill("good",L("підключено","подключено")):v?pill("warn",L("до підключення","к подключению")):pill("mute",L("немає","нет"))}</div>${c[0]==="meta" ? metaCard(p) : AD_FN[c[0]] ? adCard(p, c[0], c[2] + ".") : GUIDES()[c[0]] ? guideCard(p, c[0], c[2] + ".") : `<p class="sub">${c[2]}</p><div class="row"><button class="btn btn--sm" data-act="wsConn" data-id="${c[0]}">${v?L("Прибрати","Убрать"):L("Є, підключити","Есть, подключить")}</button></div>`}</div>`; }).join("")}</div>${sourcesPanel(p)}${utmPanel("p")}`
   }[t]();
   const next = ch.find(c=>!c[2]);
-  return `<div class="head"><div><span class="tag">${L("Проєкт","Проект")}</span><h1>${esc(p.name)}</h1></div>${next&&next[0]!==t?`<button class="btn" data-act="wsTab" data-v="${next[0]}">${L("Наступний крок: ","Следующий шаг: ")}${next[1]}</button>`:""}</div>
+  return `<button class="back" data-act="wsBackP">← ${esc(W.co.name)}</button>
+  <div class="head"><div><span class="tag">${L("Проєкт","Проект")}</span><h1>${esc(p.name)}</h1></div>${next&&next[0]!==t?`<button class="btn" data-act="wsTab" data-v="${next[0]}">${L("Наступний крок: ","Следующий шаг: ")}${next[1]}</button>`:""}</div>
   ${ch.every(c => c[2]) ? `<details class="stepf" data-fold="steps:${p.id}"${(foldSt()["steps:" + p.id]) ? " open" : ""}><summary><span class="good">${ico("done")} ${L("Проєкт налаштовано","Проект настроен")}</span> <span class="sub">${L("показати кроки","показать шаги")}</span></summary>${stepper(ch, t, "wsTab")}</details>` : stepper(ch, t, "wsTab")}${body}`;
 }
 const capT = c => (dec(c.cap) + " $") + (c.k > 1 ? `<small class="sub"> ${L("перша оплата","первая оплата")} ${dec(c.cap1)} $</small>` : "");
@@ -430,7 +429,8 @@ function vFunnel(f, p){
       ${fold("goals:" + f.id, L("Цілі й план","Цели и план"), num(tg.pay) + L(" оплат · гранична ціна ліда $"," оплат · потолок лида $") + dec(tg.cap), sec("goals"), !f.tg.pay)}
       ${typeof fxMatchPanel === "function" ? (() => { const m = fxMatchPanel(p, f); return m ? fold("rules:" + f.id, L("Які кампанії належать до воронки","Какие кампании относятся к воронке"), "", m, false) : ""; })() : ""}`,
   };
-  return `<div class="head"><div><span class="tag">${L("Воронка","Воронка")}</span><h1>${esc(f.name)}</h1><p class="sub">${esc(f.an.offer)}</p></div></div>
+  return `<button class="back" data-act="wsBackF">← ${esc(p.name)}</button>
+  <div class="head"><div><span class="tag">${L("Воронка","Воронка")}</span><h1>${esc(f.name)}</h1><p class="sub">${esc(f.an.offer)}</p></div></div>
   <div class="seg seg--f" role="group" aria-label="${L("Розділи воронки","Разделы воронки")}">${tabs}</div>
   ${view[T]()}`;
 }
@@ -461,11 +461,13 @@ function tabBar(){
 }
 /* путь вверху: компания › раздел или проект › воронка › вкладка; каждый шаг кликабелен */
 function crumbs(p, f){ if (!W.co) return ""; const it = [], go = (t, attrs) => `<button type="button" class="crumb__a" ${attrs}>${esc(t)}</button>`;
-  /* путь — не больше трёх звеньев: Компанія › Проєкт › Воронка; текущий раздел — в заголовке страницы, «← назад» не нужен (пакет B, шаг 3; UX.md, раздел 2) */
-  it.push(p ? go(W.co.name, 'data-act="wsCtab" data-v="projects"') : `<b>${esc(W.co.name)}</b>`);
-  if (!p) return it.join('<i aria-hidden="true">›</i>');
-  it.push(f ? go(p.name, `data-act="wsOpenP" data-id="${p.id}"`) : `<b>${esc(p.name)}</b>`);
-  if (f) it.push(`<b>${esc(f.name)}</b>`);
+  const ctabs = {today:L("Сьогодні","Сегодня"), map:L("Карта","Карта"), ads:L("Реклама","Реклама"), projects:L("Проєкти","Проекты"), kb:L("База знань","База знаний"), team:L("Команда","Команда"), set:L("Налаштування компанії","Настройки компании"), me:L("Профіль","Профиль")};
+  it.push(go(W.co.name, 'data-act="wsCtab" data-v="today"'));
+  if (!p) { it.push(`<b>${esc(ctabs[W.ctab] || "")}</b>`); return it.join('<i aria-hidden="true">›</i>'); }
+  it.push(go(L("Проєкти","Проекты"), 'data-act="wsCtab" data-v="projects"'));
+  if (!f) { const t = (pChain(p).find(c => c[0] === W.tab) || [])[1]; it.push(go(p.name, `data-act="wsOpenP" data-id="${p.id}"`)); if (t) it.push(`<b>${esc(t)}</b>`); return it.join('<i aria-hidden="true">›</i>'); }
+  const ft = (FTABS().find(x => x[0] === ftNorm(W.ftab)) || [])[1];
+  it.push(go(p.name, `data-act="wsOpenP" data-id="${p.id}"`), go(L("Воронки","Воронки"), `data-act="wsTab" data-v="funnels"`), go(f.name, `data-act="wsOpenF" data-id="${f.id}"`)); if (ft) it.push(`<b>${esc(ft)}</b>`);
   return it.join('<i aria-hidden="true">›</i>'); }
 /* переключатель компании в меню: у агентства их несколько (Дмитрий, 24.11.2026) */
 const CS = {open:false};
@@ -490,8 +492,8 @@ function ownShell(){
 }
 function ownView(){ const p = P(), f = F(); if (CLOUD && (!CL.ready || CL.entering || CL.opening)) return skelCab();
   if (!W.user) return vAuth(); if (!W.co) return vWelcome();
-  /* большая панель Хиро — только на «Сьогодні»; на остальных экранах — строка Хиро 48px, когда есть что решать, иначе ничего (пакет B, шаг 3; UX.md, раздел 3) */
-  const hp = typeof hiroPanel !== "function" ? "" : !p && W.ctab === "today" ? hiroPanel("today") : typeof hiroStrip === "function" ? hiroStrip(!p ? W.ctab : "proj") : "";
+  /* панель Хиро — первым блоком на основных экранах (DESIGN.md v2 п. 6) */
+  const hp = typeof hiroPanel !== "function" ? "" : !p ? hiroPanel(["today", "map", "ads", "projects"].includes(W.ctab) ? W.ctab : "c:" + W.ctab) : hiroPanel(f ? "f:" + ftNorm(W.ftab) : "p:" + W.tab);
   return hp + (!p ? vCompany() : f ? vFunnel(f, p) : vProject(p)); }
 let ownKey = "";
 const _rs = renderShell, _rv = renderView, _ra = renderAsst, _mf = modalFunnel;
