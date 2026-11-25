@@ -192,33 +192,32 @@ const mapBoard = (tree, sel, n = Math.max(4, mapDeep(tree) + 1)) => `<div class=
 /* «как читать карту» — в подсказке «i» над доской, а не блоком на экране */
 const mapLegend = () => `<b>${L("Як читати карту","Как читать карту")}</b><ol class="lvls">${LEVELS().slice(0, W.projs.some(prOn) ? 6 : 4).map((l, i) => `<li><i>0${i + 1}</i><div><b>${l[0]}</b><span>${l[1]}</span></div></li>`).join("")}</ol>
   <span>${L("Цифри зводяться знизу вгору. Натисни на картку — побачиш її гілку. Риска ховає картку, око повертає.","Цифры сводятся снизу вверх. Нажми на карточку — увидишь ее ветку. Черточка скрывает карточку, глаз возвращает.")}</span>`;
-const lvTag = i => `<span class="tag">${L("Рівень","Уровень")} 0${i + 1} · ${LEVELS()[i][0]}</span>`;
 const chOpts = (p, f) => `<div class="opts opts--sm">${CHAN().map(c => `<button type="button" class="opt opt--ch opt--ch-${c[0]}" data-act="mapCh" data-p="${p.id}" data-f="${f.id}" data-v="${c[0]}" aria-pressed="${(f.ch || []).includes(c[0])}">${chIcon(c[0])}${c[1]}</button>`).join("")}</div>`;
 
 /* панель под доской: что выбрано и что с этим можно сделать */
 function mapInfo(){ const s = MP.sel, [, pid, fid, cid, kid] = (s || "").split("/"), p = pid && W.projs.find(x => x.id === pid), f = p && fid && p.funnels.find(x => x.id === fid);
   if (f && cid && (f.ch || []).includes(cid) && prHas(p, f, cid)) { const k2 = s.split("/")[5];
     return kid && /^a/.test(kid) ? (k2 ? prCampPanel(p, f, cid, k2) : prChanPanel(p, f, cid, prAId(kid)) + (typeof fxAccPanel === "function" ? fxAccPanel(p, cid, prAId(kid)) : "")) : kid ? prCampPanel(p, f, cid, kid) : prChanPanel(p, f, cid); }
-  const base = mapInfo0(); return p && !fid ? prOverview(p) + (typeof goalsBoard === "function" ? goalsBoard(p) : "") + base : base; }
+  const base = mapInfo0(); return p && !fid ? base + prOverview(p) + (typeof goalsBoard === "function" ? goalsBoard(p) : "") : base; } /* паспорт — первым (пакет B, шаг 4) */
 function mapInfo0(){
   const s = MP.sel; if (!s) return "";
   const [, pid, fid, cid] = s.split("/"), p = W.projs.find(x => x.id === pid), f = p && p.funnels.find(x => x.id === fid);
   if (pid && !p || fid && !f || cid && !(f.ch || []).includes(cid)) { MP.sel = null; return mapLegend(); }
   if (cid) { const ch = chOf(cid);
-    return `<div class="panel">${lvTag(3)}<h2>${ch[1]}</h2><p class="sub">${LEVELS()[3][1]}</p>
+    return `<div class="panel mpass">
       <dl class="kv"><dt>${L("Воронка","Воронка")}</dt><dd>${esc(f.name)}</dd><dt>${L("Проєкт","Проект")}</dt><dd>${esc(p.name)}</dd><dt>${L("Кабінет","Кабинет")}</dt><dd>${p.conn[cid] ? pill("good", L("позначено до підключення","отмечен к подключению")) : pill("warn", L("не підключено","не подключен"))}</dd>${mapFx(p, f, cid) ? `<dt>${L("Реклама","Реклама")}</dt><dd class="mono">${mapFx(p, f, cid)}</dd>` : ""}</dl>
 
       <div class="row"><button class="btn btn--sm btn--solid" data-act="mapConn" data-id="${p.id}">${L("Підключення проєкту","Подключения проекта")}</button><button class="btn btn--sm" data-act="mapCh" data-p="${p.id}" data-f="${f.id}" data-v="${cid}">${L("Прибрати канал із воронки","Убрать канал из воронки")}</button></div></div>`; }
-  if (f) return `<div class="panel">${lvTag(2)}<h2>${esc(f.name)}</h2><p class="sub">${LEVELS()[2][1]}</p>
-      <dl class="kv"><dt>${L("Проєкт","Проект")}</dt><dd>${esc(p.name)}</dd><dt>${L("Ціль","Цель")}</dt><dd class="mono">${f.tg.pay} ${L("оплат","оплат")} × ${money(f.tg.check)}</dd><dt>${L("Лендингів","Лендингов")}</dt><dd class="mono">${f.lands.length}</dd><dt>${L("Креативів","Креативов")}</dt><dd class="mono">${f.crs.length}</dd>${mapFx(p, f) ? `<dt>${L("Реклама","Реклама")}</dt><dd class="mono">${mapFx(p, f)}</dd>` : ""}</dl>
-      <div class="field"><label>${L("Канали трафіку цієї воронки","Каналы трафика этой воронки")}</label>${chOpts(p, f)}</div>
-      <div class="row"><button class="btn btn--sm btn--solid" data-act="mapOpenF" data-p="${p.id}" data-id="${f.id}">${L("Відкрити воронку","Открыть воронку")}</button>${delSure("wsDelF", f.id, "f:" + f.id, L("Видалити воронку","Удалить воронку"), ` data-p="${p.id}"`)}</div></div>`;
+  /* паспорт воронки (пакет B, шаг 4; UX.md, раздел 6): строки «подпись → значение» и «Відкрити воронку»; каналы — во вкладке, удаление — в «⋯» */
+  if (f) { const chs = CHAN().filter(c => (f.ch || []).includes(c[0])).map(c => c[1]);
+    return `<div class="panel mpass"><dl class="kv"><dt>${L("Проєкт","Проект")}</dt><dd>${esc(p.name)}</dd><dt>${L("Ціль","Цель")}</dt><dd class="mono">${f.tg.pay} ${L("оплат","оплат")} × ${money(f.tg.check)}</dd><dt>${L("Канали","Каналы")}</dt><dd>${chs.length ? esc(chs.join(", ")) : "—"}</dd><dt>${L("Лендинги · креативи","Лендинги · креативы")}</dt><dd class="mono">${f.lands.length} · ${f.crs.length}</dd>${mapFx(p, f) ? `<dt>${L("Реклама","Реклама")}</dt><dd class="mono">${mapFx(p, f)}</dd>` : ""}</dl>
+      <div class="row"><button class="btn btn--sm btn--solid" data-act="mapOpenF" data-p="${p.id}" data-id="${f.id}">${L("Відкрити воронку","Открыть воронку")}</button></div></div>`; }
   if (p) { const conn = CHAN().filter(c => p.conn[c[0]]).map(c => c[1]);
-    return `<div class="panel">${lvTag(1)}<h2>${esc(p.name)}</h2><p class="sub">${LEVELS()[1][1]}</p>
+    return `<div class="panel mpass">
       <dl class="kv"><dt>${L("Воронок","Воронок")}</dt><dd class="mono">${p.funnels.length}</dd><dt>${L("Бюджет на місяць","Бюджет в месяц")}</dt><dd class="mono">${p.tg.budget ? money(p.tg.budget) : "—"}</dd><dt>${L("Сегментів ЦА","Сегментов ЦА")}</dt><dd class="mono">${p.segs.length}</dd><dt>${L("Рекламні кабінети","Рекламные кабинеты")}</dt><dd>${conn.length ? esc(conn.join(", ")) : L("не позначено","не отмечены")}</dd>${mapFx(p) ? `<dt>${L("Реклама","Реклама")}</dt><dd class="mono">${mapFx(p)}</dd>` : ""}</dl>
-      <div class="row"><button class="btn btn--sm btn--solid" data-act="wsOpenP" data-id="${p.id}">${L("Відкрити проєкт","Открыть проект")}</button><button class="btn btn--sm" data-act="mapAdd" data-k="co/${p.id}/+" data-what="f">${L("Додати воронку","Добавить воронку")}</button>${canAdmin() ? delSure("wsDelP", p.id, "p:" + p.id, L("Видалити проєкт","Удалить проект")) : ""}</div></div>`; }
+      <div class="row"><button class="btn btn--sm btn--solid" data-act="wsOpenP" data-id="${p.id}">${L("Відкрити проєкт","Открыть проект")}</button><button class="btn btn--sm" data-act="mapAdd" data-k="co/${p.id}/+" data-what="f">${L("Додати воронку","Добавить воронку")}</button></div></div>`; }
   const nf = W.projs.reduce((a, x) => a + x.funnels.length, 0), nc = W.projs.reduce((a, x) => a + x.funnels.reduce((b, y) => b + (y.ch || []).length, 0), 0);
-  return `<div class="panel">${lvTag(0)}<h2>${esc(W.co.name)}</h2><p class="sub">${LEVELS()[0][1]}</p>
+  return `<div class="panel mpass">
       <dl class="kv"><dt>${L("Проєктів","Проектов")}</dt><dd class="mono">${W.projs.length}</dd><dt>${L("Воронок","Воронок")}</dt><dd class="mono">${nf}</dd><dt>${L("Каналів трафіку","Каналов трафика")}</dt><dd class="mono">${nc}</dd>${CLOUD ? `<dt>${L("Людей у команді","Людей в команде")}</dt><dd class="mono">${CL.members.length}</dd>` : ""}</dl>
       <div class="row"><button class="btn btn--sm btn--solid" data-act="wsCtab" data-v="kb">${L("База знань компанії","База знаний компании")}</button><button class="btn btn--sm" data-act="wsCtab" data-v="team">${L("Команда","Команда")}</button>${canAdmin() ? `<button class="btn btn--sm" data-act="modal" data-id="project">${L("Додати проєкт","Добавить проект")}</button>` : ""}</div></div>`;
 }
@@ -253,8 +252,46 @@ function mapTable(tree, sel){ const rows = [], cols = [];
     ${rows.map(({n, d}) => { const kv = {}; (n.kpi || []).forEach(q => { kv[q[0]] = q[1]; }); const lv = LEVELS()[n.lv] || [""];
       return `<tr class="mtr--l${n.lv}${n.k === sel ? " sel" : ""}${n.v ? " mtr--v-" + n.v : ""}"><td><div class="mtn" style="--d:${d}">${mapTog(n)}<button type="button" class="mln" data-act="mapSel" data-k="${esc(n.k)}"><small class="lv lvb lvb--${n.lv}">${lv[0]}</small> <b>${n.ic ? chIcon(n.ic) : ""}${esc(n.t)}</b>${!n.kpi && n.fx ? ` <span class="sub">${esc(n.fx)}</span>` : ""}</button></div></td>${cols.map(c => `<td class="n mono">${kv[c] != null ? kv[c] : ""}</td>`).join("")}<td>${n.m ? `<em class="mte">${esc(n.m)}</em>` : ""}</td></tr>`; }).join("")}</tbody></table></div>`; }
 /* окно с настройками выбранной карточки */
-const mapPop = () => { if (!MP.sel) return ""; const body = mapInfo(); if (!body.trim()) return "";
-  return `<div class="mpop" role="dialog" aria-modal="true" aria-label="${L("Деталі","Подробности")}"><button type="button" class="mpop__bg" data-act="mapClose" aria-label="${L("Закрити","Закрыть")}" tabindex="-1"></button><div class="mpop__in"><div class="mpop__bar"><button type="button" class="btn btn--sm" data-act="mapClose">${ico("close")} ${L("Закрити","Закрыть")}</button></div>${typeof tsNode === "function" ? tsNode(MP.sel) : ""}${body}</div></div>`; };
+/* боковая панель узла (пакет B, шаг 4; UX.md, раздел 6): шапка (уровень, тип, название, «⋯», крестик) → паспорт → вкладки «Задачі · N / Канали / Історія».
+   По умолчанию открыта вкладка, где есть что решать. Удаление — в «⋯» с подтверждением в окне. Пока открыто подтверждение, панель не рисуется. */
+const mapPop = () => { if (!MP.sel || (typeof UXC !== "undefined" && UXC)) return ""; const body = mapInfo(); if (!body.trim() || !MP.sel) return ""; const h = mapHead(); /* объект удалён — mapInfo сбросил выбор, панель закрывается */
+  const [, pid, fid, cid] = MP.sel.split("/"), p = W.projs.find(x => x.id === pid), f = p && fid && p.funnels.find(x => x.id === fid);
+  const tsk = f && typeof tsNode === "function" ? tsNode(MP.sel) : "", nT = f && p ? (p.tasks || []).filter(t => typeof tsScope === "function" && t.scope && typeof tsKey === "function" && tsKey(t.scope) === tsKey(tsScope(MP.sel) || {}) && t.status !== "done" && t.status !== "stop").length : 0;
+  const hist = f ? mapHist() : {n:0, html:""}, isF = !!f && !cid;
+  const tabs = f ? [["tasks", L("Задачі","Задачи") + (nT ? " · " + nT : "")], isF ? ["ch", L("Канали","Каналы")] : null, ["hist", L("Історія","История") + (hist.n ? " · " + hist.n : "")]].filter(Boolean) : [];
+  const cur = tabs.some(t => t[0] === MP.tab) ? MP.tab : nT ? "tasks" : hist.fresh ? "hist" : tabs.length ? tabs[0][0] : "";
+  const pane = cur === "tasks" ? tsk : cur === "ch" ? `<div class="panel"><div class="field"><label>${L("Канали трафіку цієї воронки","Каналы трафика этой воронки")}</label>${chOpts(p, f)}</div></div>` : cur === "hist" ? `<div class="panel">${hist.html}</div>` : "";
+  const tabH = tabs.length ? `<div class="seg mtabs" role="tablist" aria-label="${L("Розділи панелі","Разделы панели")}">${tabs.map(t => `<button type="button" role="tab" data-act="mapTab" data-v="${t[0]}" aria-pressed="${t[0] === cur}" aria-selected="${t[0] === cur}">${t[1]}</button>`).join("")}</div>${pane}` : "";
+  return `<div class="mpop" role="dialog" aria-modal="true" aria-label="${esc(h.plain)}"><button type="button" class="mpop__bg" data-act="mapClose" aria-label="${L("Закрити","Закрыть")}" tabindex="-1"></button><div class="mpop__in">
+    <div class="mpop__bar mpop__bar--h"><span class="lvic lvic--${h.lv}" aria-hidden="true">${String(h.lv + 1).padStart(2, "0")}</span><div class="uxw__hd"><span class="uxw__t">${h.type}</span><h2 class="uxw__ttl">${h.title}</h2></div><div class="uxw__hx">${h.menu}<button type="button" class="uxw__x" data-act="mapClose" aria-label="${L("Закрити","Закрыть")}">${ico("close")}</button></div></div>
+    ${body}${tabH}</div></div>`; };
+/* шапка панели: уровень, тип, название; «⋯» — удаление с подтверждением, «Прибрати канал» (обратимо) — без подтверждения */
+function mapHead(){ const [, pid, fid, cid, kid, k2] = (MP.sel || "").split("/"), p = pid && W.projs.find(x => x.id === pid), f = p && fid && p.funnels.find(x => x.id === fid), LV = LEVELS(); let lv = 0, type = LV[0][0], title = esc(W.co.name);
+  if (f && cid && (kid || k2)) { lv = k2 || !/^a/.test(kid || "") ? 5 : 4; type = LV[lv][0] + " · " + esc(f.name); title = esc(chOf(cid)[1]); }
+  else if (f && cid) { lv = 3; type = LV[3][0] + " · " + esc(f.name); title = esc(chOf(cid)[1]); }
+  else if (f) { lv = 2; type = LV[2][0] + " · " + esc(p.name); title = esc(f.name); }
+  else if (p) { lv = 1; type = LV[1][0]; title = esc(p.name); }
+  const menu = lv === 2 ? uxMore(`<button type="button" class="is-risk" data-act="uxAsk" data-ask="delF" data-p="${p.id}" data-id="${f.id}">${ico("trash")} ${L("Видалити воронку","Удалить воронку")}</button>`)
+    : lv === 3 ? uxMore(`<button type="button" data-act="mapCh" data-p="${p.id}" data-f="${f.id}" data-v="${cid}">${ico("close")} ${L("Прибрати канал із воронки","Убрать канал из воронки")}</button>`)
+    : lv === 1 && canAdmin() ? uxMore(`<button type="button" class="is-risk" data-act="uxAsk" data-ask="delP" data-id="${p.id}">${ico("trash")} ${L("Видалити проєкт","Удалить проект")}</button>`) : "";
+  return {lv, type, title, menu, plain:String(title).replace(/<[^>]+>/g, "")}; }
+/* «Історія» узла: предложения Хиро по кампаниям этой воронки; нажатие открывает «Чому так» */
+function mapHist(){ const [, pid, fid] = (MP.sel || "").split("/"), p = W.projs.find(x => x.id === pid); if (!p || !fid || typeof PL === "undefined") return {n:0, html:""};
+  const r = PL.st[p.id]; if (!r) return {n:0, html:`<p class="sub">${L("Завантажую…","Загружаю…")}</p>`};
+  const list = (r.log || []).filter(x => { if (x.kind !== "reco") return false; const y = x.payload || {}, o = plObj(p, x), c = String(o.lv === "campaign" ? y.id || y.cid || "" : y.cid || ""), nm = (o.path[0] || [])[1];
+    return typeof fxFunnel === "function" ? fxFunnel(p, {id:c, name:nm === "—" ? "" : nm}) === fid : true; }).sort((a, b) => (b.at > a.at ? 1 : -1));
+  const SL = {new:L("чекає «Так»","ждет «Да»"), scheduled:L("у графіку","в графике"), done:L("виконано","выполнено"), fail:L("не вийшло","не получилось"), yes:L("погоджено","согласовано"), canceled:L("прибрано з графіка","убрано из графика"), no:L("відхилено","отклонено"), expired:L("застаріло","устарело"), dismissed:L("прибрано","убрано"), outdated:L("застаріло","устарело")};
+  const html = list.length ? `<ul class="mhist">${list.slice(0, 12).map(x => { const y = x.payload || {}, o = plObj(p, x);
+    return `<li><button type="button" class="mhist__b" data-act="plWhy" data-p="${p.id}" data-id="${x.id}"><b>${esc(plTitle(o.op, y, o.lv) || plTr(x.title) || L("Пропозиція","Предложение"))}</b><span class="sub">${esc(plTime(x.at))}${y.name ? " · " + esc(plMid(y.name)) : ""}</span></button><span class="st${x.status === "fail" ? " st--err" : x.status === "done" || x.status === "scheduled" ? " st--on" : x.status === "new" ? " st--fix" : ""}">${SL[x.status] || esc(x.status)}</span></li>`; }).join("")}</ul>`
+    : `<p class="sub">${L("Хіро ще нічого не пропонував по цій воронці.","Хиро еще ничего не предлагал по этой воронке.")}</p>`;
+  return {n:list.length, fresh:list.some(x => x.status === "new"), html}; }
+Object.assign(ACT, { mapTab(d){ MP.tab = d.v; } });
+UX_ASK.delF = d => { const p = W.projs.find(x => x.id === d.p), f = p && p.funnels.find(x => x.id === d.id); if (!f) return null;
+  return {type:L("Воронка · ","Воронка · ") + esc(p.name), title:L("Видалити воронку?","Удалить воронку?"), text:L("Воронка «","Воронка «") + esc(f.name) + L("» зникне з карти разом з налаштуваннями. Реклама в Meta не зміниться.","» исчезнет с карты вместе с настройками. Реклама в Meta не изменится."),
+    items:[[L("Лендинги","Лендинги"), String(f.lands.length)], [L("Креативи","Креативы"), String(f.crs.length)], [L("Задачі Хіро","Задачи Хиро"), String((p.tasks || []).filter(t => t.scope && t.scope.f === f.id).length)]], btn:L("Видалити воронку","Удалить воронку"), act:"wsDelF", arm:"f:" + f.id}; };
+UX_ASK.delP = d => { const p = W.projs.find(x => x.id === d.id); if (!p) return null;
+  return {type:L("Проєкт","Проект"), title:L("Видалити проєкт?","Удалить проект?"), text:L("Проєкт «","Проект «") + esc(p.name) + L("» зникне разом з воронками, підключеннями й статистикою. Реклама в Meta не зміниться.","» исчезнет вместе с воронками, подключениями и статистикой. Реклама в Meta не изменится."),
+    items:[[L("Воронки","Воронки"), String(p.funnels.length)], [L("Матеріали бази знань","Материалы базы знаний"), String((p.kb || []).length)]], btn:L("Видалити проєкт","Удалить проект"), act:"wsDelP", arm:"p:" + p.id}; };
 document.addEventListener("keydown", e => { if (e.key === "Escape" && MP.sel && document.querySelector(".mpop")) { MP.sel = null; render(); } });
 const vMap = () => { const t = mapTree(), s = MP.sel;
   const view = MP.view === "list" ? mapList(t, s) : MP.view === "table" ? mapTable(t, s) : mapBoard(t, s);
