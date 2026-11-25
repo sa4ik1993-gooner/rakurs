@@ -1711,3 +1711,5 @@ td:first-child{font:600 var(--t-body)/1.3 var(--font-ui)}
 .stp--crit{background:var(--minus-soft);color:var(--minus)}
 .stp--warn,.stp--info{background:var(--signal-soft);color:var(--ink)}.stp--warn::before,.stp--info::before{background:var(--signal)}
 @media (max-width:600px){.ctl .tfb{width:100%}.ctl .tfb__i{flex:1 1 140px;min-width:0}.ctl .tfb select{width:100%;max-width:none}.ctl .phr{margin-left:0;justify-content:flex-start}}
+
+.plct th,.plct td{background:none}.plct th[scope="row"] b{color:var(--ink)}
