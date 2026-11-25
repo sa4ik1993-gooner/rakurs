@@ -268,7 +268,7 @@ function plNow(T, t3, t0, y1){ if (!t0) return null; const t = plSumR(t0), y = p
   const txt = L("Сьогодні лід ","Сегодня лид ") + plMoney(c) + " (" + t.l + L(" лідів, день ще йде)"," лидов, день еще идет)") + " — "
     + [cy ? plCmp(c, cy) + L(", ніж учора (",", чем вчера (") + plMoney(cy) + ")" : "", c3 ? plCmp(c, c3) + L(", ніж за 3 дні (",", чем за 3 дня (") + plMoney(c3) + ")" : ""].filter(Boolean).join(L(" і "," и ")) + "."
     + (ok ? L(" Це в межах цілі "," Это в пределах цели ") + plMoney(T) + L(" — нічого не вимикаю, стежу далі."," — ничего не выключаю, слежу дальше.") : "");
-  return {c, cy, c3, l:t.l, ok, better:c3 && c < c3 * 0.8, txt}; }
+  return {fun:plFun(t), c, cy, c3, l:t.l, ok, better:c3 && c < c3 * 0.8, txt}; }
 const plPct = v => (Math.round(v * 1000) / 10).toString().replace(".", ",") + "%";
 /* лучшая связка уходит в ленту обычным предложением с «Так» (hiro-propose: budget / activate) */
 const PLAP = {};
@@ -474,8 +474,10 @@ function plDeep(p, A){ const k = p.id + A.f.id, D = PLD[k], T = A.T;
     ${segs.length ? `<details class="more"><summary>${L("Вік і стать","Возраст и пол")} · ${segs.length}${ico("chevron")}</summary><div class="tw"><table class="pldt"><thead><tr><th>${L("Сегмент","Сегмент")}</th><th>${L("Витрат","Расхода")}</th><th>CTR</th><th>${L("Реєстрація","Регистрация")}</th><th>${L("Лідів","Лидов")}</th><th>${L("Ціна ліда","Цена лида")}</th></tr></thead><tbody>${segs.slice(0, 14).map(seg).join("")}</tbody></table></div><p class="sub">${L("Мало даних у сегменті — висновків не роблю. Розбивку використовуй як підказку, а не щоб вимикати сегменти.","Мало данных в сегменте — выводов не делаю. Разбивку используй как подсказку, а не чтобы отключать сегменты.")}</p></details>` : ""}
     ${D.errs && D.errs.length ? `<p class="sub">${L("Частину даних Meta не віддала.","Часть данных Meta не отдала.")}</p>` : ""}</div>`; }
 function plAcctCard(p){ return plAcctAll(p).map(A => plAcctOne(p, A)).join(""); }
-function plAcctOne(p, A){ plAcctPush(p, A); const F = plFix(p, A); plFixPush(p, A, F); plConcl(p, A); const m = v => plMoney(v), f7 = A.f7, fb = A.fb, k = p.id + A.f.id, C = PLC[k] || {H:[], head:"", good:[]};
-  const cell = (lab, v, b, fmt, worseUp) => { const ch = b ? v / b - 1 : 0, bad = worseUp ? ch > 0.15 : ch < -0.15; return `<div><span>${lab}</span><b${bad ? ' class="is-bad"' : ""}>${fmt(v)}</b><small>${b ? (ch > 0 ? "+" : "") + Math.round(ch * 100) + "% " + L("до 3 тижнів","к 3 неделям") : ""}</small></div>`; };
+function plAcctOne(p, A){ plAcctPush(p, A); const F = plFix(p, A); plFixPush(p, A, F); plConcl(p, A); const m = v => plMoney(v),
+    /* есть лиды сегодня (≥3) — цифры воронки за сегодня против 3 полных дней (Дмитрий, 25.11: «вывод про сегодня, а CTR и цена лида — за неделю, не сходится»); иначе 7 дней против 3 недель */
+    f7 = A.now ? A.now.fun : A.f7, fb = A.now ? plFun(A.t3) : A.fb, refLab = A.now ? L("до 3 днів","к 3 дням") : L("до 3 тижнів","к 3 неделям"), k = p.id + A.f.id, C = PLC[k] || {H:[], head:"", good:[]};
+  const cell = (lab, v, b, fmt, worseUp) => { const ch = b ? v / b - 1 : 0, bad = worseUp ? ch > 0.15 : ch < -0.15; return `<div><span>${lab}</span><b${bad ? ' class="is-bad"' : ""}>${fmt(v)}</b><small>${b ? (ch > 0 ? "+" : "") + Math.round(ch * 100) + "% " + refLab : ""}</small></div>`; };
   const chip = (v, t, n) => `<button type="button" class="btn btn--sm" data-act="plPop" data-v="${v}" data-p="${p.id}" data-f="${A.f.id}">${t}${n ? ` <span class="plcnt">${n}</span>` : ""}</button>`;
   const D = PLD[k], nAds = D && D.ads ? D.ads.filter(a => a.s > 0).length : 0;
   const hyps = C.H.map((h, i) => plHState(A, h.c) ? "" : plHypCard(p, A, h, i)).join("");
@@ -487,7 +489,7 @@ function plAcctOne(p, A){ plAcctPush(p, A); const F = plFix(p, A); plFixPush(p, 
     <div class="plf2 plf2--fun">${cell("CPM", f7.cpm, fb.cpm, m, true)}${cell("CTR", f7.ctr, fb.ctr, plPct, false)}${cell(L("Ціна кліку","Цена клика"), f7.cpc, fb.cpc, m, true)}${cell(L("З кліку в лід","Из клика в лид"), f7.cr, fb.cr, plPct, false)}${cell(L("Ціна ліда","Цена лида"), f7.cpl, fb.cpl, m, true)}</div>
     ${C.head ? (N && (N.better || N.ok) ? `<p class="sub">${L("Що тягнуло ціну вгору: ","Что тянуло цену вверх: ")}${esc(C.head)}</p>` : `<p class="plconcl__t">${esc(C.head)}</p>`) : D && D.load ? `<p class="sub">${L("Збираю дані з Meta для висновку…","Собираю данные из Meta для вывода…")}</p>` : ""}
     <div class="row plchips">${chip("concl", L("Висновок","Вывод"))}${chip("recs", L("Чому дорого","Почему дорого"), A.recs.length)}${chip("deep", L("Креативи й аудиторія","Креативы и аудитория"), nAds)}${chip("tasks", L("Завдання тобі","Задачи тебе"), F.tasks.length)}</div>
-    <p class="sub">${L("Гіпотези — окремими картками нижче, дії з «Так» — у стрічці.","Гипотезы — отдельными карточками ниже, действия с «Да» — в ленте.")} ${L("Цифри — за 7 днів проти 3 тижнів до того.","Цифры — за 7 дней против 3 недель до этого.")}</p></div></li>${hyps}`; }
+    <p class="sub">${L("Гіпотези — окремими картками нижче, дії з «Так» — у стрічці.","Гипотезы — отдельными карточками ниже, действия с «Да» — в ленте.")} ${A.now ? L("Цифри — сьогодні проти 3 повних днів; розбір «Чому дорого» — за 7 днів.","Цифры — сегодня против 3 полных дней; разбор «Почему дорого» — за 7 дней.") : L("Цифри — за 7 днів проти 3 тижнів до того.","Цифры — за 7 дней против 3 недель до этого.")}</p></div></li>${hyps}`; }
 /* гипотеза — отдельная карточка: почему, ожидаемый лид, как проверить; кнопки «Детальніше» (окно), проверка страницы за монеты, «Прибрати» */
 const PLHX = (() => { try { return JSON.parse(localStorage.getItem("pl_hyp_x") || "{}"); } catch (e) { return {}; } })();
 const plHypKey = (p, A, h) => p.id + A.f.id + ":" + h.t;
