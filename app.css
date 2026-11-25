@@ -1199,7 +1199,7 @@ h3{font:600 var(--t-body)/1.3 var(--font-ui)}
 .map__bar .btn--ico,.map__bar .btn--eye{border:0;background:var(--track);border-radius:var(--r-pill);color:var(--ink)}
 .map__bar .btn--ico:hover,.map__bar .btn--eye:hover{background:var(--line)}
 .opt{border:1px solid var(--line);background:var(--surface);border-radius:var(--r-pill);box-shadow:none}
-.opt[aria-pressed="true"]{border-color:var(--line-strong);box-shadow:none}
+.opt[aria-pressed="true"]{border-color:var(--ink);box-shadow:none;background:var(--ink);color:var(--surface)} /* выбранный вариант виден сразу (Дмитрий, 25.11: «режим автономии не выбирается» — был выбран, но не отличался) */
 .opt--ch{display:inline-flex;align-items:center;gap:var(--s-2);font:600 var(--t-body) var(--font-ui);color:var(--ink)}
 .opt--ch[aria-pressed="true"]{box-shadow:none;border:1.5px solid var(--chc);background:color-mix(in srgb,var(--chc) 8%,var(--surface));color:var(--ink)}
 .opt--ch-meta{--chc:var(--ch-meta)}.opt--ch-gg{--chc:var(--ch-google)}.opt--ch-tt{--chc:var(--ch-tiktok)}.opt--ch-tga{--chc:var(--ch-telegram)}
