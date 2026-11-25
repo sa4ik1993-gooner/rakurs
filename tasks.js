@@ -261,10 +261,27 @@ function tsCard(p, t){ const g = TS.prog[t.id], today = prToday(), next = t.step
     ${t.status === "run" ? `<div class="row"><button type="button" class="lnk" data-act="tsStop" data-p="${p.id}" data-id="${t.id}">${L("Зупинити задачу","Остановить задачу")}</button></div>` : ""}</div>`; }
 
 const TS_EX = () => [L("Збільшити рекламу вдвічі з тією ж ціною ліда","Увеличить рекламу вдвое с той же ценой лида"), L("Розігнати до 300 $ на день, лід не дорожче 6 $","Разогнать до 300 $ в день, лид не дороже 6 $"), L("Знизити ціну ліда до 5 $","Снизить цену лида до 5 $"), L("100 лідів за тиждень","100 лидов за неделю"), L("Вимкнути те, що не працює","Выключить то, что не работает")];
+/* Подсказки под полем — по ситуации воронки и по тому, что этот проект уже ставил (Дмитрий, 25.11: «подсказки будут подстраиваться»).
+   Без ИИ и без новых записей в базу: цифры — из уже загруженной статистики Хиро (PLA, 7 дней и сегодня), история — из задач проекта.
+   Порядок: 2 по ситуации → до 2 своих частых → остальные шаблоны; всего 5. */
+function tsHints(k){ const base = TS_EX(), s = typeof tsScope === "function" ? tsScope(/^co\//.test(k) ? k : TS.sc) : null, p = s && W.projs.find(x => x.id === s.pid); if (!p) return base;
+  const out = [], add = t => { if (t && !out.some(x => x.toLowerCase() === t.toLowerCase())) out.push(t); }, m = v => (Math.round(v * 100) / 100).toFixed(2).replace(".", ",").replace(",00", "") + " $";
+  const st = typeof PL !== "undefined" && PL.st[p.id], set = st && st.settings, z = set && (set.zones || []).find(x => x.fid === s.f), T = +(z && z.target_cpl) || +(set && set.target_cpl) || 0;
+  const A = typeof PLA !== "undefined" && PLA[p.id], fid = r => typeof plFid === "function" ? plFid(p, r) : "", mine = r => !s.f || fid(r) === s.f;
+  const sum = rows => (rows || []).filter(mine).reduce((o, r) => (o.s += +r.spend || 0, o.l += +r.leads || 0, o), {s:0, l:0});
+  if (A && !A.load && T) { const w = sum(A.w7), c = w.l ? w.s / w.l : 0, day = w.s / 7;
+    if (c && c > T * 1.1) { add(L("Знизити ціну ліда до ","Снизить цену лида до ") + m(T)); add(L("Вимкнути те, що не працює","Выключить то, что не работает")); }
+    else if (c && c <= T) { add(L("Збільшити рекламу вдвічі з тією ж ціною ліда","Увеличить рекламу вдвое с той же ценой лида"));
+      if (day > 0) add(L("Розігнати до ","Разогнать до ") + Math.max(10, Math.round(day * 2 / 10) * 10) + L(" $ на день, лід не дорожче "," $ в день, лид не дороже ") + m(T)); }
+    if (w.l >= 7) add(Math.round(w.l * 1.3 / 5) * 5 + L(" лідів за тиждень"," лидов за неделю")); }
+  /* свои частые: тексты задач этого проекта (и этой воронки), чаще всего ставившиеся — первыми */
+  const cnt = {}; (p.tasks || []).filter(t => t.text && (!s.f || !t.scope || !t.scope.f || t.scope.f === s.f)).forEach(t => { const key = t.text.trim(); cnt[key] = (cnt[key] || 0) + 1; });
+  Object.entries(cnt).sort((a, b) => b[1] - a[1]).slice(0, 2).forEach(e => add(e[0].length > 60 ? "" : e[0]));
+  base.forEach(add); return out.slice(0, 5); }
 /* поле задачи: на «Сегодня» с выбором охвата, в окне карточки — для этой карточки */
 function tsBox(k, pick){ const busy = TS.busy[k], mic = (window.SpeechRecognition || window.webkitSpeechRecognition) ? `<button type="button" class="btn btn--ico${TS.mic && TS.micK === k ? " btn--solid" : ""}" data-act="tsMic" data-k="${esc(k)}" aria-label="${L("Надиктувати","Надиктовать")}" title="${L("Надиктувати","Надиктовать")}"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="7.5" y="2.5" width="5" height="9" rx="2.5"/><path d="M4.5 9.5a5.5 5.5 0 0 0 11 0M10 15v2.5"/></svg></button>` : "";
   return `<div class="tsb">${pick || ""}<div class="row tsi"><input id="ts-${esc(k)}" data-tsk="${esc(k)}" value="${esc(TS.txt[k] || "")}" placeholder="${L("Що зробити? Напр.: збільшити рекламу вдвічі з тією ж ціною ліда","Что сделать? Напр.: увеличить рекламу вдвое с той же ценой лида")}" aria-label="${L("Задача","Задача")}"${busy ? " disabled" : ""}>${mic}<button type="button" class="btn btn--sm btn--solid" data-act="tsAdd" data-k="${esc(k)}"${busy ? " disabled" : ""}>${busy ? L("Рахуємо…","Считаем…") : L("Поставити","Поставить")}</button></div>
-    <div class="opts opts--sm">${TS_EX().map(x => `<button type="button" class="opt" data-act="tsEx" data-k="${esc(k)}" data-v="${esc(x)}">${esc(x)}</button>`).join("")}</div></div>`; }
+    <div class="opts opts--sm">${tsHints(k).map(x => `<button type="button" class="opt" data-act="tsEx" data-k="${esc(k)}" data-v="${esc(x)}">${esc(x)}</button>`).join("")}</div></div>`; }
 /* календарь: 4 недели с понедельника текущей; в дне — шаги задач. Нажали — окно задачи по центру; «×» — убрать задачу. */
 TS.view = (() => { try { return localStorage.getItem("heyrow_ts_view") || "cal"; } catch (e) { return "cal"; } })(); TS.open = null; TS.arm = "";
 function tsCal(ps){ const today = prToday(), d0 = new Date(today + "T12:00:00"), mon = tsDay(today, -((d0.getDay() + 6) % 7)), days = [...Array(28)].map((_, i) => tsDay(mon, i)), by = {};
