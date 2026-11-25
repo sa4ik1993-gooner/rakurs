@@ -3,20 +3,20 @@
    Мини-график цены лида за 30 дней — справа в «Пульсе реклами»; окно — с выбором показателя, разбивки и периода.
    Данные: ad_trend (дни × кампании, своды из ad_metrics), начало работы Хиро — hiro_start (первая запись в ленте автопилота).
    Учитывает фильтр «Сьогодні» (проект / воронка / канал) так же, как «Пульс». */
-const TR = {open:false, m:"cpl", g:"d", n:30, only:""};
-const TRD = {};
+const TRG = {open:false, m:"cpl", g:"d", n:30, only:""};
+const TRGD = {};
 const TR_DAYS = 400;
-function trLoad(p){ if (!CLOUD || !sb) return; const x = TRD[p.id]; if (x && (x.load || Date.now() - x.at < 10 * 60000)) return;
-  TRD[p.id] = Object.assign(x || {}, {load:true});
+function trLoad(p){ if (!CLOUD || !sb) return; const x = TRGD[p.id]; if (x && (x.load || Date.now() - x.at < 10 * 60000)) return;
+  TRGD[p.id] = Object.assign(x || {}, {load:true});
   const t = prToday(), camp = o => ({day:o.day, prov:PROV_CH[o.provider] || o.provider, f:o.funnel_id || "", id:o.campaign_id, name:o.campaign_name || o.campaign_id, s:+o.spend || 0, i:+o.impressions || 0, c:+o.clicks || 0, l:+o.leads || 0});
   Promise.all([Promise.resolve(sb.rpc("ad_trend", {p:p.id, d1:prShift(t, -TR_DAYS), d2:t})).then(r => r.error ? null : (r.data || []).map(camp), () => null),
     Promise.resolve(sb.rpc("hiro_start", {p:p.id})).then(r => r.data || null, () => null)])
-    .then(([rows, st]) => { TRD[p.id] = {rows:rows || (x && x.rows) || [], start:st ? trDay(new Date(st)) : "", at:Date.now(), err:!rows}; render(); }); }
+    .then(([rows, st]) => { TRGD[p.id] = {rows:rows || (x && x.rows) || [], start:st ? trDay(new Date(st)) : "", at:Date.now(), err:!rows}; render(); }); }
 const trDay = d => d.getFullYear() + "-" + prPad(d.getMonth() + 1) + "-" + prPad(d.getDate());
 const trPs = only => (only ? [only] : W.projs || []).filter(p => typeof prOn === "function" && prOn(p));
 /* ряды по дням для набора проектов с учётом фильтра; start — самое раннее начало Хиро */
 function trDaily(ps){ const by = {}; let start = "", load = false;
-  ps.forEach(p => { trLoad(p); const x = TRD[p.id]; if (!x || !x.rows) { load = true; return; } if (x.load && !x.rows.length) load = true;
+  ps.forEach(p => { trLoad(p); const x = TRGD[p.id]; if (!x || !x.rows) { load = true; return; } if (x.load && !x.rows.length) load = true;
     if (x.start && (!start || x.start < start)) start = x.start;
     x.rows.forEach(o => { if (typeof tfRow === "function" && !tfRow(p, o)) return; const b = by[o.day] = by[o.day] || {k:o.day, s:0, i:0, c:0, l:0}; b.s += o.s; b.i += o.i; b.c += o.c; b.l += o.l; }); });
   return {days:Object.values(by).sort((a, b) => a.k < b.k ? -1 : 1), start, load}; }
@@ -25,12 +25,12 @@ function trBuckets(days, g, n){ const t = prToday(), first = n ? prShift(t, -(n 
   const out = [], idx = {}; for (let k = first; k <= t; k = prShift(k, 1)) { const d = map[k] || {k, s:0, i:0, c:0, l:0}, key = g === "w" ? dpMon(k) : g === "m" ? k.slice(0, 7) : k;
     let b = idx[key]; if (!b) { b = idx[key] = {k:key, d1:k, d2:k, s:0, i:0, c:0, l:0}; out.push(b); } b.d2 = k; b.s += d.s; b.i += d.i; b.c += d.c; b.l += d.l; }
   return out; }
-const TRM = () => ({cpl:{t:L("Ціна ліда","Цена лида"), v:b => b.l ? b.s / b.l : null, f:v => fxM(v) + " $", low:true},
+const TRGM = () => ({cpl:{t:L("Ціна ліда","Цена лида"), v:b => b.l ? b.s / b.l : null, f:v => fxM(v) + " $", low:true},
   l:{t:L("Ліди","Лиды"), v:b => b.l, f:v => num(Math.round(v)), bar:true}, s:{t:L("Витрати","Расход"), v:b => b.s, f:v => (v >= 1000 ? num(Math.round(v)) : fxM(v)) + " $", bar:true},
   ctr:{t:"CTR", v:b => b.i ? b.c / b.i : null, f:v => (Math.round(v * 1000) / 10).toString().replace(".", ",") + "%"}});
 const trLab = (b, g) => g === "m" ? dpMName(b.k) : g === "w" ? prDM(b.d1) + "–" + prDM(b.d2) : prDM(b.k);
 /* SVG: линия (цена, CTR) или столбики (лиды, расход); после начала Хиро — подсветка и подпись; для цены лида — линия цели */
-function trSvg(B, mk, start, o){ const M = TRM()[mk], W0 = o.w, H0 = o.h, pl = o.mini ? 2 : 44, pr = o.mini ? 2 : 8, pt = o.mini ? 6 : 14, pb = o.mini ? 4 : 22;
+function trSvg(B, mk, start, o){ const M = TRGM()[mk], W0 = o.w, H0 = o.h, pl = o.mini ? 2 : 44, pr = o.mini ? 2 : 8, pt = o.mini ? 6 : 14, pb = o.mini ? 4 : 22;
   const vals = B.map(M.v), ok = vals.filter(v => v != null && isFinite(v)), tgt = mk === "cpl" ? o.target || 0 : 0;
   if (!ok.length) return `<p class="sub">${L("Немає даних за цей період.","Нет данных за этот период.")}</p>`;
   const hi = Math.max(...ok, tgt) * 1.12 || 1, n = B.length, cw = (W0 - pl - pr) / n, X = i => pl + cw * (i + 0.5), Y = v => pt + (H0 - pt - pb) * (1 - v / hi);
@@ -59,19 +59,19 @@ function trMini(ps){ if (!CLOUD || !sb || !ps.length) return ""; const D = trDai
   return `<div class="trm"><div class="row sp"><span class="tag">${L("Ціна ліда · 30 днів","Цена лида · 30 дней")}</span>${D.start ? `<span class="trm__h">${L("Хіро з ","Хиро с ")}${prDM(D.start)}</span>` : ""}</div>
     ${trSvg(B, "cpl", D.start, {w:280, h:64, mini:true, g:"d", target:trTarget(ps)})}
     <div class="row sp">${c ? `<span class="sub">${L("До Хіро ","До Хиро ")}${fxM(c.b)} $ → ${fxM(c.a)} $</span>` : `<span></span>`}<button type="button" class="btn btn--sm btn--text" data-act="trOpen" data-v="${ps.length === 1 ? ps[0].id : ""}">${L("Подивитися графік","Посмотреть график")}</button></div></div>`; }
-function trHtml(){ const only = TR.only ? (W.projs || []).find(p => p.id === TR.only) : null, ps = trPs(only), D = trDaily(ps), M = TRM(), B = trBuckets(D.days, TR.g, TR.n), c = trCmp(D.days, D.start, TR.n);
-  const seg = (k, opts) => `<div class="seg" role="group">${opts.map(([v, t]) => `<button type="button" data-act="trSet" data-k="${k}" data-v="${v}" aria-pressed="${String(TR[k]) === String(v)}">${t}</button>`).join("")}</div>`;
+function trHtml(){ const only = TRG.only ? (W.projs || []).find(p => p.id === TRG.only) : null, ps = trPs(only), D = trDaily(ps), M = TRGM(), B = trBuckets(D.days, TRG.g, TRG.n), c = trCmp(D.days, D.start, TRG.n);
+  const seg = (k, opts) => `<div class="seg" role="group">${opts.map(([v, t]) => `<button type="button" data-act="trSet" data-k="${k}" data-v="${v}" aria-pressed="${String(TRG[k]) === String(v)}">${t}</button>`).join("")}</div>`;
   const f = typeof tfS === "function" ? tfS() : {}, fl = [only ? only.name : "", f.f ? ((ps.flatMap(p => p.funnels).find(x => x.id === f.f) || {}).name || "") : "", f.c || ""].filter(Boolean).join(" · ");
   const pct = c ? Math.round((c.a / c.b - 1) * 100) : 0;
-  const rows = B.slice().reverse().slice(0, 62).map(b => `<tr${D.start && b.d2 >= D.start ? ' class="is-h"' : ""}><td>${esc(trLab(b, TR.g))}</td><td>${esc(M.s.f(b.s))}</td><td>${num(b.l)}</td><td>${b.l ? esc(M.cpl.f(b.s / b.l)) : "—"}</td><td>${b.i ? esc(M.ctr.f(b.c / b.i)) : "—"}</td></tr>`).join("");
+  const rows = B.slice().reverse().slice(0, 62).map(b => `<tr${D.start && b.d2 >= D.start ? ' class="is-h"' : ""}><td>${esc(trLab(b, TRG.g))}</td><td>${esc(M.s.f(b.s))}</td><td>${num(b.l)}</td><td>${b.l ? esc(M.cpl.f(b.s / b.l)) : "—"}</td><td>${b.i ? esc(M.ctr.f(b.c / b.i)) : "—"}</td></tr>`).join("");
   return `<div class="trw"><div class="row sp"><div><span class="tag">${esc(fl || L("Уся реклама","Вся реклама"))}</span><h2>${L("Динаміка","Динамика")}</h2></div><button class="x" data-act="trOpen" data-v="close" aria-label="${L("Закрити","Закрыть")}">${ico("close")}</button></div>
     <div class="row trw__c">${seg("m", Object.keys(M).map(k => [k, M[k].t]))}${seg("g", [["d", L("Дні","Дни")], ["w", L("Тижні","Недели")], ["m", L("Місяці","Месяцы")]])}${seg("n", [[30, L("30 днів","30 дней")], [90, L("90 днів","90 дней")], [0, L("Усе","Все")]])}</div>
     ${c ? `<div class="trw__k"><div><span>${L("До Хіро","До Хиро")}${c.nB ? " · " + c.nB + L(" дн."," дн.") : ""}</span><b>${fxM(c.b)} $</b></div><div><span>${L("З Хіро","С Хиро")} · ${c.nA}${L(" дн."," дн.")}</span><b>${fxM(c.a)} $</b></div><div><span>${L("Різниця","Разница")}</span><b class="${pct < 0 ? "is-good" : pct > 0 ? "is-bad" : ""}">${pct > 0 ? "+" : ""}${pct}%</b></div></div>${c.nA < 7 ? `<p class="sub">${L("Хіро працює лише ","Хиро работает всего ")}${c.nA}${L(" дн. — порівняння попереднє."," дн. — сравнение предварительное.")}</p>` : ""}` : ""}
-    ${D.load && !D.days.length ? `<div class="trm__sk trm__sk--big"></div>` : trSvg(B, TR.m, D.start, {w:860, h:260, g:TR.g, target:trTarget(ps)})}
-    <div class="trw__t"><table class="tbl"><thead><tr><th>${TR.g === "m" ? L("Місяць","Месяц") : TR.g === "w" ? L("Тиждень","Неделя") : L("День","День")}</th><th>${M.s.t}</th><th>${M.l.t}</th><th>${M.cpl.t}</th><th>CTR</th></tr></thead><tbody>${rows}</tbody></table></div></div>`; }
+    ${D.load && !D.days.length ? `<div class="trm__sk trm__sk--big"></div>` : trSvg(B, TRG.m, D.start, {w:860, h:260, g:TRG.g, target:trTarget(ps)})}
+    <div class="trw__t"><table class="tbl"><thead><tr><th>${TRG.g === "m" ? L("Місяць","Месяц") : TRG.g === "w" ? L("Тиждень","Неделя") : L("День","День")}</th><th>${M.s.t}</th><th>${M.l.t}</th><th>${M.cpl.t}</th><th>CTR</th></tr></thead><tbody>${rows}</tbody></table></div></div>`; }
 Object.assign(ACT, {
-  trOpen(d){ if (d.v === "close") { TR.open = false; return; } TR.open = true; TR.only = d.v || ""; },
-  trSet(d){ TR[d.k] = d.k === "n" ? +d.v : d.v; if (d.k === "g" && d.v === "m" && TR.n && TR.n < 90) TR.n = 0; if (d.k === "g" && d.v === "w" && TR.n === 30) TR.n = 90; },
+  trOpen(d){ if (d.v === "close") { TRG.open = false; return; } TRG.open = true; TRG.only = d.v || ""; },
+  trSet(d){ TRG[d.k] = d.k === "n" ? +d.v : d.v; if (d.k === "g" && d.v === "m" && TRG.n && TRG.n < 90) TRG.n = 0; if (d.k === "g" && d.v === "w" && TRG.n === 30) TRG.n = 90; },
 });
-if (typeof ACT !== "undefined") { const _co = ACT.closeOverlay; ACT.closeOverlay = function(d){ TR.open = false; return _co ? _co.call(this, d) : undefined; }; }
-if (typeof overlay === "function") { const _trOv = overlay; overlay = function(){ const r = _trOv(); return r || (TR.open ? ["modal", trHtml()] : null); }; }
+if (typeof ACT !== "undefined") { const _co = ACT.closeOverlay; ACT.closeOverlay = function(d){ TRG.open = false; return _co ? _co.call(this, d) : undefined; }; }
+if (typeof overlay === "function") { const _trOv = overlay; overlay = function(){ const r = _trOv(); return r || (TRG.open ? ["modal", trHtml()] : null); }; }
