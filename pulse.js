@@ -70,7 +70,13 @@ const prRowsA = (p, list, f, c, x, acc) => prRows(p, list, f, c, x).filter(r => 
    цель зоны автопилота этой воронки → общая цель автопилота → потолок из целей воронки */
 const prT = (f, p) => { const st = typeof PL !== "undefined" ? PL.st[p.id] : null, S = st && st.ok && st.settings ? st.settings : null;
   const z = S && Array.isArray(S.zones) ? S.zones.find(q => q && q.fid === (f && f.id) && q.on !== false) : null, t = z && +z.target_cpl > 0 ? +z.target_cpl : S ? Number(S.target_cpl) : 0;
-  return t > 0 ? t : prCap(f, p); };
+  /* QA P1 (26.11): пока настройки автопилота не загрузились, не откатываемся на старый потолок 3,60 $ — берём последнюю известную цель
+     (память браузера) или 0 = «пока не судим»; потолок воронки — только если автопилота у проекта нет */
+  const ck = "heyrow_T_" + p.id + "_" + ((f && f.id) || "");
+  if (t > 0) { try { localStorage.setItem(ck, String(t)); } catch (e) { /* */ } return t; }
+  if (!S && typeof CLOUD !== "undefined" && CLOUD && p.meta && p.meta.conn) { let c = 0; try { c = +localStorage.getItem(ck) || 0; } catch (e) { /* */ }
+    if (!st && typeof plLoad === "function" && typeof PL !== "undefined" && !PL.busy[p.id]) setTimeout(() => plLoad(p), 0); return c; }
+  return prCap(f, p); };
 const prCap = (f, p) => { const c = fT(f, p).cap; return c > 0 && isFinite(c) ? c : 0; };
 
 /* Пороги выводов и число кампаний на доске — настройки компании (раздел «Настройки»); здесь значения по умолчанию. */
