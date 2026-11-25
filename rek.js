@@ -12,7 +12,7 @@ const pfOne = () => (W.pf && W.projs.find(x => x.id === W.pf)) || null;
 const pfSel = () => W.projs.length > 1 && W.ctab !== "today" ? `<span class="pfdd">${ddSel("pf", [["", L("Усі проєкти","Все проекты")]].concat(W.projs.map(p => [p.id, p.name])), W.pf || "", L("Проєкт","Проект"), "tfPick", "p")}</span>` : "";
 /* D1: единый выпадающий список (вместо системного select) — кнопка-таблетка и меню, как период. id — что открыто, act/k — действие выбора */
 function ddSel(id, opts, cur, lbl, act, k, set){ const o0 = opts.find(o => o[0] === cur) || opts[0], open = TFD.open === id;
-  return `<div class="dd${open ? " is-open" : ""}${(set === undefined ? cur : set) ? " is-set" : ""}"><button type="button" class="dd__b" data-act="tfdOpen" data-v="${esc(id)}" aria-haspopup="listbox" aria-expanded="${open}" aria-label="${esc(lbl)}: ${esc(o0[1])}" title="${esc(lbl)}"><span>${esc(o0[1])}</span>${ico("chevron")}</button>${open ? `<ul class="dd__l" role="listbox" aria-label="${esc(lbl)}">${opts.map(o => `<li><button type="button" role="option" data-act="${act}" data-k="${esc(k)}" data-v="${esc(o[0])}" aria-selected="${o[0] === cur}">${esc(o[1])}${o[0] === cur ? ico("check") : ""}</button></li>`).join("")}</ul>` : ""}</div>`; }
+  return `<div class="dsel${open ? " is-open" : ""}${(set === undefined ? cur : set) ? " is-set" : ""}"><button type="button" class="dsel__b" data-act="tfdOpen" data-v="${esc(id)}" aria-haspopup="listbox" aria-expanded="${open}" aria-label="${esc(lbl)}: ${esc(o0[1])}" title="${esc(lbl)}"><span>${esc(o0[1])}</span>${ico("chevron")}</button>${open ? `<ul class="dsel__l" role="listbox" aria-label="${esc(lbl)}">${opts.map(o => `<li><button type="button" role="option" data-act="${act}" data-k="${esc(k)}" data-v="${esc(o[0])}" aria-selected="${o[0] === cur}">${esc(o[1])}${o[0] === cur ? ico("check") : ""}</button></li>`).join("")}</ul>` : ""}</div>`; }
 document.addEventListener("change", e => { const t = e.target; if (t.dataset && t.dataset.pf) { W.pf = t.value; save(); render(); } });
 
 /* ---------- фильтр «Сьогодні»: проект → воронка → канал (Дмитрий, 24.11.2026: «зашёл решить проблему с дорогой воронкой») ----------
@@ -43,7 +43,7 @@ function tfBar(){ const ps = pfProjs(), t = tfS(), fs = ps.flatMap(p => p.funnel
 const TFD = {open:""};
 function tfSet(k, v){ const t = tfS();
   if (k === "p") { W.pf = v; t.f = ""; t.c = ""; } else if (k === "f") { t.f = v; if (v) { const p = W.projs.find(p => p.funnels.some(f => f.id === v)); if (p && W.projs.length > 1) W.pf = p.id; } } else t[k] = v; }
-document.addEventListener("click", e => { if (TFD.open && !e.target.closest(".dd")) { TFD.open = ""; render(); } }, true);
+document.addEventListener("click", e => { if (TFD.open && !e.target.closest(".dsel")) { TFD.open = ""; render(); } }, true);
 document.addEventListener("keydown", e => { if (e.key === "Escape" && TFD.open) { TFD.open = ""; render(); } });
 /* задача проходит фильтр: задача без воронки/канала (на весь проект) — показываем */
 const tfTask = t => { const s = t.scope || {}, f = tfS(); return (!f.f || !s.f || s.f === f.f) && (!f.c || !s.c || s.c === f.c); };
