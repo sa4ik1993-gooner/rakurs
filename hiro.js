@@ -119,7 +119,7 @@ function hiroSay(scr){
   if (acc && acc.now && acc.now.ok && acc.now.better) { out.pose = "watch"; out.title = L("Сьогодні дешевше у воронці «","Сегодня дешевле в воронке «") + acc.f.name + "»"; out.text = acc.now.txt;
     out.main = scr === "today" ? hiroBtn("btn--main", L("Відкрити розбір","Открыть разбор"), 'data-act="hiroAcct"') : hiroBtn("btn--main", L("Відкрити розбір","Открыть разбор"), 'data-act="wsCtab" data-v="today"'); return out; }
   if (acc) { out.pose = "stop"; out.title = L("Дорого у воронці «","Дорого в воронке «") + acc.f.name + "»";
-    out.text = L("За 3 повні дні ","За 3 полных дня ") + acc.t3.l + L(" лідів за "," лидов по ") + m(acc.t3.s / acc.t3.l) + L(" при цілі "," при цели ") + m(acc.T) + L(". Розібрав, що саме дорожчає, і що зробити.",". Разобрал, что именно дорожает, и что сделать.");
+    out.text = (typeof plDM === "function" ? L("За 3 повні дні (","За 3 полных дня (") + plDM(plD(-3)) + "–" + plDM(plD(-1)) + L(", без сьогодні) ",", без сегодня) ") : L("За 3 повні дні ","За 3 полных дня ")) + acc.t3.l + L(" лідів за "," лидов по ") + m(acc.t3.s / acc.t3.l) + L(" при цілі "," при цели ") + m(acc.T) + L(". Розібрав, що саме дорожчає, і що зробити.",". Разобрал, что именно дорожает, и что сделать.");
     out.main = scr === "today" ? hiroBtn("btn--main", L("Відкрити розбір","Открыть разбор"), 'data-act="hiroAcct"') : hiroBtn("btn--main", L("Відкрити розбір","Открыть разбор"), 'data-act="wsCtab" data-v="today"'); return out; }
   /* дорожче цілі, але даних ще замало для висновку — так і кажемо, без «все в порядку» */
   const tgt = e.ps.map(p => { const st = typeof PL !== "undefined" ? PL.st[p.id] : null; return st && st.settings ? Number(st.settings.target_cpl) || 0 : 0; }).find(x => x > 0) || e.cap;
