@@ -66,7 +66,11 @@ const prAId = k => k === "a_" ? "" : k.slice(1);
 const prRows = (p, list, f, c, x) => (list || []).filter(r => r.prov === c && fxFunnel(p, r) === f.id).map(r => Object.assign({}, r, (x && x.sb && x.sb[fxKey(r.name)]) || {}));
 const prRowsA = (p, list, f, c, x, acc) => prRows(p, list, f, c, x).filter(r => acc == null || prAccOf(prOf(p), r.id, c) === acc);
 /* цель для решений Хиро — та же, что у автопилота на сервере (pilot / review): «Ціль: ціна ліда до» из настроек автопилота; без них — потолок воронки */
-const prT = (f, p) => { const st = typeof PL !== "undefined" ? PL.st[p.id] : null, t = st && st.ok && st.settings ? Number(st.settings.target_cpl) : 0; return t > 0 ? t : prCap(f, p); };
+/* одна норма везде (Дмитрий, 25.11: на карте «Лід дорожчий за норму» по потолку воронки 3,6 $, а Хиро и «Сьогодні» — по цели автопилота 6 $):
+   цель зоны автопилота этой воронки → общая цель автопилота → потолок из целей воронки */
+const prT = (f, p) => { const st = typeof PL !== "undefined" ? PL.st[p.id] : null, S = st && st.ok && st.settings ? st.settings : null;
+  const z = S && Array.isArray(S.zones) ? S.zones.find(q => q && q.fid === (f && f.id) && q.on !== false) : null, t = z && +z.target_cpl > 0 ? +z.target_cpl : S ? Number(S.target_cpl) : 0;
+  return t > 0 ? t : prCap(f, p); };
 const prCap = (f, p) => { const c = fT(f, p).cap; return c > 0 && isFinite(c) ? c : 0; };
 
 /* Пороги выводов и число кампаний на доске — настройки компании (раздел «Настройки»); здесь значения по умолчанию. */
@@ -172,7 +176,7 @@ function prBar(){ if (!W.projs.some(prOn)) return ""; const r = prRange();
 /* ---------- аккаунты пятым уровнем, кампании шестым ---------- */
 const prPl = n => plural(n, L("лід","лид"), L("ліди","лида"), L("лідів","лидов"));
 function prCampNodes(p, f, c, ck, acc){ const x = prOf(p); if (!x.cur) return [];
-  const cap = prCap(f, p), cur = prCur(p), prev = prRowsA(p, x.prev, f, c, x, acc), rows = prRowsA(p, x.cur, f, c, x, acc).filter(r => r.spend > 0).sort((a, b) => b.spend - a.spend);
+  const cap = prT(f, p), cur = prCur(p), prev = prRowsA(p, x.prev, f, c, x, acc), rows = prRowsA(p, x.cur, f, c, x, acc).filter(r => r.spend > 0).sort((a, b) => b.spend - a.spend);
   const PR_TOP = prTh().top, nodes = rows.slice(0, PR_TOP).map(r => { const v = prev.find(o => o.id === r.id) || {}, j = prMain(prJudge(r, v, cap, cur)) || {lv:"mute", t:""};
     return {k:ck + "/" + r.id, lv:5, t:r.name, s:prM(r.spend, cur) + " · " + prPl(r.leads) + (r.leads ? L(" за "," по ") + prM(r.spend / r.leads, cur) : ""), m:j.t, v:j.lv}; });
   if (rows.length > PR_TOP) nodes.push({more:1, k:ck, lv:5, t:L("ще ","еще ") + plural(rows.length - PR_TOP, L("кампанія","кампания"), L("кампанії","кампании"), L("кампаній","кампаний")), s:L("усі — у панелі акаунта","все — в панели аккаунта")});
@@ -190,7 +194,7 @@ function prAccList(p, f, c){ const x = prOf(p), rows = prRows(p, x.cur, f, c, x)
   if (!ids.length) prAccs(p, c).forEach(a => ids.push(String(a.id)));
   return ids.map(id => { const own = rows.filter(r => prAccOf(x, r.id, c) === id); return {id, name:prAccName(p, id, c), s:fxSum(own), v:fxSum(prev.filter(r => prAccOf(x, r.id, c) === id)), n:own.filter(r => r.spend > 0).length}; }).sort((a, b) => b.s.spend - a.s.spend); }
 function prAccNodes(p, f, c, ck){ if (!prHas(p, f, c)) return []; const x = prOf(p); if (!x.cur || !x.am) return [];
-  const cap = prCap(f, p), cur = prCur(p), list = prAccList(p, f, c);
+  const cap = prT(f, p), cur = prCur(p), list = prAccList(p, f, c);
   return list.map(a => { const k = ck + "/" + prAK(a.id), j = prMain(prJudge(a.s, a.v, cap, cur)) || {lv:"", t:a.s.spend ? "" : L("витрат немає","расхода нет")};
     const n = {k, lv:4, t:a.name, kpi:prFive(a.s, cur), m:j.t, v:j.lv}, kids = prCampNodes(p, f, c, k, a.id);
     if (kids.length) { n.kids = kids; n.can = true; n.fold = mapFolded(k, list.length > 1); n.ics = []; n.stub = [plural(a.n, L("кампанія","кампания"), L("кампанії","кампании"), L("кампаній","кампаний")), L("з витратами за період","с расходом за период")]; if (n.fold && MP.sel && MP.sel.indexOf(k + "/") === 0) MP.sel = k; }
@@ -198,7 +202,7 @@ function prAccNodes(p, f, c, ck){ if (!prHas(p, f, c)) return []; const x = prOf
     return n; }); }
 
 /* ---------- панель канала ---------- */
-function prChanPanel(p, f, c, acc){ const ch = chOf(c), x = prOf(p), cur = prCur(p), cap = prCap(f, p), ck = "co/" + p.id + "/" + f.id + "/" + c, one = acc != null;
+function prChanPanel(p, f, c, acc){ const ch = chOf(c), x = prOf(p), cur = prCur(p), cap = prT(f, p), ck = "co/" + p.id + "/" + f.id + "/" + c, one = acc != null;
   const head = one ? `${lvTag(4)}<div class="row sp"><h2>${esc(prAccName(p, acc, c))}</h2>${prFresh(p)}</div><p class="sub">${acc ? `<span class="mono">${c === "meta" ? "act_" : ""}${esc(acc)}</span> · ` : ""}${ch[1]} · ${esc(f.name)} · ${esc(p.name)} · <span class="mono">${prLabel(x.r)}</span></p>`
     : `${lvTag(3)}<div class="row sp"><h2>${chIcon(c)} ${ch[1]}</h2>${prFresh(p)}</div><p class="sub">${esc(f.name)} · ${esc(p.name)} · <span class="mono">${prLabel(x.r)}</span></p>`;
   let btns = `<div class="row"><button class="btn btn--sm btn--solid" data-act="mapOpenF" data-p="${p.id}" data-id="${f.id}">${L("Аналітика воронки","Аналитика воронки")}</button><button class="btn btn--sm" data-act="mapConn" data-id="${p.id}">${L("Підключення проєкту","Подключения проекта")}</button><button class="btn btn--sm" data-act="mapCh" data-p="${p.id}" data-f="${f.id}" data-v="${c}">${L("Прибрати канал із воронки","Убрать канал из воронки")}</button></div>`;
@@ -221,7 +225,7 @@ function prChanPanel(p, f, c, acc){ const ch = chOf(c), x = prOf(p), cur = prCur
   return `<div class="panel">${head}${prKpis(s, v, cap, cur)}<span class="tag">${L("Висновки","Выводы")} ${hint(L("Висновки рахуються за правилами: гранична ціна ліда воронки, порівняння з минулим періодом, CTR. Частку «клік → завантаження сторінки» додамо, коли сервер почне забирати завантаження сторінок. Платформа нічого не змінює в кабінеті сама.","Выводы считаются по правилам: потолок цены лида воронки, сравнение с прошлым периодом, CTR. Долю «клик → загрузка страницы» добавим, когда сервер начнет забирать загрузки страниц. Платформа ничего не меняет в кабинете сама."))}</span>${prList(js)}${atbl}${more("pc:" + (acc || "") + c, L("кампанії за період","кампании за период") + " · " + list.length, cplLegend(cap, cur) + tbl)}${btns}</div>`; }
 
 /* ---------- панель кампании ---------- */
-function prCampPanel(p, f, c, id){ const x = prOf(p), cur = prCur(p), cap = prCap(f, p), ck = "co/" + p.id + "/" + f.id + "/" + c + "/" + prAK(prAccOf(x, id, c));
+function prCampPanel(p, f, c, id){ const x = prOf(p), cur = prCur(p), cap = prT(f, p), ck = "co/" + p.id + "/" + f.id + "/" + c + "/" + prAK(prAccOf(x, id, c));
   if (!x.cur || !x.am) return `<div class="panel">${lvTag(5)}${prSkel()}</div>`;
   const r = prRows(p, x.cur, f, c, x).find(o => o.id === id), v = prRows(p, x.prev, f, c).find(o => o.id === id) || {spend:0, imp:0, clicks:0, leads:0};
   const back = `<button class="btn btn--sm" data-act="mapSel" data-k="${esc(ck)}">${L("← Акаунт ","← Аккаунт ")}${esc(prAccName(p, prAccOf(x, id, c), c))}</button>`;

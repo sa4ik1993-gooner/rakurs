@@ -327,11 +327,11 @@ function plGeoLoad(p, A){ const k = p.id + A.f.id; if (PLG[k]) return PLG[k]; co
     PLG[k] = {load:false, cand:cand.slice(0, 8), own:ownC, from:cheap.filter(o => ((O[String(o.sid)] || {}).geo || []).length).map(o => "«" + o.set + "» CPM " + plMoney(o.s / o.i * 1000))}; render(); }, () => { PLG[k] = {load:false, cand:[], from:[], own:[]}; render(); });
   return PLG[k]; }
 /* «Исправлено»: цифры по воронке с даты исправления по сегодня (hiro-propose deep since) */
-async function plSinceLoad(p, A, since){ const k = p.id + A.f.id; if (PLDF[k] && PLDF[k].since === since) return; PLDF[k] = {since, load:true};
+async function plSinceLoad(p, A, since){ const k = p.id + A.f.id; if (PLDF[k] && PLDF[k].since === since && (PLDF[k].load || Date.now() - (PLDF[k].at || 0) < 30 * 60000)) return; PLDF[k] = {since, load:true};
   const cids = [...new Set(((PLA[p.id] || {}).w7 || []).filter(r => plFid(p, r) === A.f.id && +r.spend > 0).map(r => r.campaign_id))];
   let r = {}; try { r = (await sb.functions.invoke("hiro-propose", {body:{action:"deep", project_id:p.id, cids, since}})).data || {}; } catch (e) { r = {}; }
   const tot = (r.ads || []).reduce((o, a) => { ["s", "i", "lc", "lpv", "l"].forEach(f => { o[f] += +a[f] || 0; }); return o; }, {s:0, i:0, lc:0, lpv:0, l:0});
-  PLDF[k] = r.ok ? {since, tot} : {since, err:1}; render(); }
+  PLDF[k] = r.ok ? {since, tot, at:Date.now()} : {since, err:1, at:Date.now()}; render(); }
 /* обратная связь человека по гипотезам: хранится в воронке (f.hn) и синхронизируется вместе с проектом */
 const PLFBN = () => ({lpv:L("Сторінка вантажиться довго","Страница грузится долго"), cr:L("Сторінка не переконує","Страница не убеждает"), geo:L("Дорогий показ: гео або аудиторія","Дорогой показ: гео или аудитория"), hook:L("Ролики не чіпляють","Ролики не цепляют"), ctr:L("Дивляться, але не клікають","Смотрят, но не кликают"), seg:L("Креатив для окремої аудиторії","Креатив для отдельной аудитории")});
 const PLFBR = c => (c === "geo" ? [L("Так задумано: це наше гео / наша аудиторія","Так задумано: это наше гео / наша аудитория")] : []).concat([L("Вже перевіряли — не допомогло","Уже проверяли — не помогло"), L("Не можемо це змінити","Не можем это изменить"), L("Інше","Другое")]);
@@ -369,13 +369,16 @@ function plConcl(p, A){ const k = p.id + A.f.id, D = PLD[k], T = A.T, m = v => p
   const fixd = A.f.fix || {}; for (let j = H.length - 1; j >= 0; j--) { const h = H[j], since = fixd[h.c]; if (!since || !h.site) continue; plSinceLoad(p, A, since); const X = PLDF[k];
     if (!X || !X.tot || X.since !== since) continue; const t = X.tot, enough = h.c === "lpv" ? t.lc >= 100 : t.lpv >= 150, v = h.c === "lpv" ? (t.lc ? t.lpv / t.lc : 0) : (t.lpv ? t.l / t.lpv : 0), was = h.c === "lpv" ? lpv : cr, norm = h.c === "lpv" ? DTH.lpv : DTH.cr;
     if (enough && v >= norm) { H.splice(j, 1); good.push((h.c === "lpv" ? L("сторінку відкривають після виправлення ","страницу открывают после исправления ") : L("після виправлення реєструються ","после исправления регистрируются ")) + plPct(v) + L(" (було "," (было ") + plPct(was) + ")"); }
-    else if (enough) { h.why = (h.c === "lpv" ? L("Після виправлення ","После исправления ") + plDM(since) + L(" сторінку відкривають "," страницу открывают ") : L("Після виправлення ","После исправления ") + plDM(since) + L(" реєструються "," регистрируются ")) + plPct(v) + L(" (було "," (было ") + plPct(was) + L(", норма від ",", норма от ") + plPct(norm) + L("). Краще, але ще не досить.","). Лучше, но еще недостаточно."); h.f = v / norm; } }
+    else if (enough) { h.why = (h.c === "lpv" ? L("Після виправлення ","После исправления ") + plDM(since) + L(" сторінку відкривають "," страницу открывают ") : L("Після виправлення ","После исправления ") + plDM(since) + L(" реєструються "," регистрируются ")) + plPct(v) + L(" (було "," (было ") + plPct(was) + L(", норма від ",", норма от ") + plPct(norm) + L("). Краще, але ще не досить.","). Лучше, но еще недостаточно."); h.f = v / norm;
+      /* после исправления считаем от свежих цифр, а не от 7 дней (Дмитрий, 25.11: «сайт исправили, лид в 2 раза дешевле, а он предлагает вчерашние идеи») */
+      h.since = {d:since, v, was, norm, cpl:t.l ? t.s / t.l : 0}; if (t.l) h.base = t.s / t.l; } }
   const hn = A.f.hn || {}; for (let j = H.length - 1; j >= 0; j--) if (hn[H[j].c]) H.splice(j, 1); /* «не подходит» в этой воронке — не предлагаю (Дмитрий, 24.11.2026) */
-  H.forEach(h => { h.cpl = h.f != null ? est(h.f) : null; });
+  H.forEach(h => { h.cpl = h.f != null ? (h.base && h.f > 0 && h.f < 1 ? h.base * h.f : est(h.f)) : null; });
   H.sort((x, y) => (x.cpl == null) - (y.cpl == null) || (x.opt ? 1 : 0) - (y.opt ? 1 : 0) || (x.cpl || 0) - (y.cpl || 0)); /* проверенные пропорции — раньше оптимистичной оценки гео */
   if (!H.length && !good.length) { PLC[k] = {H:[], head:"", good:[]}; } if (!H.length && !good.length) return D && D.load ? `<p class="sub">${L("Збираю дані для висновку…","Собираю данные для вывода…")}</p>` : "";
   const top = H.filter(h => h.cpl != null && !h.opt), both = top.length >= 2 && cpl ? cpl * top[0].f * top[1].f : null;
-  const head = H[0] ? L("Головне вузьке місце — ","Главное узкое место — ") + H[0].t.toLowerCase() + "." + (H[0].cpl ? " " + L("Якщо дотягнути його ","Если дотянуть его ") + (H[0].opt ? "" : (H[0].to || "")) + L(", лід буде ≈",", лид будет ≈") + m(H[0].cpl) + L(" (ціль "," (цель ") + m(T) + ")." : "") + (both ? " " + L("Разом із «","Вместе с «") + top[1].t.toLowerCase() + L("» — ≈","» — ≈") + m(both) + "." : "") : L("Слабкого звена за 7 днів не видно.","Слабого звена за 7 дней не видно.");
+  const S0 = H[0] && H[0].since, head = S0 ? L("Після виправлення ","После исправления ") + plDM(S0.d) + (S0.cpl ? L(" лід — "," лид — ") + m(S0.cpl) + "," : "") + (H[0].c === "lpv" ? L(" сторінку відкривають "," страницу открывают ") : L(" реєструються "," регистрируются ")) + plPct(S0.v) + L(" (було "," (было ") + plPct(S0.was) + L("). Ще нижче норми ","). Еще ниже нормы ") + plPct(S0.norm) + (H[0].cpl ? L(" — якщо дотягнути, лід буде ≈"," — если дотянуть, лид будет ≈") + m(H[0].cpl) + "." : ".")
+    : H[0] ? L("Головне вузьке місце — ","Главное узкое место — ") + H[0].t.toLowerCase() + "." + (H[0].cpl ? " " + L("Якщо дотягнути його ","Если дотянуть его ") + (H[0].opt ? "" : (H[0].to || "")) + L(", лід буде ≈",", лид будет ≈") + m(H[0].cpl) + L(" (ціль "," (цель ") + m(T) + ")." : "") + (both ? " " + L("Разом із «","Вместе с «") + top[1].t.toLowerCase() + L("» — ≈","» — ≈") + m(both) + "." : "") : L("Слабкого звена за 7 днів не видно.","Слабого звена за 7 дней не видно.");
   PLC[k] = {H, head, good};
   const li = h => `<li><b>${esc(h.t)}</b><span>${esc(h.why)}</span><span><b>${L("Що робимо: ","Что делаем: ")}</b>${esc(h.act)}</span><small class="plplan__tag">${h.cpl ? L("Очікуваний лід ≈","Ожидаемый лид ≈") + esc(m(h.cpl)) + (h.opt ? " · " + esc(h.to) : "") + " · " : ""}${L("Перевірка за 3 дні: ","Проверка за 3 дня: ")}${esc(h.chk)}</small></li>`;
   return `<div class="pldeep plplan plconcl"><h4>${L("Висновок","Вывод")}</h4><p class="plconcl__t">${esc(head)}</p>
@@ -647,7 +650,7 @@ Object.assign(ACT, {
   plDeep(d){ const p = W.projs.find(x => x.id === d.p); if (!p) return; const A = plAcctAll(p).find(a => a.f.id === d.f); if (A) plDeepLoad(p, A); return false; },
   async plRethink(d){ const p = W.projs.find(x => x.id === d.p); if (!p) return; toast(L("Беру свіжі цифри з Meta й думаю…","Беру свежие цифры из Meta и думаю…"));
     try { if (typeof mtCall === "function") await mtCall({action:"sync", project_id:p.id, days:3}); } catch (e) {}
-    delete PLA[p.id]; delete PLM[p.id]; Object.keys(PLD).forEach(k => { if (k.indexOf(p.id) === 0) delete PLD[k]; }); delete PLR[p.id]; Object.keys(PLAP).forEach(k => { if (k.indexOf(p.id) === 0) delete PLAP[k]; }); delete PL.st[p.id]; plLoad(p); return false; },
+    delete PLA[p.id]; delete PLM[p.id]; Object.keys(PLD).forEach(k => { if (k.indexOf(p.id) === 0) delete PLD[k]; }); Object.keys(PLDF).forEach(k => { if (k.indexOf(p.id) === 0) delete PLDF[k]; }); delete PLR[p.id]; Object.keys(PLAP).forEach(k => { if (k.indexOf(p.id) === 0) delete PLAP[k]; }); delete PL.st[p.id]; plLoad(p); return false; },
   plWhy(d){ PL.why = d.v === "close" ? null : {p:d.p, id:+d.id}; },
   plPop(d){ PL.pop = d.v === "close" ? null : {k:d.v, p:d.p, f:d.f, i:+d.i || 0}; },
   plFbSave(d){ const p = (W.projs || []).find(z => z.id === d.p), f = p && (p.funnels || []).find(z => z.id === d.f); if (!f) return;

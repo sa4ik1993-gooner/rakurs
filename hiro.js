@@ -16,7 +16,7 @@ function hiroEv(only){
       prRows(p, x.cur, f, c, x).filter(o => o.spend > 0).forEach(o => { const j = prMain(prJudge(o, prev.find(q => q.id === o.id) || {}, cap, prCur(p)));
         if (j && j.lv === "crit") bad.push({p, f, c, o, j, cap, cpl:o.leads ? o.spend / o.leads : 0}); }); })); });
   bad.sort((a, b) => b.o.spend - a.o.spend);
-  const f0 = ps[0].funnels.find(tfF) || ps[0].funnels[0], cap = bad[0] ? bad[0].cap : f0 ? prCap(f0, ps[0]) : 0;
+  const f0 = ps[0].funnels.find(tfF) || ps[0].funnels[0], cap = bad[0] ? bad[0].cap : f0 ? prT(f0, ps[0]) : 0;
   return {s, v, cpl:s.leads ? s.spend / s.leads : 0, pcpl:v.leads ? v.spend / v.leads : 0, cap, cur, bad, ps, err:ps.some(p => prOf(p).err && !prOf(p).cur)};
 }
 const hiroKey = (b) => "co/" + b.p.id + "/" + b.f.id + "/" + b.c + "/" + prAK(prAccOf(prOf(b.p), b.o.id)) + "/" + b.o.id;
