@@ -143,7 +143,9 @@ function hiroPanel(scr){ if (!W.user || !W.co) return "";
 
 /* карточка Хиро внизу меню */
 function hiroRail(){ if (!W.user || !W.co) return ""; const e = hiroEv(null);
-  const t = e && e.s && e.s.leads ? L("Сьогодні " + num(e.s.leads) + " лідів по " + prM(e.cpl, e.cur) + ". Спитай мене, що покращити.", "Сегодня " + num(e.s.leads) + " лидов по " + prM(e.cpl, e.cur) + ". Спроси меня, что улучшить.")
+  /* B1: «Сьогодні» — только когда выбран период «сьогодні»; иначе — период с датами */
+  const per = typeof PR !== "undefined" && PR.mode === "t" ? L("Сьогодні ","Сегодня ") : L("За ","За ") + prLabel(prRange()) + ": ";
+  const t = e && e.s && e.s.leads ? per + plural(e.s.leads, L("лід","лид"), L("ліди","лида"), L("лідів","лидов")) + L(" за "," по ") + prM(e.cpl, e.cur) + L(". Спитай мене, що покращити.",". Спроси меня, что улучшить.")
     : L("Я стежу за рекламою щогодини. Спитай мене, що покращити.","Я слежу за рекламой каждый час. Спроси меня, что улучшить.");
   return `<div class="hrail"><img src="ui/hiro3d/hey.webp" alt="" width="132" height="150"><b>Hey!</b><span>${esc(t)}</span><button type="button" class="btn btn--glass btn--sm" data-act="hiroAsk">${L("Спитати Хіро","Спросить Хиро")}</button></div>`; }
 
