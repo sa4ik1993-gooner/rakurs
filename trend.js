@@ -8,7 +8,7 @@ const TRGD = {};
 const TR_DAYS = 400;
 function trgLoad(p){ if (!CLOUD || !sb) return; const x = TRGD[p.id]; if (x && (x.load || Date.now() - x.at < 10 * 60000)) return;
   TRGD[p.id] = Object.assign(x || {}, {load:true});
-  const t = prToday(), camp = o => ({day:o.day, prov:PROV_CH[o.provider] || o.provider, f:o.funnel_id || "", id:o.campaign_id, name:o.campaign_name || o.campaign_id, s:+o.spend || 0, i:+o.impressions || 0, c:+o.clicks || 0, l:+o.leads || 0});
+  const t = prToday(), camp = o => ({day:o.day, acc:o.account_id || "", prov:PROV_CH[o.provider] || o.provider, f:o.funnel_id || "", id:o.campaign_id, name:o.campaign_name || o.campaign_id, s:+o.spend || 0, i:+o.impressions || 0, c:+o.clicks || 0, l:+o.leads || 0});
   Promise.all([Promise.resolve(sb.rpc("ad_trend", {p:p.id, d1:prShift(t, -TR_DAYS), d2:t})).then(r => r.error ? null : (r.data || []).map(camp), () => null),
     Promise.resolve(sb.rpc("hiro_start", {p:p.id})).then(r => r.data || null, () => null)])
     .then(([rows, st]) => { TRGD[p.id] = {rows:rows || (x && x.rows) || [], start:st ? trgDay(new Date(st)) : "", at:Date.now(), err:!rows}; render(); }); }
@@ -18,7 +18,8 @@ const trgPs = only => (only ? [only] : W.projs || []).filter(p => typeof prOn ==
 function trgDaily(ps){ const by = {}; let start = "", load = false;
   ps.forEach(p => { trgLoad(p); const x = TRGD[p.id]; if (!x || !x.rows) { load = true; return; } if (x.load && !x.rows.length) load = true;
     if (x.start && (!start || x.start < start)) start = x.start;
-    x.rows.forEach(o => { if (typeof tfRow === "function" && !tfRow(p, o)) return; const b = by[o.day] = by[o.day] || {k:o.day, s:0, i:0, c:0, l:0}; b.s += o.s; b.i += o.i; b.c += o.c; b.l += o.l; }); });
+    /* только то, что изучаем: кампании, которые по правилам воронок входят в воронку проекта (Дмитрий, 25.11: «в аккаунте были лиды без mod — график должен строиться по нашей выборке») */
+    x.rows.forEach(o => { if (!fxFunnel(p, o) || (typeof tfRow === "function" && !tfRow(p, o))) return; const b = by[o.day] = by[o.day] || {k:o.day, s:0, i:0, c:0, l:0}; b.s += o.s; b.i += o.i; b.c += o.c; b.l += o.l; }); });
   return {days:Object.values(by).sort((a, b) => a.k < b.k ? -1 : 1), start, load}; }
 /* разбивка: день / неделя (с понедельника) / месяц; пустые дни внутри периода — нулями, чтобы ось была честной */
 function trgBuckets(days, g, n){ const t = prToday(), d0 = days.find(d => d.s || d.l), f0 = n ? prShift(t, -(n - 1)) : t, first = d0 && d0.k > f0 ? d0.k : !n && d0 ? d0.k : f0, map = {}; /* не раньше первого дня с данными */ days.forEach(d => { map[d.k] = d; });
@@ -53,12 +54,9 @@ function trgCmp(days, start, n){ if (!start) return null; const t = prToday(), d
   const before = sum(days.filter(d => d.k < start && (!from || d.k >= from))), after = sum(days.filter(d => d.k >= start && (!from || d.k >= from)));
   const nA = Math.round((Date.parse(t) - Date.parse(start)) / 864e5) + 1, nB = from ? Math.max(0, Math.round((Date.parse(start) - Date.parse(from)) / 864e5)) : before.n;
   return before.l && after.l ? {b:before.s / before.l, a:after.s / after.l, nA, nB} : null; }
-/* мини-график в «Пульсе»: цена лида по дням за 30 дней */
-function trMini(ps){ if (!CLOUD || !sb || !ps.length) return ""; const D = trgDaily(ps); if (!D.days.length) return D.load ? `<div class="trm"><span class="tag">${L("Ціна ліда · 30 днів","Цена лида · 30 дней")}</span><div class="trm__sk"></div></div>` : "";
-  const B = trgBuckets(D.days, "d", 30), c = trgCmp(D.days, D.start, 30);
-  return `<div class="trm"><div class="row sp"><span class="tag">${L("Ціна ліда · 30 днів","Цена лида · 30 дней")}</span>${D.start ? `<span class="trm__h">${L("Хіро з ","Хиро с ")}${prDM(D.start)}</span>` : ""}</div>
-    ${trgSvg(B, "cpl", D.start, {w:280, h:64, mini:true, g:"d", target:trgTarget(ps)})}
-    <div class="row sp">${c ? `<span class="sub">${L("До Хіро ","До Хиро ")}${fxM(c.b)} $ → ${fxM(c.a)} $</span>` : `<span></span>`}<button type="button" class="btn btn--sm btn--text" data-act="trOpen" data-v="${ps.length === 1 ? ps[0].id : ""}">${L("Подивитися графік","Посмотреть график")}</button></div></div>`; }
+/* кнопка с иконкой графика в шапке «Пульса» (Дмитрий, 25.11: «чтобы график открывался по кнопке с иконкой») */
+function trgBtn(ps){ if (!CLOUD || !sb || !ps.length) return ""; ps.forEach(trgLoad);
+  return `<button type="button" class="btn btn--sm" data-act="trOpen" data-v="${ps.length === 1 ? ps[0].id : ""}" title="${L("Динаміка за днями, тижнями, місяцями — до і з Хіро","Динамика по дням, неделям, месяцам — до и с Хиро")}">${ico("reports")}${L("Графік","График")}</button>`; }
 function trgHtml(){ const only = TRG.only ? (W.projs || []).find(p => p.id === TRG.only) : null, ps = trgPs(only), D = trgDaily(ps), M = TRGM(), B = trgBuckets(D.days, TRG.g, TRG.n), c = trgCmp(D.days, D.start, TRG.n);
   const seg = (k, opts) => `<div class="seg" role="group">${opts.map(([v, t]) => `<button type="button" data-act="trSet" data-k="${k}" data-v="${v}" aria-pressed="${String(TRG[k]) === String(v)}">${t}</button>`).join("")}</div>`;
   const f = typeof tfS === "function" ? tfS() : {}, fl = [only ? only.name : "", f.f ? ((ps.flatMap(p => p.funnels).find(x => x.id === f.f) || {}).name || "") : "", f.c || ""].filter(Boolean).join(" · ");
