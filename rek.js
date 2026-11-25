@@ -8,7 +8,11 @@ const RK_TABS = () => [["camp", L("Кампанії","Кампании")], ["cr"
 /* ---------- переключатель проекта: все экраны показывают выбранный проект или все сразу ---------- */
 const pfProjs = () => { const p = W.pf && W.projs.find(x => x.id === W.pf); return p ? [p] : W.projs; };
 const pfOne = () => (W.pf && W.projs.find(x => x.id === W.pf)) || null;
-const pfSel = () => W.projs.length > 1 ? `<select class="pfsel" data-pf="1" aria-label="${L("Проєкт","Проект")}"><option value="">${L("Усі проєкти","Все проекты")}</option>${W.projs.map(p => `<option value="${p.id}"${p.id === W.pf ? " selected" : ""}>${esc(p.name)}</option>`).join("")}</select>` : "";
+/* D1: свой выпадающий список; на «Сьогодні» проект выбирается в строке фильтра — второй не нужен (D5) */
+const pfSel = () => W.projs.length > 1 && W.ctab !== "today" ? `<span class="pfdd">${ddSel("pf", [["", L("Усі проєкти","Все проекты")]].concat(W.projs.map(p => [p.id, p.name])), W.pf || "", L("Проєкт","Проект"), "tfPick", "p")}</span>` : "";
+/* D1: единый выпадающий список (вместо системного select) — кнопка-таблетка и меню, как период. id — что открыто, act/k — действие выбора */
+function ddSel(id, opts, cur, lbl, act, k, set){ const o0 = opts.find(o => o[0] === cur) || opts[0], open = TFD.open === id;
+  return `<div class="dd${open ? " is-open" : ""}${(set === undefined ? cur : set) ? " is-set" : ""}"><button type="button" class="dd__b" data-act="tfdOpen" data-v="${esc(id)}" aria-haspopup="listbox" aria-expanded="${open}" aria-label="${esc(lbl)}: ${esc(o0[1])}" title="${esc(lbl)}"><span>${esc(o0[1])}</span>${ico("chevron")}</button>${open ? `<ul class="dd__l" role="listbox" aria-label="${esc(lbl)}">${opts.map(o => `<li><button type="button" role="option" data-act="${act}" data-k="${esc(k)}" data-v="${esc(o[0])}" aria-selected="${o[0] === cur}">${esc(o[1])}${o[0] === cur ? ico("check") : ""}</button></li>`).join("")}</ul>` : ""}</div>`; }
 document.addEventListener("change", e => { const t = e.target; if (t.dataset && t.dataset.pf) { W.pf = t.value; save(); render(); } });
 
 /* ---------- фильтр «Сьогодні»: проект → воронка → канал (Дмитрий, 24.11.2026: «зашёл решить проблему с дорогой воронкой») ----------
@@ -29,8 +33,7 @@ function tfBar(){ const ps = pfProjs(), t = tfS(), fs = ps.flatMap(p => p.funnel
   const chs = [...new Set(fs.filter(x => tfF(x.f)).flatMap(x => x.f.ch || []))];
   if (t.c && !chs.includes(t.c)) t.c = "";
   /* свой выпадающий список вместо системного (Дмитрий, 25.11: «тут дизайн надо поменять») — как кнопка периода */
-  const sel = (k, opts, cur, lbl) => { const o0 = opts.find(o => o[0] === cur) || opts[0], open = TFD.open === k;
-    return `<div class="dd${open ? " is-open" : ""}${cur ? " is-set" : ""}"><button type="button" class="dd__b" data-act="tfdOpen" data-v="${k}" aria-haspopup="listbox" aria-expanded="${open}" aria-label="${lbl}: ${esc(o0[1])}" title="${lbl}"><span>${esc(o0[1])}</span>${ico("chevron")}</button>${open ? `<ul class="dd__l" role="listbox" aria-label="${lbl}">${opts.map(o => `<li><button type="button" role="option" data-act="tfPick" data-k="${k}" data-v="${esc(o[0])}" aria-selected="${o[0] === cur}">${esc(o[1])}${o[0] === cur ? ico("check") : ""}</button></li>`).join("")}</ul>` : ""}</div>`; };
+  const sel = (k, opts, cur, lbl) => ddSel(k, opts, cur, lbl, "tfPick", k);
   return `<div class="tfb" role="group" aria-label="${L("Фільтр","Фильтр")}">
     ${W.projs.length ? sel("p", [["", L("Усі проєкти","Все проекты")]].concat(W.projs.map(p => [p.id, p.name])), W.pf || "", L("Проєкт","Проект")) : ""}
     ${sel("f", [["", L("Усі воронки","Все воронки")]].concat(fs.map(x => [x.f.id, (ps.length > 1 ? x.p.name + " · " : "") + x.f.name])), t.f, L("Воронка","Воронка"))}
@@ -77,7 +80,7 @@ const rkCells = (r, cap, cur) => RK_COLS().map(([k]) => { const v = rkVal(r, k);
   return `<td class="n mono">${k === "cpl" ? cplCell(v, cap, cur) : k === "ctr" ? (v ? prPct(v) : "—") : k === "roas" ? (v ? dec(v, 2) : "—") : k === "spend" || k === "rev" ? (v ? prM(v, cur) : "—") : num(v)}</td>`; }).join("");
 
 function rkFilters(rows){ const accs = [...new Map(rows.filter(r => r.acc).map(r => [r.acc, r.accName])).entries()], funs = [...new Map(rows.filter(r => r.f).map(r => [r.fid, r.f.name])).entries()], plats = [...new Set(rows.map(r => r.prov))];
-  const sel = (k, all, opts) => `<select data-rkf="${k}">${`<option value="">${all}</option>`}${opts.map(o => `<option value="${esc(o[0])}"${RK2[k] === o[0] ? " selected" : ""}>${esc(o[1])}</option>`).join("")}</select>`;
+  const sel = (k, all, opts) => ddSel("rk." + k, [["", all]].concat(opts), RK2[k] || "", ({plat:L("Платформа","Площадка"), acc:L("Акаунт","Аккаунт"), fun:L("Воронка","Воронка")})[k] || all, "rkPick", k);
   return `<div class="rkf">${sel("plat", L("Усі рекламні платформи","Все площадки"), plats.map(c => [c, chOf(c)[1]]))}${sel("acc", L("Усі акаунти","Все аккаунты"), accs)}${sel("fun", L("Усі воронки","Все воронки"), funs.concat([["-", L("Без воронки","Без воронки")]]))}
     <input data-rkq="q" value="${esc(RK2.q)}" placeholder="${L("назва кампанії містить…","название кампании содержит…")}"><input data-rkq="qc" value="${esc(RK2.qc)}" placeholder="${L("креатив містить…","креатив содержит…")}">
     <label class="row"><input type="checkbox" data-rkf="spendOnly"${RK2.spendOnly ? " checked" : ""}> ${L("лише з витратами","только с расходом")}</label></div>`; }
@@ -130,7 +133,7 @@ function rkRepText(){ const r = prRange(), {rows} = rkRows(), list = rkFilter(ro
   if (RK2.rep === "cr") rkCrRows().list.filter(c => c.spend > 0).sort((a, b) => (a.leads ? a.spend / a.leads : 1e9) - (b.leads ? b.spend / b.leads : 1e9)).slice(0, 25).forEach(c => { const v = rkVal(c, "cpl"); lines.push(mark(v, c.cap) + " " + c.name + " — " + prM(c.spend, c.cur) + ", " + num(c.leads) + L(" лідів"," лидов") + (v ? L(" за "," по ") + prM(v, c.cur) : "")); });
   return lines.join("\n"); }
 function rkRep(){ const txt = rkRepText();
-  return `<div class="panel rk"><div class="row rkr"><select data-rkr="1" aria-label="${L("Звіт","Отчет")}">${RK_REPS().map(x => `<option value="${x[0]}"${RK2.rep === x[0] ? " selected" : ""}>${x[1]}</option>`).join("")}</select>
+  return `<div class="panel rk"><div class="row rkr">${ddSel("rk.rep", RK_REPS(), RK2.rep, L("Звіт","Отчет"), "rkPick", "rep", false)}
       <button type="button" class="btn btn--sm" data-act="rkRepCopy">${L("Скопіювати","Скопировать")}</button><a class="btn btn--sm btn--solid" href="https://t.me/share/url?url=${encodeURIComponent(" ")}&text=${encodeURIComponent(txt)}" target="_blank" rel="noopener">${L("Надіслати в Telegram","Отправить в Telegram")}</a></div>
     <p class="sub">${L("Звіт за період і фільтри з вкладки «Кампанії». Telegram відкриється з готовим текстом — обери, кому надіслати.","Отчет за период и фильтры со вкладки «Кампании». Telegram откроется с готовым текстом — выбери, кому отправить.")}</p>
     <pre class="rkpre" id="rk-rep">${esc(txt)}</pre></div>`; }
@@ -148,6 +151,7 @@ document.addEventListener("input", e => { const t = e.target; if (!t.dataset || 
   clearTimeout(rkT); rkT = setTimeout(() => { const k = t.dataset.rkq, pos = t.selectionStart; render(); const el = document.querySelector(`[data-rkq="${k}"]`); if (el) { el.focus({preventScroll:true}); try { el.setSelectionRange(pos, pos); } catch (_e) { /* */ } } }, 350); });
 Object.assign(ACT, {
   rkTab(d){ W.atab = d.v; save(); },
+  rkPick(d){ TFD.open = ""; RK2[d.k] = d.v; },
   rkSort(d){ if (RK2.sort === d.v) RK2.dir = -RK2.dir; else { RK2.sort = d.v; RK2.dir = d.v === "cpl" ? 1 : -1; } },
   rkOpen(d){ RK2.open[d.v] = !RK2.open[d.v]; },
   rkCsv(d){ const r = prRange(), nm = "heyrow_" + (d.v === "cr" ? "creatives" : "campaigns") + "_" + r.d1 + "_" + r.d2;

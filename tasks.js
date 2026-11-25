@@ -349,7 +349,7 @@ function tsToday(){ const ps = (typeof pfProjs === "function" ? pfProjs() : W.pr
     (f.ch || []).forEach(c => prAccs(p, c).forEach(a => opts.push(["co/" + p.id + "/" + f.id + "/" + c + "/" + prAK(String(a.id)), (ps.length > 1 ? p.name + " · " : "") + f.name + " · " + (a.name || a.id)]))); }); });
   if (typeof tfS === "function" && tfS().f) { const keep = opts.filter(o => o[0].split("/")[2] === tfS().f); if (keep.length) opts.splice(0, opts.length, ...keep); }
   if (!opts.some(o => o[0] === TS.sc)) TS.sc = opts[0][0];
-  const pick = `<label class="tsw"><span class="lbl">${L("Для чого","Для чего")}</span><select data-tssc="1">${opts.map(o => `<option value="${esc(o[0])}"${o[0] === TS.sc ? " selected" : ""}>${esc(o[1])}</option>`).join("")}</select></label>`;
+  const pick = `<div class="tsw"><span class="lbl">${L("Для чого","Для чего")}</span>${typeof ddSel === "function" ? ddSel("ts.sc", opts, TS.sc, L("Для чого","Для чего"), "tsScPick", "sc", false) : ""}</div>`; /* D1: свой выпадающий список */
   const has = ps.some(p => (p.tasks || []).some(t => t.status === "run" || t.status === "plan") || ((((typeof PL !== "undefined" && PL.st[p.id]) || {}).log) || []).some(x => x.status === "scheduled"));
   const sw = has ? `<span class="seg" role="group" aria-label="${L("Вигляд задач","Вид задач")}"><button type="button" data-act="tsView" data-v="cal" aria-pressed="${TS.view === "cal"}">${L("Календар","Календарь")}</button><button type="button" data-act="tsView" data-v="list" aria-pressed="${TS.view === "list"}">${L("Список","Список")}</button></span>` : "";
   const list = !has ? "" : TS.view === "cal" ? tsCal(ps) : ps.flatMap(p => (p.tasks || []).filter(t => (t.status === "run" || t.status === "plan") && tf(t)).map(t => tsCard(p, t))).join("");
@@ -431,3 +431,5 @@ document.addEventListener("change", e => { const el = e.target; if (!el.dataset 
   const cc = [...new Set(String(el.value).toUpperCase().split(/[^A-Z]+/).filter(c => /^[A-Z]{2}$/.test(c) && c !== "UA" && c !== "RU"))];
   if (!cc.length) { toast(L("Вкажи хоча б одну країну кодом: PL, US, DE…","Укажи хотя бы одну страну кодом: PL, US, DE…")); el.value = tsGeo(p).join(", "); return; }
   p.dupGeo = cc; save(); el.value = cc.join(", "); });
+
+Object.assign(ACT, { tsScPick(d){ if (typeof TFD !== "undefined") TFD.open = ""; TS.sc = d.v; } });
