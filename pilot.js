@@ -519,7 +519,7 @@ function plHState(A, c){ const f = A.f, today = plD(0); let ch = false;
   return (f.hdone || {})[c] ? "done" : (f.later || {})[c] ? "later" : ""; }
 const plDayDiff = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 864e5);
 function plHypsBy(p, st){ return plAcctAll(p).filter(A => typeof tfAcct !== "function" || tfAcct(A)).map(A => { plConcl(p, A); const C = PLC[p.id + A.f.id] || {H:[]}; return C.H.map((h, i) => plHState(A, h.c) === st ? plHypCard(p, A, h, i, st) : "").join(""); }).join(""); }
-function plHypCount(p, st){ return plAcctAll(p).filter(A => typeof tfAcct !== "function" || tfAcct(A)).reduce((n, A) => (plConcl(p, A), n) + ((PLC[p.id + A.f.id] || {H:[]}).H.filter(h => plHState(A, h.c) === st).length), 0); }
+function plHypCount(p, st){ return plAcctAll(p).filter(A => typeof tfAcct !== "function" || tfAcct(A)).reduce((n, A) => (plConcl(p, A), n) + ((PLC[p.id + A.f.id] || {H:[]}).H.filter(h => plHState(A, h.c) === st && !PLHX[plHypKey(p, A, h)]).length), 0); } /* A3: убранные «Прибрати» гипотезы не видны — и не считаются */
 function plHypCard(p, A, h, i, mode){ if (PLHX[plHypKey(p, A, h)]) return ""; const m = v => plMoney(v);
   const ic = h.site ? "search" : h.opt ? "map" : /креатив|ролик/i.test(h.t) ? "edit" : "idea";
   const fx0 = (A.f.fix || {})[h.c]; let after = null;
