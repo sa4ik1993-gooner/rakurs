@@ -271,7 +271,7 @@ function kbMeter(){ const m = kbScore(), n = m.next, sec = n && !["brand","rules
 function kbCols(sc){ const h = kbHolder(sc);
   return `<div class="kbl">${KBT().filter(k=>k[1]===sc||k[1]==="both").map(k=>{ const items = h.kb.filter(i=>i.type===k[0]), on = KBO === k[0];
     return `<div class="kbc${items.length?" ok":""}${on?" on":""}" id="kbc-${k[0]}"><div class="kbc__h"><i class="kbc__m">${items.length || (sc==="co" ? "+"+k[5] : "")}</i>
-      <div class="kbc__t"><h3>${k[2]}</h3><p>→ ${k[4]}</p></div>
+      <div class="kbc__t"><h3>${k[2]} ${hint(L("Хіро бере звідси: ","Хиро берет отсюда: ") + k[4])}</h3></div>
       <button type="button" class="btn btn--sm btn--ico${items.length?"":" btn--solid"}" data-act="kbOpen" data-id="${k[0]}" aria-expanded="${on}" aria-label="${L("Додати","Добавить")}" title="${L("Додати","Добавить")}">${on?"–":"+"}</button></div>
     ${items.map(i=>kbItem(i, del("wsDelKb", i.id))).join("")}
     ${on ? `<div class="adder"><div class="field"><label for="kb-${k[0]}-t">${L("Назва","Название")}</label><input id="kb-${k[0]}-t" placeholder="${k[3]}"></div><div class="field"><label for="kb-${k[0]}-s">${L("Посилання","Ссылка")}</label><input id="kb-${k[0]}-s" placeholder="https://"></div>
@@ -279,10 +279,10 @@ function kbCols(sc){ const h = kbHolder(sc);
       <div class="row"><button class="btn btn--sm btn--solid" data-act="wsAddKb" data-id="${k[0]}">${L("Додати","Добавить")}</button><label class="btn btn--sm"><input type="file" multiple hidden data-wf="kb.${k[0]}">${L("Файл","Файл")}</label></div></div>` : ""}</div>`; }).join("")}</div>`; }
 function kbProject(p){
   const co = W.co, inh = kbInh(p), all = p.kb.concat(inh), has = t => all.some(i=>i.type===t), b = p.brand.own ? p.brand : co.brand, bOk = !!(b.colors || b.fonts || b.voice || (b.files||[]).length);
-  const gaps = [[L("Айдентика","Айдентика"),bOk,L("без неї обкладинки й тексти будуть «нічиї»","без нее обложки и тексты будут «ничьи»")],[L("Продукт і програма","Продукт и программа"),has("product")||!!p.product,L("бот не знатиме, що можна обіцяти","бот не будет знать, что можно обещать")],
+  const gaps = [[L("Айдентика","Айдентика"),bOk,L("без неї обкладинки й тексти будуть «нічиї»","без нее обложки и тексты будут «ничьи»")],[L("Продукт і програма","Продукт и программа"),has("product")||!!p.product,L("Хіро не знатиме, що можна обіцяти","Хиро не будет знать, что можно обещать")],
     [L("Кейси та відгуки","Кейсы и отзывы"),has("case"),L("нема чим доводити в оголошеннях","нечем доказывать в объявлениях")],[L("Відео","Видео"),has("video"),L("нема з чого різати креативи","не из чего резать креативы")],
     [L("Історія чи експерти","История или эксперты"),has("story")||has("team"),L("нема від кого говорити в кадрі","не от кого говорить в кадре")],[L("Питання й заперечення","Вопросы и возражения"),has("faq"),L("гіпотези доведеться вигадувати","гипотезы придется придумывать")]];
-  return `<div class="panel vf"><div class="row sp"><span class="tag">${L("Що бот знає про проєкт","Что бот знает о проекте")}</span><span class="mono sub">${p.kb.length} ${L("своїх","своих")} + ${inh.length} ${L("з компанії","из компании")}</span></div>
+  return `<div class="panel vf"><div class="row sp"><span class="tag">${L("Що Хіро знає про проєкт","Что Хиро знает о проекте")}</span><span class="mono sub">${p.kb.length} ${L("своїх","своих")} + ${inh.length} ${L("з компанії","из компании")}</span></div>
       <ul class="steps gaps">${gaps.map(g=>`<li class="${g[1]?"ok":""}"><span><b>${g[0]}</b>${g[1]?"":` <span class="sub">— ${g[2]}</span>`}</span></li>`).join("")}</ul></div>
     ${p.brand.own ? brandPanel("p", `<button class="btn btn--sm" data-act="wsBrandOwn" data-v="0">${L("Повернути айдентику компанії","Вернуть айдентику компании")}</button>`)
       : `<div class="panel"><div class="row sp"><span class="tag">${L("Айдентика · з компанії","Айдентика · из компании")}</span><button class="btn btn--sm" data-act="wsBrandOwn" data-v="1">${L("Своя для цього проєкту","Своя для этого проекта")}</button></div>
