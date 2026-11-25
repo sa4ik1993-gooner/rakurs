@@ -166,7 +166,8 @@ const LVI = ["hero", "projects", "funnel", "campaigns", "connections", "launch"]
 const ndIco = n => n.ic ? `<i class="ndi ndi--ch">${chIcon(n.ic)}</i>` : `<i class="ndi ndi--l${n.lv}" aria-hidden="true">${ico(LVI[n.lv] || "launch")}</i>`;
 const ndSt = n => n.m ? `<span class="st ${n.v === "crit" ? "st--err" : n.v === "warn" || n.warn ? "st--pause" : n.v === "mute" ? "st--mute" : "st--on"}">${esc(n.m)}</span>` : "";
 function mapNode(n, sel){
-  if (mapHidden(n)) return "";
+  /* спрятанное не исчезает бесследно (Дмитрий, 25.11: «нажал свернуть — развернуть никак не могу»): на его месте строка «Сховано · Показати» */
+  if (mapHidden(n)) return n.add || n.more || n.ghost ? "" : `<li class="hidn"><button type="button" class="nd nd--hid" data-act="mapUnhide" data-k="${esc(mapHK(n))}" title="${L("Повернути на дошку","Вернуть на доску")}">${ICO.eye}<span>${L("Сховано: ","Скрыто: ")}<b>${esc(n.t)}</b></span><u>${L("Показати","Показать")}</u></button></li>`;
   const on = sel && (n.k === sel || n.k.indexOf(sel + "/") === 0 || sel.indexOf(n.k + "/") === 0), lv = LEVELS()[n.lv], open = n.can && !n.fold;
   const card = n.ghost ? `<div class="nd nd--ghost"><small class="lv">${lv[0]}</small><b>${n.t}</b><span>${n.s}</span></div>`
     : n.more ? `<button type="button" class="nd nd--more" data-act="mapSel" data-k="${n.k}"><b>${n.t}</b><span>${n.s || L("усі — у панелі каналу","все — в панели канала")}</span></button>`
@@ -183,7 +184,7 @@ function mapNode(n, sel){
 function mapBar(){ const n = W.projs.reduce((a, p) => a + (p.funnels.length ? 1 : 0) + p.funnels.filter(f => (f.ch || []).length).length, 0);
   const auto = (mapMany() || W.projs.some(p => p.funnels.length > MAP_FUNS)) && !Object.keys(MP.fold).length;
   const tip = mapLegend() + (auto ? `<span>${L("Структура велика, тому частину гілок згорнуто.","Структура большая, поэтому часть веток свернута.")}</span>` : "");
-  return `<div class="row map__bar">${mapViewSw()}${n >= 2 ? icoBtn("collapse", L("Згорнути все","Свернуть все"), 'data-act="mapFoldAll" data-v="1"') + icoBtn("expand", L("Розгорнути все","Развернуть все"), 'data-act="mapFoldAll" data-v="0"') : ""}${Object.keys(MP.hide).length ? `<button type="button" class="btn btn--sm btn--eye" data-act="mapShowAll" aria-label="${L("Показати сховані","Показать скрытые")}" title="${L("Показати сховані","Показать скрытые")}">${ICO.eye}<b>${Object.keys(MP.hide).length}</b></button>` : ""}${hint(tip, "wide")}</div>`; }
+  return `<div class="row map__bar">${mapViewSw()}${n >= 2 ? icoBtn("collapse", L("Згорнути все","Свернуть все"), 'data-act="mapFoldAll" data-v="1"') + icoBtn("expand", L("Розгорнути все","Развернуть все"), 'data-act="mapFoldAll" data-v="0"') : ""}${Object.keys(MP.hide).length ? `<button type="button" class="btn btn--sm btn--eye" data-act="mapShowAll" aria-label="${L("Показати сховані","Показать скрытые")}" title="${L("Показати сховані","Показать скрытые")}">${ICO.eye}<span>${L("Показати сховані","Показать скрытые")}</span><b>${Object.keys(MP.hide).length}</b></button>` : ""}${hint(tip, "wide")}</div>`; }
 const mapDeep = n => Math.max(n.lv || 0, ...(n.kids || []).map(mapDeep));
 const mapBoard = (tree, sel, n = Math.max(4, mapDeep(tree) + 1)) => `<div class="map__scroll" tabindex="0" role="group" aria-label="${L("Карта структури","Карта структуры")}"><div class="map__in" style="--n:${n}">
   <div class="map__heads">${LEVELS().slice(0, n).map((l, i) => `<div><i>0${i + 1}</i><b>${l[0]}</b></div>`).join("")}</div>
@@ -284,6 +285,7 @@ Object.assign(ACT, {
   /* «свернуть всё»: при нескольких проектах сворачиваются проекты, при одном — каналы его воронок */
   mapHide(d){ MP.hide[d.k] = 1; if (MP.sel && (MP.sel === d.k || MP.sel.indexOf(d.k + "/") === 0)) MP.sel = null; mapHideSave(); },
   mapShowAll(){ MP.hide = {}; mapHideSave(); },
+  mapUnhide(d){ delete MP.hide[d.k]; mapHideSave(); },
   mapFoldAll(d){ const on = d.v === "1", one = W.projs.length < 2; MP.fold = {};
     W.projs.forEach(p => { MP.fold["co/" + p.id] = on && !one; p.funnels.forEach(f => { MP.fold["co/" + p.id + "/" + f.id] = on && one; }); }); },
   chEven(){ const f = F(); if (!f) return false; f.chs = {}; save(); },
