@@ -1730,3 +1730,27 @@ td:first-child{font:600 var(--t-body)/1.3 var(--font-ui)}
 .dsel__l button svg{width:16px;height:16px;flex:none}
 @media (max-width:600px){.ctl .dsel{flex:1 1 140px}.dsel__b{width:100%;max-width:none;justify-content:space-between}.dsel__l{min-width:100%}}
 .pfdd{margin-left:var(--s-2)}
+/* Налаштування автопілота — боковая панель 520px (UX.md §4), 25.11 */
+.drawer:has(.pls){width:min(520px,100%);padding:0}
+.pls{display:flex;flex-direction:column;min-height:100%}
+.pls__top{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:flex-start;gap:var(--s-3);padding:var(--s-5) var(--s-5) var(--s-4);background:var(--paper);border-bottom:1px solid var(--line)}
+.pls__top h1{font-size:var(--t-head);margin:2px 0 0}
+.pls__top .x{border:0;border-radius:50%;background:var(--track);flex:none}
+.pls__body{flex:1;display:flex;flex-direction:column;gap:var(--s-5);padding:var(--s-5)}
+.pls__s{display:flex;flex-direction:column;gap:var(--s-2)}
+.pls__h{display:flex;align-items:center;gap:6px;margin:0;font:700 var(--t-label)/1.2 var(--font-display);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.pls__on{display:flex;align-items:center;gap:var(--s-3);padding:var(--s-3) var(--s-4);border-radius:var(--r-control);background:var(--surface);border:1px solid var(--line);cursor:pointer}
+.pls__on input{width:20px;height:20px;flex:none;accent-color:var(--signal)}
+.pls__on span{display:flex;flex-direction:column;gap:2px}
+.pls .ck{align-items:center}
+.pls .ck input{flex:none;margin:0}
+.pls__ck{display:flex;flex-wrap:wrap;gap:var(--s-2) var(--s-5)}
+.pls .plz__r{padding:10px 12px}
+.pls .plz__r .ck{flex:1 1 140px}
+.pls__tg{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s-2)}
+.pls__hr{display:flex;align-items:center;gap:var(--s-3);margin-top:var(--s-2)}
+.pls__hr span{color:var(--muted)}
+.pls__hr select{width:auto;min-width:110px;min-height:40px;padding:0 var(--s-3);border:1px solid var(--line-strong);border-radius:var(--r-control);background:var(--surface);color:var(--ink);font:400 var(--t-body) var(--font-ui)}
+.pls__foot{position:sticky;bottom:0;display:flex;justify-content:flex-end;align-items:center;gap:var(--s-3);padding:var(--s-4) var(--s-5);background:var(--paper);border-top:1px solid var(--line)}
+.pls__foot .sub{margin-right:auto}
+.plt>.row.sp .btn{white-space:nowrap}
