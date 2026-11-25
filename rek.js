@@ -28,17 +28,25 @@ function tfLog(p, x){ const t = tfS(); if (!t.f && !t.c) return true; if (t.c &&
 function tfBar(){ const ps = pfProjs(), t = tfS(), fs = ps.flatMap(p => p.funnels.map(f => ({p, f}))); if (!fs.length) return "";
   const chs = [...new Set(fs.filter(x => tfF(x.f)).flatMap(x => x.f.ch || []))];
   if (t.c && !chs.includes(t.c)) t.c = "";
-  const sel = (k, opts, cur, lbl) => `<label class="tfb__i"><select data-tf="${k}" aria-label="${lbl}" title="${lbl}">${opts.map(o => `<option value="${esc(o[0])}"${o[0] === cur ? " selected" : ""}>${esc(o[1])}</option>`).join("")}</select></label>`;
+  /* свой выпадающий список вместо системного (Дмитрий, 25.11: «тут дизайн надо поменять») — как кнопка периода */
+  const sel = (k, opts, cur, lbl) => { const o0 = opts.find(o => o[0] === cur) || opts[0], open = TFD.open === k;
+    return `<div class="dd${open ? " is-open" : ""}${cur ? " is-set" : ""}"><button type="button" class="dd__b" data-act="tfdOpen" data-v="${k}" aria-haspopup="listbox" aria-expanded="${open}" aria-label="${lbl}: ${esc(o0[1])}" title="${lbl}"><span>${esc(o0[1])}</span>${ico("chevron")}</button>${open ? `<ul class="dd__l" role="listbox" aria-label="${lbl}">${opts.map(o => `<li><button type="button" role="option" data-act="tfPick" data-k="${k}" data-v="${esc(o[0])}" aria-selected="${o[0] === cur}">${esc(o[1])}${o[0] === cur ? ico("check") : ""}</button></li>`).join("")}</ul>` : ""}</div>`; };
   return `<div class="tfb" role="group" aria-label="${L("Фільтр","Фильтр")}">
     ${W.projs.length ? sel("p", [["", L("Усі проєкти","Все проекты")]].concat(W.projs.map(p => [p.id, p.name])), W.pf || "", L("Проєкт","Проект")) : ""}
     ${sel("f", [["", L("Усі воронки","Все воронки")]].concat(fs.map(x => [x.f.id, (ps.length > 1 ? x.p.name + " · " : "") + x.f.name])), t.f, L("Воронка","Воронка"))}
     ${chs.length ? sel("c", [["", L("Усі канали","Все каналы")]].concat(chs.map(c => [c, chOf(c)[1]])), t.c, L("Канал","Канал")) : ""}
     ${tfOn() || W.pf ? `<button type="button" class="btn btn--sm btn--text" data-act="tfReset">${ico("close")} ${L("Скинути","Сбросить")}</button>` : ""}
     ${hint(L("Фільтр діє на весь екран: цифри, рішення, стрічку Хіро й задачі. Обери дорогу воронку — побачиш лише її проблеми.","Фильтр действует на весь экран: цифры, решения, ленту Хиро и задачи. Выбери дорогую воронку — увидишь только ее проблемы."))}</div>`; }
-document.addEventListener("change", e => { const el = e.target, k = el.dataset && el.dataset.tf; if (!k) return; const t = tfS();
-  if (k === "p") { W.pf = el.value; t.f = ""; t.c = ""; } else if (k === "f") { t.f = el.value; if (el.value) { const p = W.projs.find(p => p.funnels.some(f => f.id === el.value)); if (p && W.projs.length > 1) W.pf = p.id; } } else t[k] = el.value;
-  save(); render(); });
-Object.assign(ACT, { tfReset(){ W.tf = {f:"", c:""}; W.pf = ""; save(); }, tfGo(d){ W.tf = {f:d.f || "", c:d.c || ""}; if (d.p && W.projs.length > 1) W.pf = d.p; W.ctab = "today"; save(); } });
+const TFD = {open:""};
+function tfSet(k, v){ const t = tfS();
+  if (k === "p") { W.pf = v; t.f = ""; t.c = ""; } else if (k === "f") { t.f = v; if (v) { const p = W.projs.find(p => p.funnels.some(f => f.id === v)); if (p && W.projs.length > 1) W.pf = p.id; } } else t[k] = v; }
+document.addEventListener("click", e => { if (TFD.open && !e.target.closest(".dd")) { TFD.open = ""; render(); } }, true);
+document.addEventListener("keydown", e => { if (e.key === "Escape" && TFD.open) { TFD.open = ""; render(); } });
+/* задача проходит фильтр: задача без воронки/канала (на весь проект) — показываем */
+const tfTask = t => { const s = t.scope || {}, f = tfS(); return (!f.f || !s.f || s.f === f.f) && (!f.c || !s.c || s.c === f.c); };
+/* Хиро разбирает только Meta: фильтр по другому каналу его карточки прячет; воронка — только выбранная */
+const tfAcct = A => W.ctab !== "today" || ((!tfS().c || tfS().c === "meta") && tfF(A.f));
+Object.assign(ACT, { tfdOpen(d){ TFD.open = TFD.open === d.v ? "" : d.v; }, tfPick(d){ TFD.open = ""; tfSet(d.k, d.v); save(); }, tfReset(){ W.tf = {f:"", c:""}; W.pf = ""; save(); }, tfGo(d){ W.tf = {f:d.f || "", c:d.c || ""}; if (d.p && W.projs.length > 1) W.pf = d.p; W.ctab = "today"; save(); } });
 
 /* ---------- шапка: период, свежесть данных, обновить — одной строкой справа ---------- */
 function prHeadR(){ if (!W.projs.some(prOn)) return ""; const r = prRange(), busy = W.projs.some(p => prOn(p) && fxOf(p).syncing), one = pfProjs().find(prOn) || W.projs.find(prOn);

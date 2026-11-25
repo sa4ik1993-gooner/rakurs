@@ -490,7 +490,7 @@ function plDeep(p, A){ const k = p.id + A.f.id, D = PLD[k], T = A.T;
     <details class="more"><summary>${L("Ролики","Ролики")} · ${ads.length}${ico("chevron")}</summary><div class="tw"><table class="pldt"><thead><tr><th>${L("Оголошення","Объявление")}</th><th>${L("Зачіп","Зацеп")}</th><th>${L("Утримання","Удержание")}</th><th>${L("Сер. перегляд","Ср. просмотр")}</th><th>CTR</th><th>${L("Відкрили сторінку","Открыли страницу")}</th><th>${L("Лідів","Лидов")}</th><th>${L("Ціна ліда","Цена лида")}</th></tr></thead><tbody>${ads.slice(0, 12).map(row).join("")}</tbody></table></div></details>
     ${segs.length ? `<details class="more"><summary>${L("Вік і стать","Возраст и пол")} · ${segs.length}${ico("chevron")}</summary><div class="tw"><table class="pldt"><thead><tr><th>${L("Сегмент","Сегмент")}</th><th>${L("Витрат","Расхода")}</th><th>CTR</th><th>${L("Реєстрація","Регистрация")}</th><th>${L("Лідів","Лидов")}</th><th>${L("Ціна ліда","Цена лида")}</th></tr></thead><tbody>${segs.slice(0, 14).map(seg).join("")}</tbody></table></div><p class="sub">${L("Мало даних у сегменті — висновків не роблю. Розбивку використовуй як підказку, а не щоб вимикати сегменти.","Мало данных в сегменте — выводов не делаю. Разбивку используй как подсказку, а не чтобы отключать сегменты.")}</p></details>` : ""}
     ${D.errs && D.errs.length ? `<p class="sub">${L("Частину даних Meta не віддала.","Часть данных Meta не отдала.")}</p>` : ""}</div>`; }
-function plAcctCard(p){ return plAcctAll(p).map(A => plAcctOne(p, A)).join(""); }
+function plAcctCard(p){ return plAcctAll(p).filter(A => typeof tfAcct !== "function" || tfAcct(A)).map(A => plAcctOne(p, A)).join(""); }
 function plAcctOne(p, A){ plAcctPush(p, A); const F = plFix(p, A); plFixPush(p, A, F); plConcl(p, A); const m = v => plMoney(v),
     /* есть лиды сегодня (≥3) — цифры воронки за сегодня против 3 полных дней (Дмитрий, 25.11: «вывод про сегодня, а CTR и цена лида — за неделю, не сходится»); иначе 7 дней против 3 недель */
     f7 = A.now ? A.now.fun : A.f7, fb = A.now ? plFun(A.t3) : A.fb, refLab = A.now ? L("до 3 днів","к 3 дням") : L("до 3 тижнів","к 3 неделям"), k = p.id + A.f.id, C = PLC[k] || {H:[], head:"", good:[]};
@@ -518,8 +518,8 @@ function plHState(A, c){ const f = A.f, today = plD(0); let ch = false;
   if (ch && typeof save === "function") save();
   return (f.hdone || {})[c] ? "done" : (f.later || {})[c] ? "later" : ""; }
 const plDayDiff = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 864e5);
-function plHypsBy(p, st){ return plAcctAll(p).map(A => { plConcl(p, A); const C = PLC[p.id + A.f.id] || {H:[]}; return C.H.map((h, i) => plHState(A, h.c) === st ? plHypCard(p, A, h, i, st) : "").join(""); }).join(""); }
-function plHypCount(p, st){ return plAcctAll(p).reduce((n, A) => (plConcl(p, A), n) + ((PLC[p.id + A.f.id] || {H:[]}).H.filter(h => plHState(A, h.c) === st).length), 0); }
+function plHypsBy(p, st){ return plAcctAll(p).filter(A => typeof tfAcct !== "function" || tfAcct(A)).map(A => { plConcl(p, A); const C = PLC[p.id + A.f.id] || {H:[]}; return C.H.map((h, i) => plHState(A, h.c) === st ? plHypCard(p, A, h, i, st) : "").join(""); }).join(""); }
+function plHypCount(p, st){ return plAcctAll(p).filter(A => typeof tfAcct !== "function" || tfAcct(A)).reduce((n, A) => (plConcl(p, A), n) + ((PLC[p.id + A.f.id] || {H:[]}).H.filter(h => plHState(A, h.c) === st).length), 0); }
 function plHypCard(p, A, h, i, mode){ if (PLHX[plHypKey(p, A, h)]) return ""; const m = v => plMoney(v);
   const ic = h.site ? "search" : h.opt ? "map" : /креатив|ролик/i.test(h.t) ? "edit" : "idea";
   const fx0 = (A.f.fix || {})[h.c]; let after = null;
