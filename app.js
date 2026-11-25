@@ -568,10 +568,12 @@ const hint = (t, cls) => `<span class="hint${cls ? " hint--" + cls : ""}"><butto
 /* подсказка «i» не вылезает за край экрана: перед показом проверяем место и прижимаем к нужному краю */
 function hintFit(h){ const t = h && h.querySelector(".hint__t"); if (!t || matchMedia("(max-width:640px)").matches) return;
   t.style.left = ""; t.style.right = ""; t.style.transform = "";
-  requestAnimationFrame(() => { const r = t.getBoundingClientRect(), vw = document.documentElement.clientWidth; if (!r.width) return;
-    if (r.right > vw - 8) { t.style.left = "auto"; t.style.right = "0"; t.style.transform = "none"; }
-    else if (r.left < 8) { t.style.left = "0"; t.style.right = "auto"; t.style.transform = "none"; }
-    const r2 = t.getBoundingClientRect(); if (r2.right > vw - 8) t.style.transform = "translateX(" + Math.round(vw - 8 - r2.right) + "px)"; else if (r2.left < 8) t.style.transform = "translateX(" + Math.round(8 - r2.left) + "px)"; }); }
+  /* край — не только экран, но и окно, в котором стоит подсказка (боковая панель, модальное окно обрезают выходящее) — 25.11 */
+  requestAnimationFrame(() => { const r = t.getBoundingClientRect(); if (!r.width) return; const box = h.closest("#drawer,#modal,.drawer,.modal"), b = box && box.getBoundingClientRect();
+    const lo = (b ? b.left : 0) + 8, hi = (b ? b.right : document.documentElement.clientWidth) - 8;
+    if (r.right > hi) { t.style.left = "auto"; t.style.right = "0"; t.style.transform = "none"; }
+    else if (r.left < lo) { t.style.left = "0"; t.style.right = "auto"; t.style.transform = "none"; }
+    const r2 = t.getBoundingClientRect(); if (r2.right > hi) t.style.transform = "translateX(" + Math.round(hi - r2.right) + "px)"; else if (r2.left < lo) t.style.transform = "translateX(" + Math.round(lo - r2.left) + "px)"; }); }
 ["mouseover", "focusin", "click"].forEach(ev => document.addEventListener(ev, e => { const h = e.target && e.target.closest && e.target.closest(".hint"); if (h) hintFit(h); }, true));/* иконки вместо слов там, где знак понятен всем */
 const ICO = {collapse:ico("collapse"), expand:ico("expand"), eye:ico("eye"), exit:ico("exit")};
 const icoBtn = (k, label, attrs) => `<button type="button" class="btn btn--sm btn--ico" aria-label="${label}" title="${label}" ${attrs}>${ICO[k] || ico(k)}</button>`;
