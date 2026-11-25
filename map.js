@@ -174,10 +174,10 @@ function mapNode(n, sel){
     : n.add ? `<button type="button" class="nd nd--add" data-act="mapAdd" data-k="${n.k}" data-what="${n.add}"${n.acc ? ` data-acc="${esc(n.acc)}"` : ""}><b>+ ${n.t}</b></button>`
     : `<button type="button" class="nd nd--l${n.lv}${n.v ? " nd--v-" + n.v : ""}${open ? " nd--can" : ""}${n.k === sel ? " sel" : ""}" data-act="mapSel" data-k="${n.k}" aria-pressed="${n.k === sel}"><span class="ndh">${ndIco(n)}${ndSt(n)}</span><small class="lv">${lv[0]}</small><b>${esc(n.t)}</b>${n.s ? `<span class="nds">${esc(n.s)}</span>` : ""}${n.fx ? `<span class="fx">${esc(n.fx)}</span>` : ""}${n.kpi ? `<dl class="ndk">${n.kpi.map(q => `<div><dt>${q[0]}</dt><dd${n.v === "crit" && /Ціна ліда|Цена лида/.test(q[0]) ? ' class="hot"' : ""}>${q[1]}</dd></div>`).join("")}</dl>` : ""}</button>`;
   const hide = n.lv > 0 && !n.ghost ? `<button type="button" class="hide" data-act="mapHide" data-k="${esc(mapHK(n))}" aria-label="${L("Сховати з дошки: ","Скрыть с доски: ")}${esc(n.t)}" title="${L("Сховати з дошки","Скрыть с доски")}"></button>` : "";
-  const shown = (n.kids || []).filter(x => !mapHidden(x));
+  const shown = (n.kids || []).filter(x => !mapHidden(x)), vis = (n.kids || []).filter(x => !mapHidden(x) || !(x.add || x.more || x.ghost)); /* vis — со строками «Сховано · Показати» */
   const tog = open && shown.length ? `<button type="button" class="fold" data-act="mapFold" data-on="0" data-k="${n.k}" aria-expanded="true" aria-label="${L("Згорнути гілку: ","Свернуть ветку: ")}${esc(n.t)}" title="${L("Згорнути гілку","Свернуть ветку")}">‹</button>` : "";
   const kids = n.can && n.fold ? `<ul><li class="${sel ? "dim" : ""}"><button type="button" class="nd nd--fold" data-act="mapFold" data-on="1" data-k="${n.k}" aria-expanded="false" aria-label="${L("Розгорнути гілку: ","Развернуть ветку: ")}${esc(n.t)}"><b>${(n.ics || []).map(chIcon).join("")}${n.stub[0]}</b><span>${esc(n.stub[1])}</span><em class="go" aria-hidden="true">›</em></button></li></ul>`
-    : shown.length ? `<ul>${shown.map(x => mapNode(x, sel)).join("")}</ul>` : "";
+    : vis.length ? `<ul>${vis.map(x => mapNode(x, sel)).join("")}</ul>` : "";
   return `<li class="${sel ? (on ? "on" : "dim") : ""}${hide ? " hb" : ""}">${card}${hide}${tog}${kids}</li>`;
 }
 /* кнопки над доской появляются, когда есть что сворачивать */
