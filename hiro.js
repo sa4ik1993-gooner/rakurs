@@ -116,6 +116,8 @@ function hiroSay(scr){
   if (!e.s.spend) { out.title = L("За цей період показів не було","За этот период показов не было"); out.text = L("Коли реклама запрацює, тут буде головне за день.","Когда реклама заработает, здесь будет главное за день."); return out; }
   /* дорого по воронке целиком (разбор в ленте Хиро) — не «всё в порядке» */
   const acc = typeof plAcctAll === "function" ? e.ps.map(p => plAcctAll(p)).flat()[0] : null;
+  if (acc && acc.now && acc.now.ok && acc.now.better) { out.pose = "watch"; out.title = L("Сьогодні дешевше у воронці «","Сегодня дешевле в воронке «") + acc.f.name + "»"; out.text = acc.now.txt;
+    out.main = scr === "today" ? hiroBtn("btn--main", L("Відкрити розбір","Открыть разбор"), 'data-act="hiroAcct"') : hiroBtn("btn--main", L("Відкрити розбір","Открыть разбор"), 'data-act="wsCtab" data-v="today"'); return out; }
   if (acc) { out.pose = "stop"; out.title = L("Дорого у воронці «","Дорого в воронке «") + acc.f.name + "»";
     out.text = L("За 3 повні дні ","За 3 полных дня ") + acc.t3.l + L(" лідів за "," лидов по ") + m(acc.t3.s / acc.t3.l) + L(" при цілі "," при цели ") + m(acc.T) + L(". Розібрав, що саме дорожчає, і що зробити.",". Разобрал, что именно дорожает, и что сделать.");
     out.main = scr === "today" ? hiroBtn("btn--main", L("Відкрити розбір","Открыть разбор"), 'data-act="hiroAcct"') : hiroBtn("btn--main", L("Відкрити розбір","Открыть разбор"), 'data-act="wsCtab" data-v="today"'); return out; }

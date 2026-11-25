@@ -208,7 +208,7 @@ if (typeof overlay === "function") { const _plOv = overlay; overlay = function()
 const PLA = {};
 function plAcctLoad(p){ if (PLA[p.id] || !CLOUD || !sb) return; PLA[p.id] = {load:true};
   const q = (a, b) => Promise.resolve(sb.rpc("ad_funnel", {p:p.id, d1:plD(a), d2:plD(b)})).then(r => r.data || [], () => []);
-  Promise.all([q(-3, -1), q(-7, -1), q(-28, -8), q(-28, -1)]).then(([d3, w7, base, all]) => { PLA[p.id] = {d3, w7, base, all, at:Date.now()}; render(); }); }
+  Promise.all([q(-3, -1), q(-7, -1), q(-28, -8), q(-28, -1), q(0, 0), q(-1, -1)]).then(([d3, w7, base, all, t0, y1]) => { PLA[p.id] = {d3, w7, base, all, t0, y1, at:Date.now()}; render(); }); }
 const plSumR = rows => rows.reduce((a, r) => ({s:a.s + (+r.spend || 0), i:a.i + (+r.impressions || 0), c:a.c + (+r.clicks || 0), l:a.l + (+r.leads || 0)}), {s:0, i:0, c:0, l:0});
 const plFun = x => ({cpm:x.i ? x.s / x.i * 1000 : 0, ctr:x.i ? x.c / x.i : 0, cpc:x.c ? x.s / x.c : 0, cr:x.c ? x.l / x.c : 0, cpl:x.l ? x.s / x.l : 0});
 /* нижняя граница числа лидов (90%): осторожная цена связки — не выдаём случайную удачу за лучшую */
@@ -218,7 +218,7 @@ function plFid(p, r){ const m = (p.campMap || {})[r.campaign_id]; if (m) return 
   const hasRules = Object.values(p.accRules || {}).flat().some(ru => ru.f); if (hasRules) return typeof fxByName === "function" ? fxByName(p, r.campaign_name) : "";
   return p.funnels.length === 1 ? p.funnels[0].id : ""; }
 function plAcctAll(p){ const a = PLA[p.id]; if (!a || a.load) return []; return (p.funnels || []).map(f => { const k = r => plFid(p, r) === f.id;
-  const x = plAcct(p, {d3:a.d3.filter(k), w7:a.w7.filter(k), base:a.base.filter(k), all:a.all.filter(k), other:a.w7.filter(r => !k(r))}); if (x && f.hn && f.hn.geo) x.recs = x.recs.filter(r => r.k !== "geo0"); return x ? Object.assign(x, {f}) : null; }).filter(Boolean); }
+  const x = plAcct(p, {d3:a.d3.filter(k), w7:a.w7.filter(k), base:a.base.filter(k), all:a.all.filter(k), other:a.w7.filter(r => !k(r)), t0:(a.t0 || []).filter(k), y1:(a.y1 || []).filter(k)}); if (x && f.hn && f.hn.geo) x.recs = x.recs.filter(r => r.k !== "geo0"); return x ? Object.assign(x, {f}) : null; }).filter(Boolean); }
 function plAcct(p, a){ const st = PL.st[p.id], T = st && st.settings ? Number(st.settings.target_cpl) || 0 : 0; if (!a || !T || typeof judgeCpl !== "function") return null;
   const t3 = plSumR(a.d3), J = judgeCpl({spend:t3.s, leads:t3.l, target:T}); if (J.verdict !== "bad") return null;
   const f7 = plFun(plSumR(a.w7)), fb = plFun(plSumR(a.base)), d = (x, y) => y ? x / y - 1 : 0;
@@ -256,7 +256,19 @@ function plAcct(p, a){ const st = PL.st[p.id], T = st && st.settings ? Number(st
   /* какие группы выключить для консолидации: работающие сейчас, по осторожной цене лида за 7 дней — худшие сверх nMax */
   const sets = {}; a.w7.filter(r => liveSets.has(r.adset_id)).forEach(r => { const o = sets[r.adset_id] = sets[r.adset_id] || {sid:r.adset_id, set:r.adset_name, cid:r.campaign_id, camp:r.campaign_name, s:0, l:0}; o.s += +r.spend || 0; o.l += +r.leads || 0; });
   const ranked = Object.values(sets).map(o => Object.assign(o, {cpl:o.l ? o.s / o.l : Infinity, safe:o.l ? o.s / plPoisLow(o.l, 0.1) : Infinity})).sort((x, y) => x.safe - y.safe), cut = liveSets.size > nMax ? ranked.slice(nMax).slice(0, 3) : [];
-  return {T, t3, J, f7, fb, fo, d, best, recs, cut, keep:ranked.slice(0, nMax), sets:ranked}; }
+  return {T, t3, J, f7, fb, fo, d, best, recs, cut, keep:ranked.slice(0, nMax), sets:ranked, now:plNow(T, t3, a.t0, a.y1)}; }
+/* «Сьогодні дешевше» (Дмитрий, 25.11.2026: «нажал "подумай ещё", а он всё равно пишет, что проблемы; должен написать, что сегодня лиды
+   дешевле, чем вчера и чем за прошедшие дни, точной цифрой»). Разбор за 3 полных дня остаётся, но вывод начинается с сегодняшнего дня.
+   Сравнение — разами, если дешевле в 1,5 раза и больше, иначе процентами («на 300% дешевле» не бывает). От 3 лидов за сегодня. */
+function plCmp(a, b){ if (!a || !b) return ""; const r = b / a;
+  if (r >= 1.5) return L("у ","в ") + (Math.round(r * 10) / 10).toString().replace(".", ",") + L(" раза дешевше"," раза дешевле");
+  const x = Math.round(Math.abs(1 - a / b) * 100); return x < 3 ? L("так само","так же") : L("на ","на ") + x + "% " + (a < b ? L("дешевше","дешевле") : L("дорожче","дороже")); }
+function plNow(T, t3, t0, y1){ if (!t0) return null; const t = plSumR(t0), y = plSumR(y1 || []); if (t.l < 3) return null;
+  const c = t.s / t.l, cy = y.l ? y.s / y.l : 0, c3 = t3.l ? t3.s / t3.l : 0, ok = c <= T;
+  const txt = L("Сьогодні лід ","Сегодня лид ") + plMoney(c) + " (" + t.l + L(" лідів, день ще йде)"," лидов, день еще идет)") + " — "
+    + [cy ? plCmp(c, cy) + L(", ніж учора (",", чем вчера (") + plMoney(cy) + ")" : "", c3 ? plCmp(c, c3) + L(", ніж за 3 дні (",", чем за 3 дня (") + plMoney(c3) + ")" : ""].filter(Boolean).join(L(" і "," и ")) + "."
+    + (ok ? L(" Це в межах цілі "," Это в пределах цели ") + plMoney(T) + L(" — нічого не вимикаю, стежу далі."," — ничего не выключаю, слежу дальше.") : "");
+  return {c, cy, c3, l:t.l, ok, better:c3 && c < c3 * 0.8, txt}; }
 const plPct = v => (Math.round(v * 1000) / 10).toString().replace(".", ",") + "%";
 /* лучшая связка уходит в ленту обычным предложением с «Так» (hiro-propose: budget / activate) */
 const PLAP = {};
@@ -467,11 +479,13 @@ function plAcctOne(p, A){ plAcctPush(p, A); const F = plFix(p, A); plFixPush(p, 
   const chip = (v, t, n) => `<button type="button" class="btn btn--sm" data-act="plPop" data-v="${v}" data-p="${p.id}" data-f="${A.f.id}">${t}${n ? ` <span class="plcnt">${n}</span>` : ""}</button>`;
   const D = PLD[k], nAds = D && D.ads ? D.ads.filter(a => a.s > 0).length : 0;
   const hyps = C.H.map((h, i) => plHState(A, h.c) ? "" : plHypCard(p, A, h, i)).join("");
-  return `<li class="plc plc--warn plc--acct" data-open="plPop" data-ov="concl" data-p="${p.id}" data-f="${A.f.id}"><span class="plc__a">${ico("warning")}</span><div class="plc__m">
-    <div class="plc__h"><b>${L("Дорого у воронці «","Дорого в воронке «")}${esc(A.f.name)}»</b><button type="button" class="btn btn--sm" data-act="plRethink" data-p="${p.id}">${ico("refresh")} ${L("Подумати ще раз","Подумать еще раз")}</button></div>
-    <p class="plc__t">${L("За 3 повні дні ","За 3 полных дня ")}${m(A.t3.s)}, ${A.t3.l} ${L("лідів за ","лидов по ")}${m(A.t3.s / A.t3.l)} ${L("при цілі ","при цели ")}${m(A.T)}. ${L("Шанс, що це випадковість, ","Шанс, что это случайность, ")}${Math.max(0.1, Math.round(A.J.q * 1000) / 10).toString().replace(".", ",")}%.</p>
+  const N = A.now, good = N && N.ok && N.better;
+  return `<li class="plc ${good ? "plc--up" : "plc--warn"} plc--acct" data-open="plPop" data-ov="concl" data-p="${p.id}" data-f="${A.f.id}"><span class="plc__a">${ico(good ? "done" : "warning")}</span><div class="plc__m">
+    <div class="plc__h"><b>${good ? L("Сьогодні дешевше у воронці «","Сегодня дешевле в воронке «") : L("Дорого у воронці «","Дорого в воронке «")}${esc(A.f.name)}»</b><button type="button" class="btn btn--sm" data-act="plRethink" data-p="${p.id}">${ico("refresh")} ${L("Подумати ще раз","Подумать еще раз")}</button></div>
+    ${N && (N.better || N.ok) ? `<p class="plconcl__t">${esc(N.txt)}</p>` : ""}
+    <p class="plc__t">${good ? L("Розбір нижче — за 3 повні дні до сьогодні: ","Разбор ниже — за 3 полных дня до сегодня: ") : ""}${L("За 3 повні дні ","За 3 полных дня ")}${m(A.t3.s)}, ${A.t3.l} ${L("лідів за ","лидов по ")}${m(A.t3.s / A.t3.l)} ${L("при цілі ","при цели ")}${m(A.T)}. ${L("Шанс, що це випадковість, ","Шанс, что это случайность, ")}${Math.max(0.1, Math.round(A.J.q * 1000) / 10).toString().replace(".", ",")}%.</p>
     <div class="plf2 plf2--fun">${cell("CPM", f7.cpm, fb.cpm, m, true)}${cell("CTR", f7.ctr, fb.ctr, plPct, false)}${cell(L("Ціна кліку","Цена клика"), f7.cpc, fb.cpc, m, true)}${cell(L("З кліку в лід","Из клика в лид"), f7.cr, fb.cr, plPct, false)}${cell(L("Ціна ліда","Цена лида"), f7.cpl, fb.cpl, m, true)}</div>
-    ${C.head ? `<p class="plconcl__t">${esc(C.head)}</p>` : D && D.load ? `<p class="sub">${L("Збираю дані з Meta для висновку…","Собираю данные из Meta для вывода…")}</p>` : ""}
+    ${C.head ? (N && (N.better || N.ok) ? `<p class="sub">${L("Що тягнуло ціну вгору: ","Что тянуло цену вверх: ")}${esc(C.head)}</p>` : `<p class="plconcl__t">${esc(C.head)}</p>`) : D && D.load ? `<p class="sub">${L("Збираю дані з Meta для висновку…","Собираю данные из Meta для вывода…")}</p>` : ""}
     <div class="row plchips">${chip("concl", L("Висновок","Вывод"))}${chip("recs", L("Чому дорого","Почему дорого"), A.recs.length)}${chip("deep", L("Креативи й аудиторія","Креативы и аудитория"), nAds)}${chip("tasks", L("Завдання тобі","Задачи тебе"), F.tasks.length)}</div>
     <p class="sub">${L("Гіпотези — окремими картками нижче, дії з «Так» — у стрічці.","Гипотезы — отдельными карточками ниже, действия с «Да» — в ленте.")} ${L("Цифри — за 7 днів проти 3 тижнів до того.","Цифры — за 7 дней против 3 недель до этого.")}</p></div></li>${hyps}`; }
 /* гипотеза — отдельная карточка: почему, ожидаемый лид, как проверить; кнопки «Детальніше» (окно), проверка страницы за монеты, «Прибрати» */
