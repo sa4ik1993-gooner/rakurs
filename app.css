@@ -1849,3 +1849,31 @@ td:first-child{font:600 var(--t-body)/1.3 var(--font-ui)}
 .plarc button[aria-pressed="true"] .plcnt--mute{background:rgba(255,255,255,.18);color:inherit}
 .plbtn{align-items:center}
 .plbtn .uxmore > summary{width:30px;height:30px}
+/* Задачі: один набір подій для Календаря і Списку, кольори статусів (25.11):
+   оранжевий — заплановано, зелений — створено й чекає запуску, темний — запущено, сірий — виконано/чекає, червоний — не вийшло */
+.tsk-st{display:inline-flex;align-items:center;flex:none;padding:3px 10px;border-radius:var(--r-pill);font:600 12px/1.3 var(--font-ui);white-space:nowrap}
+.tsk-st--plan{background:var(--signal-soft);color:var(--signal)}
+.tsk-st--ready{background:var(--plus-soft);color:var(--plus)}
+.tsk-st--live{background:var(--ink);color:var(--on-dark)}
+.tsk-st--done,.tsk-st--wait{background:var(--track);color:var(--muted)}
+.tsk-st--fail{background:var(--minus-soft);color:var(--minus)}
+.tcc[class*="tcc--k-"]{border-left:3px solid var(--line)}
+.tcc--k-plan{border-left-color:var(--signal)!important;background:var(--signal-soft)}
+.tcc--k-ready{border-left-color:var(--plus)!important;background:var(--plus-soft)}
+.tcc--k-live{border-left-color:var(--ink)!important}
+.tcc--k-done,.tcc--k-wait{opacity:.7}
+.tcc--k-fail{border-left-color:var(--minus)!important;background:var(--minus-soft)}
+.tcc--k-plan small{color:var(--signal)}.tcc--k-ready small{color:var(--plus)}.tcc--k-fail small{color:var(--minus)}
+.tsa{display:flex;flex-direction:column;gap:var(--s-4);margin-top:var(--s-3)}
+.tsa__d h3{margin:0 0 var(--s-2);font:700 var(--t-label)/1.2 var(--font-display);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.tsa ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.tsa__b{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;gap:2px var(--s-3);align-items:center;width:100%;text-align:left;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r-control);background:var(--surface);color:var(--ink);font:inherit;cursor:pointer}
+.tsa__b:hover{border-color:var(--line-strong)}
+.tsa__b .tsk-st{grid-row:1 / span 2}
+.tsa__b b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.tsa__b small{min-width:0;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tsa__past>summary{display:flex;align-items:center;gap:6px;cursor:pointer;list-style:none;color:var(--muted);font-weight:500}
+.tsa__past>summary::-webkit-details-marker{display:none}
+.tsa__past>summary svg{width:16px;height:16px}
+.tsa__past ul{margin-top:var(--s-2)}
+@media (max-width:600px){.tsa__b{grid-template-columns:1fr}.tsa__b .tsk-st{grid-row:auto;justify-self:start}}

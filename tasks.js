@@ -188,6 +188,8 @@ async function tsCreate(k, text){ const s = tsScope(k), p = s && W.projs.find(x 
     /* тесты Хиро (копии « · CAP », « · GEO ») не берём источником для дубля */
     ext.sets = ext.sets.filter(x => !/ · (CAP|GEO) /.test(String(x.name || "") + " "));
     const pl = tsPlan(p, s, o, rows, ext); delete pl.ext;
+    /* Хиро не составил шагов — задачу не сохраняем, говорим почему (25.11: пустые планы висели в списке) */
+    if (!(pl.steps || []).length) { const w = tsWarn(p, Object.assign({type:o.type, o}, pl)); toast(w || L("Не можу скласти план з поточними цифрами — спробуй іншу ціль або суму.","Не могу составить план с текущими цифрами — попробуй другую цель или сумму."), 9000); return false; }
     const nt = Object.assign({id:uid(), text:String(text).trim(), type:o.type, o, scope:s, status:"plan", at:new Date().toISOString()}, pl);
     p.tasks = p.tasks || []; p.tasks.unshift(nt); TS.open = {p:p.id, id:nt.id}; TS.fresh = nt.id; save(); ok = true; }
   catch (e) { toast(String(e.message || e)); }
@@ -290,15 +292,39 @@ function tsBox(k, pick){ const busy = TS.busy[k], mic = (window.SpeechRecognitio
     <div class="opts opts--sm">${tsHints(k).map(x => `<button type="button" class="opt" data-act="tsEx" data-k="${esc(k)}" data-v="${esc(x)}">${esc(x)}</button>`).join("")}</div></div>`; }
 /* календарь: 4 недели с понедельника текущей; в дне — шаги задач. Нажали — окно задачи по центру; «×» — убрать задачу. */
 TS.view = (() => { try { return localStorage.getItem("heyrow_ts_view") || "cal"; } catch (e) { return "cal"; } })(); TS.open = null; TS.arm = "";
+/* Календар і Список — одні й ті самі події (Дмитрий, 25.11: «список или календарь — это одно и то же»), з однаковими статусами:
+   plan  — оранжевый «Заплановано на ДД.ММ»: план задачи (ещё не начат — даты от сегодня), будущий шаг, то, что Хиро сделает ночью;
+   ready — зелёный «Створено, чекає запуску · старт ДД.ММ о 01:00»: копия уже в Meta, стартует сама;
+   live  — «Запущено»; done — «Виконано»; fail — «Не вийшло»; wait — «Чекає …» (обучение, нет шагов). */
+const TS_K = () => ({plan:L("Заплановано","Запланировано"), ready:L("Створено, чекає запуску","Создано, ждет запуска"), live:L("Запущено","Запущено"), done:L("Виконано","Выполнено"), fail:L("Не вийшло","Не получилось"), wait:L("Чекає","Ждет")});
+function tsItems(ps){ const today = prToday(), out = [], tf = t => typeof tfTask !== "function" || tfTask(t);
+  ps.forEach(p => { (p.tasks || []).filter(t => (t.status === "run" || t.status === "plan") && tf(t)).forEach(t => {
+      const sh = t.status === "plan" && t.start ? Math.max(0, Math.round((Date.parse(today) - Date.parse(t.start)) / 864e5)) : 0;
+      if (!t.steps.length) { out.push({d:today, k:"wait", p, t, i:-1, title:t.text, sub:L("Хіро не склав кроків — відкрий, щоб оновити або прибрати","Хиро не составил шагов — открой, чтобы обновить или убрать")}); return; }
+      const nx = t.steps.find(y => !y.done);
+      t.steps.forEach((x, i) => { const d = sh ? tsDay(x.d, sh) : x.d, ds = x.act === "dupnight" ? tsDupSt(p, x) : null, gt = t.status === "run" && x === nx ? tsGate(t) : null;
+        const k = x.done ? (ds && ds.k === "good" && /Створено|Создано/.test(ds.t) ? "ready" : ds && ds.fail ? "fail" : x.check ? "done" : x.sched ? "live" : "done")
+          : ds && ds.k === "good" ? "ready" : ds && ds.fail ? "fail" : gt && (gt.st === "wait" || gt.st === "back") ? "wait" : "plan";
+        out.push({d, k, p, t, x, i, title:t.text, sub:L("крок ","шаг ") + (i + 1) + "/" + t.steps.length + " · " + (ds ? ds.t : gt && gt.st !== "go" ? gt.why : tsStepText(t, x))}); }); });
+    (((typeof PL !== "undefined" && PL.st[p.id]) || {}).log || []).filter(x => x.kind === "reco" && x.status === "scheduled" && x.exec_on && (typeof tfLog !== "function" || tfLog(p, x))).forEach(x => {
+      const y = x.payload || {}, rd = !!(y.prep && y.prep.nid), hm = typeof plPrepHm === "function" ? plPrepHm(y) : "01:00";
+      out.push({d:x.exec_on, k:rd ? "ready" : "plan", p, row:x, title:typeof plTitle === "function" ? plTitle(y.op, y, y.level) || x.title : x.title, sub:(rd ? L("старт о ","старт в ") + hm : L("Хіро зробить уночі","Хиро сделает ночью")) + (y.name ? " · " + String(y.name).slice(0, 40) : "")}); }); });
+  return out.sort((a, b) => a.d < b.d ? -1 : a.d > b.d ? 1 : 0); }
+const tsKPill = it => `<span class="tsk-st tsk-st--${it.k}">${TS_K()[it.k]}${it.k === "plan" || it.k === "ready" ? " · " + tsDM(it.d) : ""}</span>`;
+const tsItBtn = it => it.row ? `data-act="plWhy" data-p="${it.p.id}" data-id="${it.row.id}"` : `data-act="tsOpen" data-p="${it.p.id}" data-id="${it.t.id}"`;
+/* список: те же события по датам — сегодня и вперёд, сделанное за последние 7 дней свёрнуто */
+function tsAgenda(ps){ const today = prToday(), all = tsItems(ps), past = all.filter(it => it.d < today), cur = all.filter(it => it.d >= today), by = {};
+  cur.forEach(it => { (by[it.d] = by[it.d] || []).push(it); });
+  const day = d => d === today ? L("Сьогодні","Сегодня") : d === tsDay(today, 1) ? L("Завтра","Завтра") : tsDM(d);
+  const row = it => `<li class="tsa__i"><button type="button" class="tsa__b" ${tsItBtn(it)}>${tsKPill(it)}<b>${esc(it.title.length > 70 ? it.title.slice(0, 69) + "…" : it.title)}</b><small>${esc(it.sub)}</small></button></li>`;
+  const recent = past.filter(it => it.d >= tsDay(today, -7));
+  return `<div class="tsa">${Object.keys(by).map(d => `<section class="tsa__d"><h3>${day(d)}</h3><ul>${by[d].map(row).join("")}</ul></section>`).join("") || `<p class="sub">${L("Попереду нічого не заплановано.","Впереди ничего не запланировано.")}</p>`}
+    ${recent.length ? `<details class="tsa__past" data-fold="tsa:past"${(typeof foldSt === "function" && foldSt()["tsa:past"]) ? " open" : ""}><summary>${L("Минулі 7 днів · ","Прошлые 7 дней · ")}${recent.length}${ico("chevron")}</summary><ul>${recent.reverse().map(row).join("")}</ul></details>` : ""}</div>`; }
 function tsCal(ps){ const today = prToday(), d0 = new Date(today + "T12:00:00"), mon = tsDay(today, -((d0.getDay() + 6) % 7)), days = [...Array(28)].map((_, i) => tsDay(mon, i)), by = {};
-  ps.forEach(p => (p.tasks || []).filter(t => t.status === "run" && (typeof tfTask !== "function" || tfTask(t))).forEach(t => t.steps.forEach((x, i) => { (by[x.d] = by[x.d] || []).push({p, t, x, i}); })));
-  const hiro = {}; ps.forEach(p => (((typeof PL !== "undefined" && PL.st[p.id]) || {}).log || []).filter(x => x.kind === "reco" && x.status === "scheduled" && x.exec_on && (typeof tfLog !== "function" || tfLog(p, x))).forEach(x => { (hiro[x.exec_on] = hiro[x.exec_on] || []).push({p, x}); }));
+  tsItems(ps).forEach(it => { (by[it.d] = by[it.d] || []).push(it); });
   const wd = [L("Пн","Пн"), L("Вт","Вт"), L("Ср","Ср"), L("Чт","Чт"), L("Пт","Пт"), L("Сб","Сб"), L("Нд","Вс")];
   return `<div class="tcal"><div class="tcal__h">${wd.map(w => `<span>${w}</span>`).join("")}</div><div class="tcal__g">${days.map(d => `<div class="tcd${d === today ? " tcd--now" : ""}${d < today ? " tcd--past" : ""}"><span class="tcd__n">${d.slice(8, 10) === "01" || d === days[0] ? tsDM(d) : +d.slice(8, 10)}</span>
-    ${(by[d] || []).map(({p, t, x, i}) => { const nx = t.steps.find(y => !y.done), lv = x.done ? "ok" : t.status === "plan" ? "plan" : x === nx ? ((tsGate(t) || {}).st || "go") : "later";
-      return `<div class="tcc tcc--${lv}"><button type="button" class="tcc__b" data-act="tsOpen" data-p="${p.id}" data-id="${t.id}" title="${esc((x.act === "dupnight" && tsDupSt(p, x) ? tsDupSt(p, x).t + " — " : "") + x.t)}">${x.check ? ico("done") + " " : x.dup ? ico("duplicate") + " " : ""}${esc(t.text.length > 34 ? t.text.slice(0, 33) + "…" : t.text)}<small>${L("крок ","шаг ")}${i + 1}/${t.steps.length}</small></button><button type="button" class="tcc__x" data-act="tsDelA" data-p="${p.id}" data-id="${t.id}" aria-label="${L("Прибрати задачу","Убрать задачу")}">${TS.arm === t.id ? "?" : ico("close")}</button></div>`; }).join("")}${(hiro[d] || []).map(({p, x}) => { const y = x.payload || {}, rd = !!(y.prep && y.prep.nid), hm = typeof plPrepHm === "function" ? plPrepHm(y) : "01:00";
-      /* готово и включено с отложенным стартом — так и пишем, чтобы не казалось, что Хиро еще будет что-то делать (Дмитрий, 24.11.2026) */
-      return `<div class="tcc tcc--hiro${rd ? " tcc--ready" : ""}"><button type="button" class="tcc__b" data-act="plWhy" data-p="${p.id}" data-id="${x.id}" title="${esc(rd ? L("Готово: копію створено й увімкнено, стартує о ","Готово: копия создана и включена, стартует в ") + hm + L(" — нічого робити не треба"," — ничего делать не нужно") : L("Хіро зробить це вночі","Хиро сделает это ночью"))}">${ico(rd ? "done" : "clock")} ${esc(typeof plTitle === "function" ? plTitle(y.op, y, y.level) || x.title : x.title)}<small>${rd ? L("Готово · старт о ","Готово · старт в ") + hm + " · " : L("Зроблю вночі · ","Сделаю ночью · ")}${esc((y.name || "").slice(0, 40))}</small></button><button type="button" class="tcc__x" data-act="plDecide" data-p="${p.id}" data-id="${x.id}" data-v="c" aria-label="${L("Прибрати з графіка","Убрать из графика")}">${ico("close")}</button></div>`; }).join("")}</div>`).join("")}</div>
+    ${(by[d] || []).map(it => `<div class="tcc tcc--k-${it.k}"><button type="button" class="tcc__b" ${tsItBtn(it)} title="${esc(TS_K()[it.k] + " · " + it.sub)}">${esc(it.title.length > 34 ? it.title.slice(0, 33) + "…" : it.title)}<small>${TS_K()[it.k]}${it.i >= 0 && it.t ? " · " + L("крок ","шаг ") + (it.i + 1) + "/" + it.t.steps.length : ""}</small></button>${it.t ? `<button type="button" class="tcc__x" data-act="tsDelA" data-p="${it.p.id}" data-id="${it.t.id}" aria-label="${L("Прибрати задачу","Убрать задачу")}">${TS.arm === it.t.id ? "?" : ico("close")}</button>` : ""}</div>`).join("")}</div>`).join("")}</div>
     ${TS.arm ? `<p class="sub">${L("Натисни «?» ще раз — задачу буде прибрано.","Нажми «?» еще раз — задача будет убрана.")}</p>` : ""}</div>`; }
 function tsPop(){ if (!TS.open) return ""; const p = W.projs.find(x => x.id === TS.open.p), t = p && (p.tasks || []).find(x => x.id === TS.open.id); if (!t) { TS.open = null; return ""; }
   const sn = {small:L("Невелике збільшення в межах навчених кампаній","Небольшое увеличение в рамках обученных кампаний"), steps:L("Плавне збільшення кроками","Плавное увеличение шагами"), dup:L("Збільшення + дубль найкращої кампанії","Увеличение + дубль лучшей кампании")}[t.strategy];
@@ -375,7 +401,7 @@ function tsToday(){ const ps = (typeof pfProjs === "function" ? pfProjs() : W.pr
   const pick = `<div class="tsw"><span class="lbl">${L("Для чого","Для чего")}</span>${typeof ddSel === "function" ? ddSel("ts.sc", opts, TS.sc, L("Для чого","Для чего"), "tsScPick", "sc", false) : ""}</div>`; /* D1: свой выпадающий список */
   const has = ps.some(p => (p.tasks || []).some(t => t.status === "run" || t.status === "plan") || ((((typeof PL !== "undefined" && PL.st[p.id]) || {}).log) || []).some(x => x.status === "scheduled"));
   const sw = has ? `<span class="seg" role="group" aria-label="${L("Вигляд задач","Вид задач")}"><button type="button" data-act="tsView" data-v="cal" aria-pressed="${TS.view === "cal"}">${L("Календар","Календарь")}</button><button type="button" data-act="tsView" data-v="list" aria-pressed="${TS.view === "list"}">${L("Список","Список")}</button></span>` : "";
-  const list = !has ? "" : TS.view === "cal" ? tsCal(ps) : ps.flatMap(p => (p.tasks || []).filter(t => (t.status === "run" || t.status === "plan") && tf(t)).map(t => tsCard(p, t))).join("");
+  const list = !has ? "" : TS.view === "cal" ? tsCal(ps) : tsAgenda(ps);
   const done = ps.reduce((a, p) => a + (p.tasks || []).filter(t => (t.status === "done" || t.status === "stop") && tf(t)).length, 0);
   return `<div class="panel tsk"><div class="row sp"><span class="tag">${L("Задачі для Хіро","Задачи для Хиро")}</span>${sw}${done ? `<small class="sub">${L("завершено: ","завершено: ")}${done}</small>` : ""}</div>${tsOffers(ps)}${tsBox("today", pick)}${list}${tsPop()}</div>`; }
 function tsNode(k){ const s = tsScope(k); if (!s || !s.f) return ""; const p = W.projs.find(x => x.id === s.pid), mine = (p.tasks || []).filter(t => tsKey(t.scope) === tsKey(s) && t.status !== "done" && t.status !== "stop");
