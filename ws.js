@@ -135,15 +135,15 @@ function pathsPanel(){
     ${adm ? `<div class="pathrow"><div class="form">${saleNew("kp")}</div><div class="row"><button class="btn btn--sm btn--solid" data-act="wsPathNew">${L("Додати шлях","Добавить путь")}</button></div></div>` : ""}</div>`;
 }
 /* строка состояния под заголовком «Сегодня»: цветные точки и счётчики */
-function todayLine(){ const a = [], d = (lv, t) => `<span class="dot dot--${lv}">${t}</span>`;
-  if (PR.cnt != null) a.push(d(PR.cnt ? "crit" : "good", PR.cnt ? plural(PR.cnt, L("рішення","решение"), L("рішення","решения"), L("рішень","решений")) + L(" на сьогодні"," на сегодня") : L("рішень немає","решений нет")));
+function todayLine(){ const a = [], d = (lv, t) => `<span class="stp stp--${lv}">${t}</span>`;
+  if (PR.cnt != null) a.push(d(PR.cnt ? "crit" : "good", PR.cnt ? plural(PR.cnt, L("рішення","решение"), L("рішення","решения"), L("рішень","решений")) + L(" на сьогодні"," на сегодня") : L("Рішень на сьогодні немає","Решений на сегодня нет")));
   if (TS.cnt) { if (TS.cnt.due) a.push(d("warn", plural(TS.cnt.due, L("крок","шаг"), L("кроки","шага"), L("кроків","шагов")) + L(" задач сьогодні"," задач сегодня"))); if (TS.cnt.run) a.push(d("info", plural(TS.cnt.run, L("задача","задача"), L("задачі","задачи"), L("задач","задач")) + L(" в роботі"," в работе"))); if (TS.cnt.off) a.push(d("good", TS.cnt.off + L(" можна масштабувати"," можно масштабировать"))); if (TS.cnt.idle) a.push(d("good", TS.cnt.idle + L(" ефективних без показів"," эффективных без показов"))); }
   return a.length ? `<p class="stl">${a.join("")}</p>` : ""; }
 /* «Сегодня» — главная: пульс за период и решения на сегодня, ниже — цели на месяц. Карта — отдельно. */
 const railMore = () => { try { return localStorage.getItem("heyrow_rail_more") === "1"; } catch (e) { return false; } };
 function vToday(){ const on = W.projs.some(p => typeof prOn === "function" && prOn(p));
   if (!W.projs.length) return empty(L("Тут будуть рішення на сьогодні","Здесь будут решения на сегодня"), L("Додай проєкт на карті й підключи рекламний акаунт, і я почну.","Добавь проект на карте и подключи рекламный аккаунт, и я начну."), `<button class="btn btn--main" data-act="wsCtab" data-v="map">${L("Додати проєкт","Добавить проект")}</button>`, true);
-  return `<div class="map today">${typeof tfBar === "function" ? tfBar() : ""}${on ? prOverview(pfOne()) : `<div class="panel">${empty(L("Тут будуть рішення на сьогодні.","Здесь будут решения на сегодня."), L("Підключи рекламний кабінет, і я почну.","Подключи рекламный кабинет, и я начну."), `<button class="btn btn--main" data-act="mapConn" data-id="${W.projs[0].id}">${L("Підключити кабінет","Подключить кабинет")}</button>`)}</div>`}${typeof plPanel === "function" ? pfProjs().filter(p => p.meta && p.meta.conn).map(plPanel).join("") : ""}${typeof tsToday === "function" ? tsToday() : ""}${typeof goalsBoard === "function" ? goalsBoard(pfOne()) : ""}</div>`; }
+  return `<div class="map today"><div class="ctl">${typeof tfBar === "function" ? tfBar() : ""}${typeof prHeadR === "function" ? prHeadR() : ""}</div>${on ? prOverview(pfOne()) : `<div class="panel">${empty(L("Тут будуть рішення на сьогодні.","Здесь будут решения на сегодня."), L("Підключи рекламний кабінет, і я почну.","Подключи рекламный кабинет, и я начну."), `<button class="btn btn--main" data-act="mapConn" data-id="${W.projs[0].id}">${L("Підключити кабінет","Подключить кабинет")}</button>`)}</div>`}${typeof plPanel === "function" ? pfProjs().filter(p => p.meta && p.meta.conn).map(plPanel).join("") : ""}${typeof tsToday === "function" ? tsToday() : ""}${typeof goalsBoard === "function" ? goalsBoard(pfOne()) : ""}</div>`; }
 let todayBoot = false;
 function vCompany(){ if (!todayBoot && W.co) { todayBoot = true; if (W.ctab === "map") W.ctab = "today"; }
   const t = W.ctab, tabs = [["today",L("Сьогодні","Сегодня")],["map",L("Карта","Карта")],["ads",L("Реклама","Реклама")],["site",L("Перевірка сайту","Проверка сайта")],["projects",L("Проєкти","Проекты")],["kb",L("База знань компанії","База знаний компании")],["team",L("Команда","Команда")],["set",L("Налаштування","Настройки")],["me",L("Профіль","Профиль")]];
@@ -212,7 +212,7 @@ function vCompany(){ if (!todayBoot && W.co) { todayBoot = true; if (W.ctab === 
   }[t]();
   const big = ["today","map","ads"].includes(t), ttl = {today:L("Сьогодні","Сегодня"), map:L("Карта","Карта"), ads:L("Реклама","Реклама")}[t];
   const stl = t === "today" ? todayLine() : t === "ads" ? `<p class="sub">${L("Кампанії, креативи, вебінари й звіти за період","Кампании, креативы, вебинары и отчеты за период")}</p>` : "";
-  if (big) return `<div class="head head--pg"><div><span class="tag">${esc(W.co.name)}${pfOne() ? " · " + esc(pfOne().name) : ""}</span><h1>${ttl}</h1>${stl}</div>${typeof prHeadR === "function" ? prHeadR() : ""}</div>
+  if (big) return `<div class="head head--pg"><div><span class="tag">${esc(W.co.name)}${pfOne() ? " · " + esc(pfOne().name) : ""}</span><h1>${ttl}</h1>${stl}</div>${t !== "today" && typeof prHeadR === "function" ? prHeadR() : ""}</div>
   ${body}`;
   return `<div class="head"><div><span class="tag">${t==="me"?L("Профіль","Профиль"):t==="set"?L("Налаштування компанії","Настройки компании"):W.co.kind==="agency"?L("Агентство","Агентство"):L("Компанія","Компания")}</span><h1>${esc(t==="me" ? ME.name || W.user.name || W.user.id : W.co.name)}</h1></div>
     </div>

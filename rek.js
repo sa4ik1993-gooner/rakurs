@@ -28,7 +28,7 @@ function tfLog(p, x){ const t = tfS(); if (!t.f && !t.c) return true; if (t.c &&
 function tfBar(){ const ps = pfProjs(), t = tfS(), fs = ps.flatMap(p => p.funnels.map(f => ({p, f}))); if (!fs.length) return "";
   const chs = [...new Set(fs.filter(x => tfF(x.f)).flatMap(x => x.f.ch || []))];
   if (t.c && !chs.includes(t.c)) t.c = "";
-  const sel = (k, opts, cur, lbl) => `<label class="tfb__i"><span class="lbl">${lbl}</span><select data-tf="${k}" aria-label="${lbl}">${opts.map(o => `<option value="${esc(o[0])}"${o[0] === cur ? " selected" : ""}>${esc(o[1])}</option>`).join("")}</select></label>`;
+  const sel = (k, opts, cur, lbl) => `<label class="tfb__i"><select data-tf="${k}" aria-label="${lbl}" title="${lbl}">${opts.map(o => `<option value="${esc(o[0])}"${o[0] === cur ? " selected" : ""}>${esc(o[1])}</option>`).join("")}</select></label>`;
   return `<div class="tfb" role="group" aria-label="${L("Фільтр","Фильтр")}">
     ${W.projs.length ? sel("p", [["", L("Усі проєкти","Все проекты")]].concat(W.projs.map(p => [p.id, p.name])), W.pf || "", L("Проєкт","Проект")) : ""}
     ${sel("f", [["", L("Усі воронки","Все воронки")]].concat(fs.map(x => [x.f.id, (ps.length > 1 ? x.p.name + " · " : "") + x.f.name])), t.f, L("Воронка","Воронка"))}
@@ -43,7 +43,7 @@ Object.assign(ACT, { tfReset(){ W.tf = {f:"", c:""}; W.pf = ""; save(); }, tfGo(
 /* ---------- шапка: период, свежесть данных, обновить — одной строкой справа ---------- */
 function prHeadR(){ if (!W.projs.some(prOn)) return ""; const r = prRange(), busy = W.projs.some(p => prOn(p) && fxOf(p).syncing), one = pfProjs().find(prOn) || W.projs.find(prOn);
   return `<div class="phr">${dpPick()}
-    ${prFresh(one)}<button class="btn btn--sm btn--main" data-act="prSync"${busy ? " disabled" : ""}>${ico("refresh")} ${busy ? L("Оновлюємо…","Обновляем…") : L("Оновити дані","Обновить данные")}</button></div>`; }
+    ${prFresh(one)}<button class="btn btn--sm" data-act="prSync"${busy ? " disabled" : ""}>${ico("refresh")} ${busy ? L("Оновлюємо…","Обновляем…") : L("Оновити дані","Обновить данные")}</button></div>`; }
 
 /* ---------- цена лида цветом и легенда порогов (потолок воронки) ---------- */
 const cplLv = (cpl, cap) => !cap || !cpl ? "" : cpl <= cap * 0.9 ? "good" : cpl <= cap ? "warn" : "crit";
