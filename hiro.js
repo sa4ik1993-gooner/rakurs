@@ -6,6 +6,10 @@
 function hiroEv(only){
   /* A1: фильтр воронки/канала — фильтр экрана «Сьогодні»; на «Рекламі» и «Карті» у них свои фильтры, баннер его не берёт */
   const hT = fn => W.ctab !== "today" || fn();
+  /* A1 (архитектор 26.11): на «Рекламі» баннер следует её фильтрам — платформа, акаунт, воронка (RK2), как таблица под ним */
+  const rk = W.ctab === "ads" && typeof RK2 !== "undefined" ? RK2 : null;
+  const rkRow = (p, x, o) => !rk || ((!rk.plat || (o.prov || "meta") === rk.plat) && (!rk.acc || !x.am || prAccOf(x, o.id, o.prov) === rk.acc) && (!rk.fun || (rk.fun === "-" ? !fxFunnel(p, o) : fxFunnel(p, o) === rk.fun)));
+  const rkF = f => !rk || !rk.fun || f.id === rk.fun, rkC = c => !rk || !rk.plat || c === rk.plat;
   if (typeof prOn !== "function") return null;
   const ps = (only ? [only] : pfProjs()).filter(prOn); if (!ps.length) return {none:true};
   ps.forEach(prLoad);
@@ -13,12 +17,12 @@ function hiroEv(only){
   const curs = [...new Set(ps.map(p => prCur(p) || "USD"))], cur = curs.length === 1 ? curs[0] : "USD";
   const s = {spend:0, leads:0}, v = {spend:0, leads:0}, bad = [];
   ps.forEach(p => { const x = prOf(p); if (!x.cur) return;
-    x.cur.filter(o => hT(() => tfRow(p, o))).forEach(o => { s.spend += +o.spend || 0; s.leads += +o.leads || 0; }); x.prev.filter(o => hT(() => tfRow(p, o))).forEach(o => { v.spend += +o.spend || 0; v.leads += +o.leads || 0; });
-    p.funnels.filter(f => hT(() => tfF(f))).forEach(f => (f.ch || []).filter(c => hT(() => tfC(c))).forEach(c => { const prev = prRows(p, x.prev, f, c), cap = typeof prT === "function" ? prT(f, p) : prCap(f, p);
-      prRows(p, x.cur, f, c, x).filter(o => o.spend > 0).forEach(o => { const j = prMain(prJudge(o, prev.find(q => q.id === o.id) || {}, cap, prCur(p)));
+    x.cur.filter(o => hT(() => tfRow(p, o)) && rkRow(p, x, o)).forEach(o => { s.spend += +o.spend || 0; s.leads += +o.leads || 0; }); x.prev.filter(o => hT(() => tfRow(p, o)) && rkRow(p, x, o)).forEach(o => { v.spend += +o.spend || 0; v.leads += +o.leads || 0; });
+    p.funnels.filter(f => hT(() => tfF(f)) && rkF(f)).forEach(f => (f.ch || []).filter(c => hT(() => tfC(c)) && rkC(c)).forEach(c => { const prev = prRows(p, x.prev, f, c), cap = typeof prT === "function" ? prT(f, p) : prCap(f, p);
+      prRows(p, x.cur, f, c, x).filter(o => o.spend > 0 && rkRow(p, x, o)).forEach(o => { const j = prMain(prJudge(o, prev.find(q => q.id === o.id) || {}, cap, prCur(p)));
         if (j && j.lv === "crit") bad.push({p, f, c, o, j, cap, cpl:o.leads ? o.spend / o.leads : 0}); }); })); });
   bad.sort((a, b) => b.o.spend - a.o.spend);
-  const f0 = ps[0].funnels.find(f => hT(() => tfF(f))) || ps[0].funnels[0], cap = bad[0] ? bad[0].cap : f0 ? prT(f0, ps[0]) : 0;
+  const f0 = ps[0].funnels.find(f => hT(() => tfF(f)) && rkF(f)) || ps[0].funnels[0], cap = bad[0] ? bad[0].cap : f0 ? prT(f0, ps[0]) : 0;
   return {s, v, cpl:s.leads ? s.spend / s.leads : 0, pcpl:v.leads ? v.spend / v.leads : 0, cap, cur, bad, ps, err:ps.some(p => prOf(p).err && !prOf(p).cur)};
 }
 const hiroKey = (b) => "co/" + b.p.id + "/" + b.f.id + "/" + b.c + "/" + prAK(prAccOf(prOf(b.p), b.o.id)) + "/" + b.o.id;
@@ -119,7 +123,7 @@ function hiroSay(scr){
     out.main = hiroBtn("btn--main", L("Увімкнути автопілот","Включить автопилот"), `data-act="apbToggle" data-p="${paused.id}"`, "autopilot"); return out; }
   if (!e.s.spend) { out.title = L("За цей період показів не було","За этот период показов не было"); out.text = L("Коли реклама запрацює, тут буде головне за день.","Когда реклама заработает, здесь будет главное за день."); return out; }
   /* дорого по воронке целиком (разбор в ленте Хиро) — не «всё в порядке» */
-  const acc = typeof plAcctAll === "function" ? e.ps.map(p => plAcctAll(p)).flat().filter(A => typeof tfAcct !== "function" || tfAcct(A))[0] : null; /* A1: только воронка из фильтра «Сьогодні» */
+  const acc = typeof plAcctAll === "function" ? e.ps.map(p => plAcctAll(p)).flat().filter(A => (typeof tfAcct !== "function" || tfAcct(A)) && (W.ctab !== "ads" || typeof RK2 === "undefined" || !RK2.fun || A.f.id === RK2.fun))[0] : null; /* A1: только воронка из фильтра «Сьогодні» */
   if (acc && acc.now && acc.now.ok && acc.now.better) { out.pose = "watch"; out.title = L("Сьогодні дешевше у воронці «","Сегодня дешевле в воронке «") + acc.f.name + "»"; out.text = acc.now.txt;
     out.main = scr === "today" ? hiroBtn("btn--main", L("Відкрити розбір","Открыть разбор"), 'data-act="hiroAcct"') : hiroBtn("btn--main", L("Відкрити розбір","Открыть разбор"), 'data-act="wsCtab" data-v="today"'); return out; }
   if (acc) { out.pose = "stop"; out.title = L("Дорого у воронці «","Дорого в воронке «") + acc.f.name + "»";
