@@ -1503,7 +1503,7 @@ td:first-child{font:600 var(--t-body)/1.3 var(--font-ui)}
 .plplan__tag{display:block;margin-top:2px;color:var(--good);font-size:var(--t-small)}
 /* вывод и гипотезы в разборе «дорого» */
 .plconcl{border-top:0;padding-top:0}
-.plconcl__t{margin:0;font:600 var(--t-body)/1.45 var(--font-display)}
+.plconcl__t{margin:0;font:600 var(--t-body)/1.45 var(--font-ui)} /* 26.11 Дмитрий: «плывет UX» — вывод тем же шрифтом, что текст карточки, не заголовочным */
 .plconcl .placc li>span{display:block}
 /* риск действия и модуль «Перевірка сайту» */
 .plrisk{margin:0;font-size:var(--t-small);color:var(--muted)}
@@ -1933,3 +1933,6 @@ body:has(.mpop) .modal{z-index:62}
 .decsum__ok dd{color:var(--plus)}.decsum__bad dd{color:var(--minus)}
 .decsum__pl{margin:var(--s-2) 0 0}
 @media (max-width:640px){.dect table{min-width:560px}.dect__in .decn,.dect__in .decsn{min-width:96px}.dect__pc .tin{width:60px}}
+/* 26.11 Дмитрий «плывет UX»: открытое меню «⋯» уходило под следующий блок — поднимаем блок с открытым меню над соседями (D8) */
+.card:has(.uxmore[open]), section:has(.uxmore[open]), li:has(.uxmore[open]){position:relative;z-index:30}
+.uxmore[open] > .uxmore__m{z-index:40}
