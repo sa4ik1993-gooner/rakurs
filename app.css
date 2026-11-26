@@ -1909,3 +1909,26 @@ body:has(.mpop) .modal{z-index:62}
   .navg{flex-direction:column}
   .navg a{white-space:normal;overflow:hidden}
 }
+/* декомпозиция таблицей (26.11): пути с галочкой, шаги с конверсией, люди из 1 000 лидов, чек, выручка */
+.dect{margin-top:var(--s-2)}
+.dect table{width:100%;border-collapse:collapse;min-width:640px}
+.dect th{font:600 10px/1.2 var(--font-display);text-transform:uppercase;color:var(--muted);text-align:left;padding:var(--s-2) var(--s-2);border-bottom:1px solid var(--line)}
+.dect th.n,.dect td.n{text-align:right}
+.dect td{padding:var(--s-1) var(--s-2);border-bottom:1px solid var(--line);vertical-align:middle;font:500 var(--t-data) var(--font-ui)}
+.dect .num{font-weight:700;font-variant-numeric:tabular-nums}
+.dect__ck,.dect td:first-child{width:32px}.dect__x,.dect td:last-child{width:32px;text-align:center}
+.dect__lead td{background:var(--paper);height:40px}
+.dect__path td{height:44px;border-top:1px solid var(--line-strong)}
+.dect__st td{border-bottom-color:transparent;height:36px}
+.dect__add td{padding-top:0;padding-bottom:var(--s-2)}
+.dect__in{display:flex;align-items:center;gap:var(--s-2);min-width:0}
+.dect__st .dect__in{padding-left:calc(var(--badge-col) + var(--s-2))}
+.dect__in .decn{flex:1 1 auto;min-width:120px}
+.dect__in .decsn{flex:1 1 auto;min-width:120px;max-width:none}
+.dect__pc{display:inline-flex;align-items:center;gap:var(--s-1);white-space:nowrap}.dect__pc .tin{width:72px;text-align:right}
+.dect tr.is-off td{color:var(--muted)}.dect tr.is-off input:not([type=checkbox]),.dect tr.is-off .num{opacity:.45}
+.dect__more{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s-2);margin-top:var(--s-3)}
+.dect__more .chip{cursor:pointer;background:var(--surface);display:inline-flex;align-items:center;gap:var(--s-1);font:600 var(--t-small) var(--font-ui);border-radius:var(--r-pill);padding:var(--s-1) var(--s-3)}
+.dect__more .chip .ic{width:14px;height:14px}
+.decsum__ok dd{color:var(--plus)}.decsum__bad dd{color:var(--minus)}
+.decsum__pl{margin:var(--s-2) 0 0}
