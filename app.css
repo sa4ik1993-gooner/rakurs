@@ -1902,3 +1902,10 @@ body:has(.mpop) .modal{z-index:62}
 .plcnt--bad{background:var(--minus-soft);color:var(--minus)}
 .plsub{list-style:none;margin:var(--s-3) 0 var(--s-1);font:700 var(--t-label)/1.2 var(--font-display);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .plsub--bad{color:var(--minus)}
+/* D9 (QA 25.11): 761–900px — блок «@media (max-width:900px)» в начале файла делает меню строкой сверху, а более поздний — колонкой 72px;
+   строка в колонке 72px уходила под шапку, и меню не было видно. На этой ширине меню — узкая колонка с иконками, как на компьютере. */
+@media (min-width:761px) and (max-width:900px){
+  .rail{position:sticky;top:0;height:100vh;flex-direction:column;align-items:stretch;overflow-x:hidden;overflow-y:auto}
+  .navg{flex-direction:column}
+  .navg a{white-space:normal;overflow:hidden}
+}
