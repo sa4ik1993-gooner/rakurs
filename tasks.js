@@ -350,7 +350,7 @@ document.addEventListener("keydown", e => { if (e.key === "Escape" && TS.open) {
 /* на «Сегодня»: охват выбирается из воронок и аккаунтов */
 TS.sc = "";
 /* Рекомендации: платформа сама находит кампании, которые можно масштабировать без потери качества, и спрашивает «да / нет».
-   Условия: ≥10 лидов за 7 дней, лид не дороже 90% потолка воронки, за последние 3 дня цена лида не выросла больше чем на 10% и есть ≥3 лида.
+   Условия: ≥10 лидов за 7 дней, лид не дороже 90% цели автопилота (tsCap), за последние 3 дня цена лида не выросла больше чем на 10% и есть ≥3 лида.
    «Да» — задача из двух шагов (поднять на 15%, проверка через 3 дня); бюджет в Meta меняет рекламодатель. «Нет» — не предлагать 7 дней. */
 const OF_KEY = "heyrow_offers";
 const ofSeen = () => { try { const o = JSON.parse(localStorage.getItem(OF_KEY) || "{}"), now = Date.now(); Object.keys(o).forEach(k => { if (o[k] < now) delete o[k]; }); return o; } catch (e) { return {}; } };
@@ -368,22 +368,22 @@ async function tsOffLoad(p){ if (TS.offBusy[p.id]) return; TS.offBusy[p.id] = tr
     const sure = o => { const acc = accOf(o), ch = tsCh(o.provider); if (!acc || !work(ch).includes(acc)) return "";
       const r = {id:o.campaign_id, f:o.funnel_id || "", name:o.campaign_name, prov:ch, acc}; return typeof fxAuto === "function" && fxAuto(p, r) ? "" : fxFunnel(p, r); };
     (a.data || []).forEach(o => { const fid = sure(o), f = fid && p.funnels.find(z => z.id === fid); if (!f || busy.has(o.campaign_id)) return;
-      const l7 = +o.leads || 0, s7 = +o.spend || 0, c7 = l7 ? s7 / l7 : 0, cap = fT(f, p).cap, r3 = b3[o.campaign_id] || {}, l3 = +r3.leads || 0, s3 = +r3.spend || 0, c3 = l3 ? s3 / l3 : 0;
+      const l7 = +o.leads || 0, s7 = +o.spend || 0, c7 = l7 ? s7 / l7 : 0, cap = tsCap(p, f), /* B2: цель автопилота, не потолок воронки (QA P2 24.11) */ r3 = b3[o.campaign_id] || {}, l3 = +r3.leads || 0, s3 = +r3.spend || 0, c3 = l3 ? s3 / l3 : 0;
       if (l7 < 10 || !c7 || !cap || c7 > cap * 0.9 || l3 < 3 || c3 > c7 * 1.1 || s3 <= 0) return;
       const lm = tsLrnOf(p, o.campaign_id); if (lm && (lm.status === "LEARNING" || tsHours(lm.edit) < 48)) return;
       const ch = tsCh(o.provider), acc = accOf(o);
       out.push({id:o.campaign_id, name:o.campaign_name, f:fid, fname:f.name, ch, acc, c7, c3, cap, day:s3 / 3, l7}); });
-    /* эффективные, но не в работе: за 30 дней ≥10 лидов и лид ≤ 90% потолка, за последние 2 дня расхода нет */
+    /* эффективные, но не в работе: за 30 дней ≥10 лидов и лид ≤ 90% цели автопилота, за последние 2 дня расхода нет */
     const idle = [], live2 = new Set((m2.data || []).filter(o => +o.spend > 0).map(o => o.campaign_id)), cf = {};
     (m30.data || []).forEach(o => { const fid = sure(o), f = fid && p.funnels.find(z => z.id === fid); cf[o.campaign_id] = f;
-      if (!f || live2.has(o.campaign_id) || busy.has(o.campaign_id)) return; const l = +o.leads || 0, sp = +o.spend || 0, c = l ? sp / l : 0, cap = fT(f, p).cap;
+      if (!f || live2.has(o.campaign_id) || busy.has(o.campaign_id)) return; const l = +o.leads || 0, sp = +o.spend || 0, c = l ? sp / l : 0, cap = tsCap(p, f);
       const w7 = (a.data || []).find(z => z.campaign_id === o.campaign_id), off7 = !w7 || !(+w7.spend > 0);
       if (l >= 10 && c && cap && c <= cap * 0.9) idle.push({off7, kind:"camp", id:o.campaign_id, name:o.campaign_name, f:fid, fname:f.name, ch:tsCh(o.provider), acc:accOf(o), cpl:c, cap, l30:l, day:sp / 30}); });
     const base = n => (typeof rsBase === "function" ? rsBase(n) : n) || n, cr = {}, cr2 = new Set((c2.data || []).filter(o => +o.spend > 0).map(o => base(o.ad_name)));
     (c30.data || []).forEach(o => { const f = cf[o.campaign_id]; if (!f || !o.ad_name) return; const k = base(o.ad_name), t = cr[k] = cr[k] || {name:k, spend:0, leads:0, f, orig:{}, camps:{}};
       t.spend += +o.spend || 0; t.leads += +o.leads || 0; t.orig[o.ad_name] = (t.orig[o.ad_name] || 0) + (+o.spend || 0);
       const cm = t.camps[o.campaign_id] = t.camps[o.campaign_id] || {id:o.campaign_id, name:o.campaign_name || o.campaign_id, spend:0, leads:0, live:live2.has(o.campaign_id), acc:accOf(o), ch:tsCh(o.provider)}; cm.spend += +o.spend || 0; cm.leads += +o.leads || 0; });
-    Object.values(cr).forEach(t => { const c = t.leads ? t.spend / t.leads : 0, cap = fT(t.f, p).cap; if (!(t.leads >= 10 && c && cap && c <= cap * 0.9 && !cr2.has(t.name))) return;
+    Object.values(cr).forEach(t => { const c = t.leads ? t.spend / t.leads : 0, cap = tsCap(p, t.f); if (!(t.leads >= 10 && c && cap && c <= cap * 0.9 && !cr2.has(t.name))) return;
       const full = Object.keys(t.orig).sort((a, b) => t.orig[b] - t.orig[a]), camps = Object.values(t.camps).sort((a, b) => b.leads - a.leads || b.spend - a.spend);
       idle.push({kind:"cr", id:"cr:" + t.name, name:full[0] || t.name, vers:full, camps, f:t.f.id, fname:t.f.name, cpl:c, cap, l30:t.leads}); });
     TS.off[p.id] = {at:Date.now(), list:out.sort((m, n) => (m.c7 / m.cap) - (n.c7 / n.cap)), idle:idle.sort((m, n) => (m.cpl / m.cap) - (n.cpl / n.cap))}; }
@@ -399,7 +399,7 @@ function tsOffers(ps){ if (!CLOUD || typeof sb === "undefined" || !sb) return ""
   const idle = []; ps.filter(tsOfOn).forEach(p => ((tsOfGet(p).idle) || []).filter(c => !seen[c.id] && tsOfOk(c)).forEach(c => idle.push([p, c])));
   TS.cnt = Object.assign(TS.cnt || {}, {idle:idle.length});
   const ib = idle.length ? `<div class="tso tso--idle"><span class="tag">${L("Ефективні, але не в роботі","Эффективные, но не в работе")} · ${idle.length}</span>${idle.slice(0, 3).map(([p, c]) => `<div class="tsoc"><div><b class="nm">${esc(c.name)}</b> <span class="sub">${c.kind === "cr" ? L("креатив · ","креатив · ") : ""}${esc((ps.length > 1 ? p.name + " · " : "") + c.fname)}</span></div>
-      <div>${L("За 30 днів ","За 30 дней ")}${num(c.l30)}${L(" лідів за "," лидов по ")}${tsM(c.cpl)}${L(" за граничної ціни "," при потолке ")}${tsM(c.cap)}${L(", а останні 2 дні показів немає. ",", а последние 2 дня показов нет. ")}${c.kind === "cr" ? L("Запустити його знову окремою новою групою? (Нове оголошення в робочій групі скидає її навчання.)","Запустить его снова отдельной новой группой? (Новое объявление в рабочей группе сбрасывает ее обучение.)") : L("Увімкнути знову?","Включить снова?") + (c.off7 ? L(" Вона стояла 7+ днів — після увімкнення знову пройде навчання, перші дні лід дорожчий."," Она стояла 7+ дней — после включения снова пройдет обучение, первые дни лид дороже.") : "")}</div>
+      <div>${L("За 30 днів ","За 30 дней ")}${num(c.l30)}${L(" лідів за "," лидов по ")}${tsM(c.cpl)}${L(" при цілі "," при цели ")}${tsM(c.cap)}${L(", а останні 2 дні показів немає. ",", а последние 2 дня показов нет. ")}${c.kind === "cr" ? L("Запустити його знову окремою новою групою? (Нове оголошення в робочій групі скидає її навчання.)","Запустить его снова отдельной новой группой? (Новое объявление в рабочей группе сбрасывает ее обучение.)") : L("Увімкнути знову?","Включить снова?") + (c.off7 ? L(" Вона стояла 7+ днів — після увімкнення знову пройде навчання, перші дні лід дорожчий."," Она стояла 7+ дней — после включения снова пройдет обучение, первые дни лид дороже.") : "")}</div>
       ${c.kind === "cr" ? `<div class="sub tsow">${c.vers.length > 1 ? L("Версії: ","Версии: ") + c.vers.slice(0, 4).map(esc).join(", ") + "<br>" : ""}${L("Крутився в: ","Крутился в: ")}${c.camps.slice(0, 4).map(m => `<button type="button" class="lnk" data-act="prGo" data-k="${esc("co/" + p.id + "/" + c.f + "/" + m.ch + "/" + prAK(m.acc) + "/" + m.id)}">${esc(m.name)}</button> — ${tsM(m.spend)}, ${num(m.leads)}${L(" лідів"," лидов")}${m.acc ? " · " + esc(prAccName(p, m.acc, m.ch)) : ""} ${m.live ? pill("good", L("іде","идет")) : pill("mute", L("зупинена","остановлена"))}`).join("; ")}${c.camps.length > 4 ? L(" і ще "," и еще ") + (c.camps.length - 4) : ""}</div>` : ""}
       <div class="row"><button type="button" class="btn btn--sm btn--solid" data-act="ofIdle" data-p="${p.id}" data-id="${esc(c.id)}">${L("Так","Да")}</button><button type="button" class="btn btn--sm" data-act="ofNo" data-id="${esc(c.id)}">${L("Ні","Нет")}</button></div></div>`).join("")}</div>` : "";
   return ib; }
@@ -483,7 +483,7 @@ Object.assign(ACT, {
       : (() => { const live = (c.camps || []).find(m => m.live), best = (c.camps || [])[0];
           return L("Запусти креатив ","Запусти креатив ") + c.name + L(" новою групою"," новой группой") + (live ? L(" у кампанії "," в кампании ") + live.name + L(" (вона зараз іде) — не додавай його в робочу групу: нове оголошення скидає її навчання"," (она сейчас идет) — не добавляй его в рабочую группу: новое объявление сбрасывает ее обучение") : best ? L(". Кампанія, де він працював (",". Кампания, где он работал (") + best.name + L("), зупинена","), остановлена") : "") + L(". Запуск → «+ Група в кампанію».",". Запуск → «+ Группа в кампанию»."); })();
     p.tasks = p.tasks || []; p.tasks.unshift({id:uid(), text:(c.kind === "camp" ? L("Повернути в роботу: ","Вернуть в работу: ") : L("Повернути креатив: ","Вернуть креатив: ")) + c.name, type:"scale", o:{guard:"num", cpl:c.cpl * 1.1}, scope:s, status:"run", at:new Date().toISOString(), started:t0, start:t0,
-      guard:c.cap, target:0, base:{day:0, cpl:c.cpl, leads:c.l30}, note:"", steps:[{d:t0, t:step, act:c.kind === "cr" ? "launch" : ""}, {d:tsDay(t0, 3), t:L("Перевірка: 3 дні, ціна ліда не вища за граничну ціну $","Проверка: 3 дня, цена лида не выше потолка $") + dec(c.cap) + ".", check:1}]});
+      guard:c.cap, target:0, base:{day:0, cpl:c.cpl, leads:c.l30}, note:"", steps:[{d:t0, t:step, act:c.kind === "cr" ? "launch" : ""}, {d:tsDay(t0, 3), t:L("Перевірка: 3 дні, ціна ліда не вища за ціль ","Проверка: 3 дня, цена лида не выше цели ") + tsM(c.cap) + ".", check:1}]});
     TS.off[p.id].idle = TS.off[p.id].idle.filter(x => x.id !== c.id); save(); toast(L("Задачу поставлено","Задача поставлена")); },
   ofNo(d){ const o = ofSeen(); o[d.id] = Date.now() + 7 * 864e5; try { localStorage.setItem(OF_KEY, JSON.stringify(o)); } catch (e) { /* */ } },
   tsMode(d){ const [p, t] = tsT(d); if (!t) return false; const x = t.steps.find(y => y.dup); if (!x) return false; x.mode = d.v; x.t = d.v === "adset" ? x.tA : x.tC; save(); },
