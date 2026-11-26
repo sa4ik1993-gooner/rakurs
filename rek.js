@@ -59,7 +59,7 @@ function prHeadR(){ if (!W.projs.some(prOn)) return ""; const r = prRange(), bus
 /* ---------- цена лида цветом и легенда порогов (потолок воронки) ---------- */
 const cplLv = (cpl, cap) => !cap || !cpl ? "" : cpl <= cap * 0.9 ? "good" : cpl <= cap ? "warn" : "crit";
 const cplCell = (cpl, cap, cur) => cpl ? `<span class="cpl cpl--${cplLv(cpl, cap) || "n"}">${prM(cpl, cur)}</span>` : "—";
-const cplLegend = (cap, cur) => cap ? `<div class="cplg"><span class="cpl cpl--good">≤ ${prM(cap * 0.9, cur)}</span><span class="cpl cpl--warn">${L("до ","до ")}${prM(cap, cur)}</span><span class="cpl cpl--crit">&gt; ${prM(cap, cur)}</span><small class="sub">${L("гранична ціна ліда воронки","потолок цены лида воронки")}</small></div>` : "";
+const cplLegend = (cap, cur) => cap ? `<div class="cplg"><span class="cpl cpl--good">≤ ${prM(cap * 0.9, cur)}</span><span class="cpl cpl--warn">${L("до ","до ")}${prM(cap, cur)}</span><span class="cpl cpl--crit">&gt; ${prM(cap, cur)}</span><small class="sub">${L("ціль ліда воронки","цель лида воронки")}</small></div>` : "";
 
 /* ---------- выгрузка в Excel: CSV с «;» и BOM, Excel открывает сам ---------- */
 function csvSave(name, rows){ const s = "﻿" + rows.map(r => r.map(v => { const t = v == null ? "" : String(v); return /[;"\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; }).join(";")).join("\n");
