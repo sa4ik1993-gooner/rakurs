@@ -15,15 +15,16 @@ function hiroEv(only){
   ps.forEach(prLoad);
   if (ps.some(p => !prOf(p).cur && !prOf(p).err)) return {load:true};
   const curs = [...new Set(ps.map(p => prCur(p) || "USD"))], cur = curs.length === 1 ? curs[0] : "USD";
-  const s = {spend:0, leads:0}, v = {spend:0, leads:0}, bad = [];
+  /* fs — только кампании воронок: с целью воронки сравниваем их, а не весь аккаунт (A4) */
+  const s = {spend:0, leads:0}, v = {spend:0, leads:0}, fs = {spend:0, leads:0}, bad = [];
   ps.forEach(p => { const x = prOf(p); if (!x.cur) return;
-    x.cur.filter(o => hT(() => tfRow(p, o)) && rkRow(p, x, o)).forEach(o => { s.spend += +o.spend || 0; s.leads += +o.leads || 0; }); x.prev.filter(o => hT(() => tfRow(p, o)) && rkRow(p, x, o)).forEach(o => { v.spend += +o.spend || 0; v.leads += +o.leads || 0; });
+    x.cur.filter(o => hT(() => tfRow(p, o)) && rkRow(p, x, o)).forEach(o => { s.spend += +o.spend || 0; s.leads += +o.leads || 0; if (fxFunnel(p, o)) { fs.spend += +o.spend || 0; fs.leads += +o.leads || 0; } }); x.prev.filter(o => hT(() => tfRow(p, o)) && rkRow(p, x, o)).forEach(o => { v.spend += +o.spend || 0; v.leads += +o.leads || 0; });
     p.funnels.filter(f => hT(() => tfF(f)) && rkF(f)).forEach(f => (f.ch || []).filter(c => hT(() => tfC(c)) && rkC(c)).forEach(c => { const prev = prRows(p, x.prev, f, c), cap = typeof prT === "function" ? prT(f, p) : prCap(f, p);
       prRows(p, x.cur, f, c, x).filter(o => o.spend > 0 && rkRow(p, x, o)).forEach(o => { const j = prMain(prJudge(o, prev.find(q => q.id === o.id) || {}, cap, prCur(p)));
         if (j && j.lv === "crit") bad.push({p, f, c, o, j, cap, cpl:o.leads ? o.spend / o.leads : 0}); }); })); });
   bad.sort((a, b) => b.o.spend - a.o.spend);
   const f0 = ps[0].funnels.find(f => hT(() => tfF(f)) && rkF(f)) || ps[0].funnels[0], cap = bad[0] ? bad[0].cap : f0 ? prT(f0, ps[0]) : 0;
-  return {s, v, cpl:s.leads ? s.spend / s.leads : 0, pcpl:v.leads ? v.spend / v.leads : 0, cap, cur, bad, ps, err:ps.some(p => prOf(p).err && !prOf(p).cur)};
+  return {s, v, fs, fcpl:fs.leads ? fs.spend / fs.leads : 0, cpl:s.leads ? s.spend / s.leads : 0, pcpl:v.leads ? v.spend / v.leads : 0, cap, cur, bad, ps, err:ps.some(p => prOf(p).err && !prOf(p).cur)};
 }
 const hiroKey = (b) => "co/" + b.p.id + "/" + b.f.id + "/" + b.c + "/" + prAK(prAccOf(prOf(b.p), b.o.id)) + "/" + b.o.id;
 const hiroBtn = (cls, t, attrs, icon) => `<button type="button" class="btn ${cls}" ${attrs}>${icon ? ico(icon) + " " : ""}${t}</button>`;
@@ -131,8 +132,9 @@ function hiroSay(scr){
     out.main = scr === "today" ? hiroBtn("btn--main", L("Відкрити розбір","Открыть разбор"), 'data-act="hiroAcct"') : hiroBtn("btn--main", L("Відкрити розбір","Открыть разбор"), 'data-act="wsCtab" data-v="today"'); return out; }
   /* дорожче цілі, але даних ще замало для висновку — так і кажемо, без «все в порядку» */
   const tgt = e.ps.map(p => { const st = typeof PL !== "undefined" ? PL.st[p.id] : null; return st && st.settings ? Number(st.settings.target_cpl) || 0 : 0; }).find(x => x > 0) || e.cap;
-  if (tgt && (e.cpl > tgt * 1.1 || (!e.s.leads && e.s.spend > tgt * 2))) { out.pose = "watch";
-    out.title = e.s.leads ? L("Лід ","Лид ") + m(e.cpl) + L(" — дорожче за ціль "," — дороже цели ") + m(tgt) : L("Витрачено ","Потрачено ") + m(e.s.spend) + L(", лідів поки немає",", лидов пока нет");
+  /* A4 (архитектор 26.11): с целью воронки сравниваем цену лида кампаний воронок, а не всего аккаунта (тестовые кампании вне воронки тянули среднее вниз) */
+  if (tgt && (e.fcpl > tgt * 1.1 || (!e.fs.leads && e.fs.spend > tgt * 2))) { out.pose = "watch";
+    out.title = e.fs.leads ? L("Лід у воронках ","Лид в воронках ") + m(e.fcpl) + L(" — дорожче за ціль "," — дороже цели ") + m(tgt) : L("Витрачено у воронках ","Потрачено в воронках ") + m(e.fs.spend) + L(", лідів поки немає",", лидов пока нет");
     out.text = L("Цифри дня попередні: Meta дораховує ліди до 3 днів, тому рішення ухвалюю за 3 дні.","Цифры дня предварительные: Meta досчитывает лиды до 3 дней, поэтому решение принимаю по 3 дням.");
     if (scr !== "ads") out.main = hiroBtn("btn--main", L("Відкрити рекламу","Открыть рекламу"), 'data-act="wsCtab" data-v="ads"'); return out; }
   const better = e.pcpl && e.cpl && e.cpl < e.pcpl * 0.97;
