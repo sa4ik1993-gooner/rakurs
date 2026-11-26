@@ -1932,3 +1932,4 @@ body:has(.mpop) .modal{z-index:62}
 .dect__more .chip .ic{width:14px;height:14px}
 .decsum__ok dd{color:var(--plus)}.decsum__bad dd{color:var(--minus)}
 .decsum__pl{margin:var(--s-2) 0 0}
+@media (max-width:640px){.dect table{min-width:560px}.dect__in .decn,.dect__in .decsn{min-width:96px}.dect__pc .tin{width:60px}}
