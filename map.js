@@ -62,6 +62,8 @@ function pathRead(pre){ const n = (document.getElementById(pre + "-pname") || {}
   if (!n.trim() || st.split(" → ").length < 2) { fieldErr(pre + (n.trim() ? "-psteps" : "-pname"), n.trim() ? L("Перелічи хоча б два кроки через кому","Перечисли хотя бы два шага через запятую") : L("Назви шлях","Назови путь")); return null; }
   return pathAdd(n.trim(), st); }
 const plural = (n, a, b, c) => { const m = n % 100, k = n % 10; return n + " " + (m > 10 && m < 20 ? c : k === 1 ? a : k > 1 && k < 5 ? b : c); };
+/* «1 лід / 2 ліди / 5 лідів» — число лидов всегда с правильным окончанием (LANGUAGE.md; архитектор 26.11: было «1 лідів», «2 лідів») */
+const pLd = n => { const r = Math.round(+n || 0); return plural(r, L("лід","лид"), L("ліди","лида"), L("лідів","лидов")).replace(/^\d+/, num(r)); };
 
 /* ---------- план воронки по каналам ----------
    Доля — часть бюджета воронки на канал, %. Что задано — как задано, остальным каналам остаток поровну. */

@@ -127,12 +127,12 @@ const RK_REPS = () => [["cpl", L("Ціна ліда за кампаніями","
 function rkRepText(){ const r = prRange(), {rows} = rkRows(), list = rkFilter(rows).filter(x => x.spend > 0), lines = [], t = RK_REPS().find(x => x[0] === RK2.rep)[1];
   lines.push(t + " · " + prLabel(r) + (pfOne() ? " · " + pfOne().name : ""));
   const tot = rkSum(list), cur = list.length ? list[0].cur : "";
-  lines.push(L("Разом: ","Итого: ") + prM(tot.spend, cur) + ", " + num(tot.leads) + L(" лідів"," лидов") + (tot.leads ? L(" за "," по ") + prM(tot.spend / tot.leads, cur) : "") + (tot.pay ? ", " + num(tot.pay) + L(" оплат"," оплат") : ""));
+  lines.push(L("Разом: ","Итого: ") + prM(tot.spend, cur) + ", " + pLd(tot.leads) + (tot.leads ? L(" за "," по ") + prM(tot.spend / tot.leads, cur) : "") + (tot.pay ? ", " + num(tot.pay) + L(" оплат"," оплат") : ""));
   const mark = (v, cap) => ({good:L("[у плані]","[в плане]"), warn:L("[трохи вище]","[чуть выше]"), crit:L("[дорого]","[дорого]")})[cplLv(v, cap)] || "[—]";
-  if (RK2.rep === "cpl") list.sort((a, b) => b.spend - a.spend).slice(0, 25).forEach(x => { const c = rkVal(x, "cpl"); lines.push(mark(c, x.cap) + " " + x.name + " — " + prM(x.spend, x.cur) + ", " + num(x.leads) + L(" лідів"," лидов") + (c ? L(" за "," по ") + prM(c, x.cur) : "")); });
+  if (RK2.rep === "cpl") list.sort((a, b) => b.spend - a.spend).slice(0, 25).forEach(x => { const c = rkVal(x, "cpl"); lines.push(mark(c, x.cap) + " " + x.name + " — " + prM(x.spend, x.cur) + ", " + pLd(x.leads) + (c ? L(" за "," по ") + prM(c, x.cur) : "")); });
   if (RK2.rep === "cpo") list.filter(x => x.pay).sort((a, b) => a.spend / a.pay - b.spend / b.pay).slice(0, 25).forEach(x => lines.push(x.name + " — " + num(x.pay) + L(" оплат, ціна оплати "," оплат, цена оплаты ") + prM(x.spend / x.pay, x.cur) + (x.rev ? ", ROAS " + dec(x.rev / x.spend, 2) : "")));
   if (RK2.rep === "cpo" && !list.some(x => x.pay)) lines.push(L("Оплат за період немає — завантаж продажі.","Оплат за период нет — загрузи продажи."));
-  if (RK2.rep === "cr") rkCrRows().list.filter(c => c.spend > 0).sort((a, b) => (a.leads ? a.spend / a.leads : 1e9) - (b.leads ? b.spend / b.leads : 1e9)).slice(0, 25).forEach(c => { const v = rkVal(c, "cpl"); lines.push(mark(v, c.cap) + " " + c.name + " — " + prM(c.spend, c.cur) + ", " + num(c.leads) + L(" лідів"," лидов") + (v ? L(" за "," по ") + prM(v, c.cur) : "")); });
+  if (RK2.rep === "cr") rkCrRows().list.filter(c => c.spend > 0).sort((a, b) => (a.leads ? a.spend / a.leads : 1e9) - (b.leads ? b.spend / b.leads : 1e9)).slice(0, 25).forEach(c => { const v = rkVal(c, "cpl"); lines.push(mark(v, c.cap) + " " + c.name + " — " + prM(c.spend, c.cur) + ", " + pLd(c.leads) + (v ? L(" за "," по ") + prM(v, c.cur) : "")); });
   return lines.join("\n"); }
 function rkRep(){ const txt = rkRepText();
   return `<div class="panel rk"><div class="row rkr">${ddSel("rk.rep", RK_REPS(), RK2.rep, L("Звіт","Отчет"), "rkPick", "rep", false)}
