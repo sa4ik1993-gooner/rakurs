@@ -148,15 +148,15 @@ function prDelta(a, b, costly){ if (!b || !isFinite(a / b)) return ""; const d =
 const prKpi = (l, v, d) => `<div class="kpi"><small>${l}</small><strong>${v}</strong>${d || ""}</div>`;
 /* главная цифра экрана — цена лида (heyrow-ui/DESIGN.md п. 6); пометка Хиро (обводка + подпись) — только на обзоре «Сегодня» */
 const DOODLE_CIRCLE = '<svg class="dd" viewBox="0 0 200 70" preserveAspectRatio="none" aria-hidden="true"><path d="M24 38C10 14 78 4 128 8c44 4 62 30 28 46-40 18-128 12-134-14-3-14 22-26 58-29"/></svg>';
-function prHero(cpl, pcpl, cur, cap, note){ if (!cpl) return "";
+function prHero(cpl, pcpl, cur, cap, note){ if (!cpl) return ""; const td0 = note && typeof note === "object";
   const d = pcpl ? cpl / pcpl - 1 : 0, pc = Math.round(Math.abs(d) * 100) + "%", same = !pcpl || Math.abs(d) < 0.03;
-  const cmp = pcpl ? (same ? L("як у минулому періоді","как в прошлом периоде") : `<span class="${d < 0 ? "d-plus" : "d-minus"}">${d < 0 ? "−" : "+"}${pc}</span> ${L("до минулого періоду","к прошлому периоду")}`) : "";
+  const cmp = pcpl ? (same ? L("як у минулому періоді","как в прошлом периоде") : `<span class="${d < 0 ? "d-plus" : "d-minus"}">${d < 0 ? "−" : "+"}${pc}</span> ${td0 ? L("до вчора (","ко вчера (") + prM(pcpl, cur) + ")" : L("до минулого періоду","к прошлому периоду")}`) : "";
   /* «Сегодня»: подорожание за неполный день — не повод паниковать (Dmitry 27.11.2026). До 10:00 Киева или при < 5 лидах цена ещё выровняется;
      после — Хиро следит каждый час; «готую план» — только когда судья нашёл критичную кампанию. Рядом — цена за прошлые полные дни. */
   const td = note && typeof note === "object" ? note : null, calm = td && d > 0 && !td.crit, early = calm && (td.hour < 10 || td.leads < 5);
-  const hand = note && !same ? (d < 0 ? L("на " + pc + " дешевше, ніж було","на " + pc + " дешевле, чем было")
-    : early ? L("ранок, ціна ще вирівняється","утро, цена еще выровняется") : calm ? L("на " + pc + " дорожче, стежу щогодини","на " + pc + " дороже, слежу каждый час")
-    : td ? L("на " + pc + " дорожче, готую план","на " + pc + " дороже, готовлю план") : L("на " + pc + " дорожче, розбираюся","на " + pc + " дороже, разбираюсь")) : "";
+  const hand = note && !same ? (d < 0 ? (td ? L("на " + pc + " дешевше, ніж учора","на " + pc + " дешевле, чем вчера") : L("на " + pc + " дешевше, ніж було","на " + pc + " дешевле, чем было"))
+    : early ? L("ранок, ціна ще вирівняється","утро, цена еще выровняется") : calm ? L("на " + pc + " дорожче, ніж учора","на " + pc + " дороже, чем вчера")
+    : td ? L("на " + pc + " дорожче, ніж учора — готую план","на " + pc + " дороже, чем вчера — готовлю план") : L("на " + pc + " дорожче, розбираюся","на " + pc + " дороже, разбираюсь")) : "";
   const base = calm && !same && td.bcpl ? `<p class="hero__note">${L("За ","За ") + td.blbl + " — " + prM(td.bcpl, cur) + L(" за лід. "," за лид. ") + (early ? L("Після 10:00 перевіряю щогодини; стане критично — запропоную вимкнути й нову стратегію.","После 10:00 проверяю каждый час; станет критично — предложу выключить и новую стратегию.") : L("Перевіряю щогодини; стане критично — запропоную вимкнути й нову стратегію.","Проверяю каждый час; станет критично — предложу выключить и новую стратегию."))}</p>` : "";
   return `<div class="hero__main"><span class="hero__lbl">${L("Ціна ліда","Цена лида")}</span><span class="hero__n">${prM(cpl, cur)}${hand ? DOODLE_CIRCLE : ""}</span><span class="hero__cmp">${cmp}${cap ? (cmp ? " · " : "") + L("ціль ","цель ") + prM(cap) : ""}</span>${hand ? `<span class="hand">${hand}</span>` : ""}</div>${base}`; }
 function prKpis(s, v, cap, cur){ const cpl = s.leads ? s.spend / s.leads : 0, pcpl = v.leads ? v.spend / v.leads : 0, sales = s.book || s.pay;
