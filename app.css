@@ -1004,6 +1004,7 @@ tbody tr:hover>td{background:var(--paper)}
 .hero__lbl{color:var(--muted);font-weight:500}
 .hero__n{font:800 var(--t-hero)/1 var(--font-display);font-variant-numeric:tabular-nums;letter-spacing:-.02em;position:relative;display:inline-block}
 .hero__cmp{font:400 var(--t-data) var(--font-data);color:var(--muted)}
+.hero__note{flex-basis:100%;order:1;margin:0;font:400 var(--t-data) var(--font-data);color:var(--muted)}
 .kpis{display:flex;flex-wrap:wrap;gap:var(--s-3) 0;background:none;border:0;border-radius:0;overflow:visible}
 .kpi{background:none;border:0;border-left:1px solid var(--line);border-radius:0;box-shadow:none;padding:0 var(--s-5);gap:var(--s-1);min-width:0}
 .kpi:first-child{border-left:0;padding-left:0}
